@@ -46,11 +46,16 @@ Edit `.env` and configure:
 # Required
 OPENAI_API_KEY=sk-your-key-here
 
+# Required (Milestone 1.2+)
+DATABASE_URL=postgresql://user:password@localhost:5432/otterly_go
+
 # Optional (with defaults)
 OPENAI_MODEL=gpt-3.5-turbo
 PORT=3001
 CLIENT_URL=http://localhost:5173
 ```
+
+**Database Setup**: See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for detailed PostgreSQL setup instructions.
 
 **Troubleshooting API Key Issues:**
 - Make sure your API key starts with `sk-proj-` or `sk-`
@@ -161,14 +166,19 @@ The conversation engine instructs the LLM to:
 - Offline mode
 - Real-time content scraping
 
-**Completed (Milestone 1.1)** ✅:
-- ✅ Backend API proxy to secure API keys
-- ✅ Rate limiting (20 req/min per IP)
-- ✅ Request validation and error recovery
+**Completed Milestones**:
+- ✅ **Milestone 1.1** (2025-10-06): Backend API proxy to secure API keys
+  - Rate limiting (20 req/min per IP)
+  - Request validation and error recovery
+- ✅ **Milestone 1.2** (2025-10-06): Database Setup
+  - PostgreSQL database with Prisma ORM
+  - Schema for users, trips, and conversations
+  - Connection pooling and health checks
+  - See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for setup instructions
 
 **Next Steps** (See [DEVELOPMENT.md](./DEVELOPMENT.md)):
-- Database setup (PostgreSQL)
-- User authentication
+- Milestone 1.3: Trip CRUD API (create, read, update, delete endpoints)
+- User authentication (Milestone 2.1)
 - Real content sources (Xiaohongshu API, travel blogs)
 - Image optimization and CDN
 - Analytics and user feedback loops
@@ -209,10 +219,16 @@ This project follows a phased development plan outlined in [DEVELOPMENT.md](./DE
   - Rate limiting and request validation
   - See [MILESTONE_1.1_SUMMARY.md](./MILESTONE_1.1_SUMMARY.md) for details
 
-- **🚧 Phase 1 - Milestone 1.2** (Next): Database Setup
-  - PostgreSQL database for trips and conversations
-  - User authentication system
-  - Trip CRUD operations
+- **✅ Phase 1 - Milestone 1.2** (Completed 2025-10-06): Database Setup
+  - PostgreSQL with Prisma ORM
+  - Schema for users, trips, and conversations
+  - Connection pooling and health checks
+  - See [DATABASE_SETUP.md](./DATABASE_SETUP.md)
+
+- **🚧 Phase 1 - Milestone 1.3** (Next): Trip CRUD API
+  - REST endpoints for trip management
+  - Replace localStorage with database persistence
+  - User authentication foundations
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for the complete roadmap to production.
 

@@ -30,7 +30,9 @@ npm run preview
 npm run lint
 ```
 
-## API Key Configuration
+## Configuration
+
+### API Key Setup (Milestone 1.1)
 
 The app requires an OpenAI API key configured on the **backend server**:
 
@@ -39,6 +41,22 @@ The app requires an OpenAI API key configured on the **backend server**:
 3. Optionally configure `OPENAI_MODEL` (defaults to `gpt-3.5-turbo`)
 
 **Security Note**: As of Milestone 1.1 (2025-10-06), API keys are stored server-side only. The frontend never sees or handles API keys.
+
+### Database Setup (Milestone 1.2)
+
+The app uses **PostgreSQL** with **Prisma ORM** for data persistence:
+
+1. Set up a PostgreSQL database (local or hosted)
+2. Add `DATABASE_URL` to `.env` (see `.env.example` for format)
+3. Run migrations: `npx prisma migrate deploy`
+4. Verify connection: `curl http://localhost:3001/health/db`
+
+**For detailed setup instructions**, see [DATABASE_SETUP.md](./DATABASE_SETUP.md)
+
+**Schema**:
+- `users` - Account information (email, password_hash, subscription_tier)
+- `trips` - Trip itineraries with JSON data (user_id, title, destination, dates, data_json)
+- `conversations` - Chat history for trips (trip_id, messages_json)
 
 ## Architecture Overview
 
@@ -206,3 +224,9 @@ Edit the `SYSTEM_PROMPT` constant in `server/routes/chat.ts`. The prompt include
   - 401: Invalid OpenAI API key in backend `.env`
   - 429: OpenAI rate limit exceeded or too many requests
   - 402: Insufficient OpenAI credits
+- **Database connection errors?**
+  - Check `DATABASE_URL` is set in `.env`
+  - Verify database is running: `pg_isready` (for local PostgreSQL)
+  - Test connection: `curl http://localhost:3001/health/db`
+  - Check migrations applied: `npx prisma migrate status`
+  - View database in GUI: `npx prisma studio`
