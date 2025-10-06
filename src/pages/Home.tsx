@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 import { Chat } from '../components/Chat';
 import { ItineraryView } from '../components/ItineraryView';
 import { getConversationEngine } from '../services/conversationEngine';
-import type { ItineraryItem } from '../types';
+import type { ItineraryItem, QuickReply } from '../types';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -53,7 +53,8 @@ export default function Home() {
       addMessage({
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: greeting,
+        content: greeting.message,
+        quickReplies: greeting.quickReplies,
         timestamp: Date.now(),
       });
       setConversationState('eliciting');
@@ -98,6 +99,7 @@ export default function Home() {
         role: 'assistant' as const,
         content: response.message,
         suggestionCard: response.suggestion,
+        quickReplies: response.quickReplies,
         timestamp: Date.now(),
       };
       addMessage(assistantMsg);
@@ -179,6 +181,11 @@ export default function Home() {
       dayIndex + 1
     }?`;
     handleSendMessage(message);
+  };
+
+  const handleQuickReplyClick = (reply: QuickReply) => {
+    // Send the quick reply text as a message
+    handleSendMessage(reply.text);
   };
 
   const handleLogout = async () => {
@@ -309,6 +316,7 @@ export default function Home() {
             onSendMessage={handleSendMessage}
             onAddSuggestionToDay={handleAddSuggestionToDay}
             onSkipSuggestion={handleSkipSuggestion}
+            onQuickReplyClick={handleQuickReplyClick}
             isLoading={isLoading}
             maxDays={trip?.days.length || 0}
           />

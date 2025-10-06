@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, QuickReply } from '../types';
 import { SuggestionCard } from './SuggestionCard';
+import { QuickRepliesContainer } from './QuickRepliesContainer';
 
 interface ChatProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
   onAddSuggestionToDay: (suggestionId: string, dayIndex: number) => void;
   onSkipSuggestion: (suggestionId: string) => void;
+  onQuickReplyClick: (reply: QuickReply) => void;
   isLoading: boolean;
   maxDays: number;
 }
@@ -16,6 +18,7 @@ export function Chat({
   onSendMessage,
   onAddSuggestionToDay,
   onSkipSuggestion,
+  onQuickReplyClick,
   isLoading,
   maxDays,
 }: ChatProps) {
@@ -33,6 +36,16 @@ export function Chat({
       onSendMessage(input.trim());
       setInput('');
     }
+  };
+
+  const handleQuickReplyClick = (reply: QuickReply) => {
+    // If action is "custom", just focus the input instead of sending the text
+    if (reply.action === 'custom') {
+      inputRef.current?.focus();
+      return;
+    }
+    // Otherwise, send the quick reply text as a message
+    onQuickReplyClick(reply);
   };
 
   return (
@@ -67,6 +80,15 @@ export function Chat({
                     maxDays={maxDays}
                   />
                 </div>
+              )}
+
+              {/* Render quick replies if present (only for assistant messages) */}
+              {message.role === 'assistant' && message.quickReplies && (
+                <QuickRepliesContainer
+                  quickReplies={message.quickReplies}
+                  onQuickReplyClick={handleQuickReplyClick}
+                  disabled={isLoading}
+                />
               )}
             </div>
           </div>

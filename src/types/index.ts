@@ -72,11 +72,17 @@ export interface SuggestionCard {
   duration?: string;
 }
 
+export interface QuickReply {
+  text: string;
+  action: 'info' | 'confirm' | 'alternative' | 'custom';
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   suggestionCard?: SuggestionCard;
+  quickReplies?: QuickReply[];
   timestamp: number;
 }
 

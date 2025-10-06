@@ -120,6 +120,116 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 - Option 2: Allow manual import via trip ID
 - Option 3: Grandfather existing localStorage users (keep temporary IDs for backward compatibility)
 
+### Milestone 2.4: Conversational UX Enhancement with Quick Replies
+**Goal**: Transform the chatbot experience into an engaging, guided conversation with intelligent candidate answers
+
+**Background**:
+The current chatbot can ask multiple questions at once and lacks guidance for users. This milestone introduces a more soliciting, one-question-at-a-time approach with context-aware quick reply options. Users can either click a suggested answer or type their own response, making the experience faster and more intuitive.
+
+**Example Flow**:
+```
+Bot: "I see you're planning a trip to Peru! Are you interested in visiting Machu Picchu?"
+Quick Replies: [Tell me more about Machu Picchu] [Yes, include it] [No, other places] [Type your own...]
+```
+
+#### Backend Implementation:
+- [ ] Update system prompt to adopt a more engaging, soliciting tone
+- [ ] Modify system prompt to ask ONE focused question at a time (avoid multi-question messages)
+- [ ] Extend JSON response format to include `quickReplies` array:
+  ```typescript
+  {
+    type: "message",
+    message: "Are you interested in visiting Machu Picchu?",
+    quickReplies: [
+      { text: "Tell me more about Machu Picchu", action: "info" },
+      { text: "Yes, include it in my trip", action: "confirm" },
+      { text: "No, show me other options", action: "alternative" }
+    ]
+  }
+  ```
+- [ ] Implement context-aware candidate generation logic in system prompt:
+  - Destination-specific suggestions (e.g., Machu Picchu for Peru, Eiffel Tower for Paris)
+  - User preference tracking (budget, travel style, interests mentioned)
+  - Trip phase awareness (planning vs. refining vs. modifying)
+- [ ] Add validation for quickReplies format (Zod schema)
+- [ ] Ensure quick reply suggestions are relevant and actionable
+
+#### Frontend Implementation:
+- [ ] Create `QuickReplyButton` component:
+  - Pill-shaped buttons with hover/active states
+  - Icon support for common actions (✓ for confirm, ℹ️ for info, ✕ for decline)
+  - Responsive design (stack on mobile, inline on desktop)
+- [ ] Create `QuickRepliesContainer` component to display buttons below assistant messages
+- [ ] Update `Chat.tsx` to render quick replies when present in message
+- [ ] Implement quick reply click handler:
+  - Populate message input with selected text
+  - Auto-send message (or allow user to edit before sending)
+  - Animate transition (smooth scroll, fade-in/fade-out)
+- [ ] Add "Type your own response" option as final quick reply
+- [ ] Hide quick replies after user responds (maintain message history clarity)
+- [ ] Add loading state for quick reply selections (immediate feedback)
+
+#### Conversation Flow Enhancements:
+- [ ] Implement one-question-at-a-time strategy:
+  - Track conversation phase (initial → destination → dates → preferences → itinerary → refinement)
+  - Only ask follow-up after user responds to current question
+  - Prevent AI from asking multiple questions in single message
+- [ ] Add conversation pacing logic:
+  - Progressive disclosure (don't overwhelm with all options upfront)
+  - Smart question ordering (destination → when → how long → style → specific interests)
+- [ ] Create fallback mechanism when user types custom response instead of clicking quick reply
+- [ ] Add "Go back" quick reply option when appropriate (allow users to revise earlier answers)
+
+#### System Prompt Refinement:
+- [ ] Rewrite system prompt with engaging, helpful tone (avoid robotic language)
+- [ ] Add examples of good quick reply suggestions:
+  - Action-oriented ("Add to itinerary", "Tell me more", "Skip this")
+  - Context-specific ("Visit in morning", "Visit in afternoon", "Make it a full day")
+  - Preference-based ("Budget-friendly options", "Luxury experiences", "Hidden gems")
+- [ ] Add prompt instructions for progressive refinement:
+  - Start broad ("Where do you want to go?")
+  - Then narrow ("Which regions interest you most?")
+  - Then specific ("Day 1 activities?")
+- [ ] Include prompt guidelines for candidate diversity:
+  - Mix of confirmations, alternatives, and exploratory options
+  - At least 2-4 quick replies per question (not too few, not overwhelming)
+  - Always include an "other" or "custom" option
+
+#### Testing & Validation:
+- [ ] Test conversation flows for major destinations (Peru, Japan, Italy, Thailand, etc.)
+- [ ] Validate quick reply relevance across different trip types (adventure, luxury, family, solo)
+- [ ] A/B test quick reply vs. free-form input conversion rates
+- [ ] Ensure accessibility (keyboard navigation, screen reader support for quick replies)
+- [ ] Test on mobile devices (tap targets, readability, layout)
+- [ ] Monitor AI adherence to one-question rule (log violations, refine prompt)
+
+#### Analytics & Monitoring:
+- [ ] Track quick reply click-through rate (% of users who click vs. type)
+- [ ] Log most/least popular quick reply options per context
+- [ ] Measure conversation completion rate improvement (compare before/after)
+- [ ] Track average messages to itinerary generation (should decrease with better guidance)
+
+**Acceptance Criteria**:
+- ✅ Chatbot asks ONE clear question at a time (no multi-part questions)
+- ✅ Every question includes 2-4 relevant quick reply options
+- ✅ Users can click quick reply OR type custom response
+- ✅ Quick replies are context-aware (e.g., Machu Picchu suggestions for Peru trips)
+- ✅ Conversation tone is engaging, helpful, and soliciting (not robotic)
+- ✅ Quick reply click rate >40% (indicates users find suggestions helpful)
+- ✅ Time to itinerary generation decreases by >20% (faster planning)
+
+**UX Success Metrics**:
+- Quick reply usage rate: >40%
+- Conversation completion rate: >70%
+- User satisfaction (survey): >4.5/5
+- Average messages to itinerary: <15 (down from ~20)
+
+**Implementation Notes**:
+- Start with hardcoded quick replies for common scenarios, then enhance with AI-generated suggestions
+- Consider caching frequent quick reply sets (e.g., "Tell me more" is always an option)
+- Design system should support both light/dark modes for quick reply buttons
+- Ensure quick replies don't clutter UI on narrow screens (responsive breakpoints)
+
 ---
 
 ## Phase 3: Enhanced Features (Weeks 6-8)
@@ -418,4 +528,4 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 
 ---
 
-**Last Updated**: 2025-10-06
+**Last Updated**: 2025-10-06 (Milestone 2.4 added)
