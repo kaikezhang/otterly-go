@@ -15,6 +15,40 @@ export const chatRequestSchema = z.object({
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 
+// Schema for creating a trip
+export const createTripSchema = z.object({
+  userId: z.string().min(1), // Temporary: will be replaced with auth in Milestone 2.1
+  title: z.string().min(1).max(200),
+  destination: z.string().min(1).max(200),
+  startDate: z.string().datetime(), // ISO 8601 datetime string
+  endDate: z.string().datetime(),
+  tripData: z.any(), // Full Trip object from frontend
+  messages: z.array(z.any()).optional(), // Conversation messages
+});
+
+export type CreateTripRequest = z.infer<typeof createTripSchema>;
+
+// Schema for updating a trip
+export const updateTripSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  destination: z.string().min(1).max(200).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  tripData: z.any().optional(), // Updated Trip object
+  messages: z.array(z.any()).optional(), // Updated conversation messages
+});
+
+export type UpdateTripRequest = z.infer<typeof updateTripSchema>;
+
+// Schema for query parameters
+export const tripListQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  userId: z.string().min(1), // Temporary: will be from auth token in Milestone 2.1
+});
+
+export type TripListQuery = z.infer<typeof tripListQuerySchema>;
+
 // Validation middleware factory
 export function validateRequest<T extends z.ZodType>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -30,6 +64,27 @@ export function validateRequest<T extends z.ZodType>(schema: T) {
       } else {
         res.status(400).json({
           error: 'Invalid request',
+        });
+      }
+    }
+  };
+}
+
+// Query parameter validation middleware factory
+export function validateQuery<T extends z.ZodType>(schema: T) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.query = schema.parse(req.query) as any;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: error.issues,
+        });
+      } else {
+        res.status(400).json({
+          error: 'Invalid query parameters',
         });
       }
     }

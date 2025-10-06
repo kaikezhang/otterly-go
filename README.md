@@ -170,15 +170,20 @@ The conversation engine instructs the LLM to:
 - ✅ **Milestone 1.1** (2025-10-06): Backend API proxy to secure API keys
   - Rate limiting (20 req/min per IP)
   - Request validation and error recovery
+  - See [MILESTONE_1.1_SUMMARY.md](./MILESTONE_1.1_SUMMARY.md)
 - ✅ **Milestone 1.2** (2025-10-06): Database Setup
   - PostgreSQL database with Prisma ORM
   - Schema for users, trips, and conversations
   - Connection pooling and health checks
-  - See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for setup instructions
+  - See [MILESTONE_1.2_SUMMARY.md](./MILESTONE_1.2_SUMMARY.md) and [DATABASE_SETUP.md](./DATABASE_SETUP.md)
+- ✅ **Milestone 1.3** (2025-10-06): Trip CRUD API
+  - Full REST API for trip management
+  - Auto-save with database persistence
+  - Pagination and error handling
+  - See [MILESTONE_1.3_SUMMARY.md](./MILESTONE_1.3_SUMMARY.md)
 
 **Next Steps** (See [DEVELOPMENT.md](./DEVELOPMENT.md)):
-- Milestone 1.3: Trip CRUD API (create, read, update, delete endpoints)
-- User authentication (Milestone 2.1)
+- **Milestone 2.1**: User authentication (registration, login, JWT)
 - Real content sources (Xiaohongshu API, travel blogs)
 - Image optimization and CDN
 - Analytics and user feedback loops
@@ -225,10 +230,17 @@ This project follows a phased development plan outlined in [DEVELOPMENT.md](./DE
   - Connection pooling and health checks
   - See [DATABASE_SETUP.md](./DATABASE_SETUP.md)
 
-- **🚧 Phase 1 - Milestone 1.3** (Next): Trip CRUD API
-  - REST endpoints for trip management
-  - Replace localStorage with database persistence
-  - User authentication foundations
+- **✅ Phase 1 - Milestone 1.3** (Completed 2025-10-06): Trip CRUD API
+  - REST endpoints for trip management (POST, GET, PATCH, DELETE)
+  - Database persistence with auto-save
+  - Pagination support
+  - See [MILESTONE_1.3_SUMMARY.md](./MILESTONE_1.3_SUMMARY.md)
+
+- **🚧 Phase 2 - Milestone 2.1** (Next): Authentication System
+  - User registration and login
+  - JWT token-based auth
+  - Protected routes
+  - Replace temporary userId with real auth
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for the complete roadmap to production.
 
