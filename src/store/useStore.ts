@@ -151,6 +151,13 @@ export const useStore = create<StoreState>()(
             const user = await response.json();
             set({ user, isAuthLoading: false });
           } else {
+            // If auth fails, clear the invalid cookie
+            if (response.status === 401) {
+              await fetch(`${API_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+              });
+            }
             set({ user: null, isAuthLoading: false });
           }
         } catch (error) {

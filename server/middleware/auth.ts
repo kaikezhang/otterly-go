@@ -19,6 +19,9 @@ declare global {
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
+    console.log('[AUTH] Cookies received:', Object.keys(req.cookies));
+    console.log('[AUTH] Raw Cookie header:', req.headers.cookie);
+
     const token = req.cookies.auth_token;
 
     if (!token) {
