@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Map, { Marker, Popup, NavigationControl, GeolocateControl, Layer, Source } from 'react-map-gl/mapbox';
+import type { MapRef } from 'react-map-gl/mapbox';
 import type { Trip, ItineraryItem } from '../types';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -33,6 +34,7 @@ const TYPE_ICONS: Record<string, string> = {
 interface MapViewProps {
   trip: Trip;
   selectedDayIndex?: number | null;
+  isVisible?: boolean;
 }
 
 interface MarkerData {
@@ -42,7 +44,8 @@ interface MarkerData {
   color: string;
 }
 
-export function MapView({ trip, selectedDayIndex }: MapViewProps) {
+export function MapView({ trip, selectedDayIndex, isVisible = true }: MapViewProps) {
+  const mapRef = useRef<MapRef>(null);
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 0,
@@ -51,6 +54,16 @@ export function MapView({ trip, selectedDayIndex }: MapViewProps) {
 
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [routeGeometry, setRouteGeometry] = useState<GeoJSON.LineString | null>(null);
+
+  // Resize map when component becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        mapRef.current?.resize();
+      }, 350); // Wait for transition to complete
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
 
   // Collect all markers from trip days
   const markers = useMemo(() => {
@@ -226,6 +239,7 @@ export function MapView({ trip, selectedDayIndex }: MapViewProps) {
   return (
     <div className="h-full relative">
       <Map
+        ref={mapRef}
         {...viewState}
         onMove={(evt) => setViewState(evt.viewState)}
         mapboxAccessToken={MAPBOX_TOKEN}
