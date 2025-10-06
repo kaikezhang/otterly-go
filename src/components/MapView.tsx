@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+// @ts-ignore - react-map-gl has export resolution issues with some bundlers
 import Map, { Marker, Popup, NavigationControl, GeolocateControl, Layer, Source } from 'react-map-gl';
 import type { Trip, ItineraryItem } from '../types';
 import 'mapbox-gl/dist/mapbox-gl.css';
