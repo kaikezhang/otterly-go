@@ -207,15 +207,15 @@ Interactive quick reply buttons for guided conversation flow. Users can click su
 
 ---
 
-## Phase 3: Enhanced Features (Weeks 6-8)
+## Phase 3: Enhanced Features ✅ **COMPLETED** (Weeks 6-8)
 
 **Goal**: Transform the planning experience with visual maps, intuitive editing, rich media, and seamless sharing
 
-**Implementation Order**:
-1. **Week 6**: Milestone 3.2 (Direct Editing) - Immediate UX improvement
-2. **Week 7**: Milestone 3.1 (Map Integration) - High visual impact
-3. **Week 8**: Milestone 3.4 (Export/Sharing) - Viral growth driver
-4. **Week 8+**: Milestone 3.3 (Media) - Nice-to-have, can defer if needed
+**What Was Completed**:
+1. ✅ Milestone 3.1: Map Integration (Mapbox with auto-geocoding)
+2. ✅ Milestone 3.2: Direct Editing & Manipulation (drag-and-drop, inline editing)
+3. ✅ Milestone 3.3: Visual Content Library (Unsplash integration)
+4. ✅ Milestone 3.4: Public Share Links (secure shareable URLs)
 
 ---
 
@@ -536,13 +536,67 @@ interface TripPhoto {
 
 ---
 
-### Milestone 3.4: Export & Sharing
+### Milestone 3.4: Public Share Links ✅ **COMPLETED** (2025-10-06)
 
-**Goal**: Enable users to share trips and export for offline use
+**Goal**: Enable users to share trips via secure public URLs
 
-#### Export Features:
+#### What Was Built:
 
-##### PDF Export:
+##### Public Share Links:
+- [x] Added `publicShareToken`, `sharePassword`, `shareExpiresAt`, `shareViewCount` columns to trips table
+- [x] Created `GET /api/share/:token` public route (no auth required)
+- [x] Implemented `POST /api/trips/:id/share` endpoint (generate/retrieve share link)
+- [x] Implemented `DELETE /api/trips/:id/share` endpoint (revoke share link)
+- [x] Created `ShareButton` component with modal UI
+- [x] Generate shareable link with copy-to-clipboard button
+- [x] Created read-only public view at `/share/:token` route
+- [x] Track share link views (analytics)
+- [x] Display owner name and view count on shared trip page
+- [x] "Plan Your Own Trip" CTA on shared trip pages
+
+#### Database Schema:
+```typescript
+interface Trip {
+  // ... existing fields
+  publicShareToken?: string; // UUID for public links
+  sharePassword?: string; // Reserved for future password protection
+  shareExpiresAt?: Date; // Reserved for future link expiration
+  shareViewCount: number; // Analytics (auto-incremented on each view)
+}
+```
+
+#### Key Features:
+- **Secure tokens**: crypto.randomUUID() for unguessable share links
+- **Idempotent**: Generating link multiple times returns same token
+- **Privacy-first**: Only exposes owner name and picture (no email)
+- **Read-only**: Shared trips cannot be edited by viewers
+- **View tracking**: Automatic view count incrementation
+- **Responsive**: Works on mobile and desktop (tabs/split-view)
+- **Auto-save integration**: Share button disabled until trip saved to database
+
+**Acceptance Criteria**:
+- ✅ Users can generate shareable links for their trips
+- ✅ Public share links work without authentication
+- ✅ Share links display read-only trip view
+- ✅ Share link analytics track views
+- ✅ Users can revoke share links
+- ✅ Share button properly handles auto-save states
+
+**Implementation Details**: See [MILESTONE_3.4_SUMMARY.md](./MILESTONE_3.4_SUMMARY.md) and [PR #15](https://github.com/kaikezhang/otterly-go/pull/15)
+
+**Technical Stack**:
+- Backend: Express.js, Prisma, crypto.randomUUID()
+- Frontend: React, TypeScript, Tailwind CSS, react-router-dom
+- Components: ShareButton (modal), SharedTrip (public view page)
+- Security: JWT auth for share management, no auth for viewing
+
+---
+
+### Future Enhancements for Milestone 3.4 (Deferred)
+
+The following features were part of the original Milestone 3.4 scope but have been deferred to future development:
+
+#### PDF Export (Future):
 - [ ] Install PDF library (`react-pdf` or `jsPDF` with `html2canvas`)
 - [ ] Create print-optimized trip template (clean, minimal layout)
 - [ ] Generate PDF with cover page, day-by-day breakdown, maps
@@ -552,14 +606,14 @@ interface TripPhoto {
 - [ ] Add PDF customization options (include/exclude sections)
 - [ ] Optimize PDF size (compress images, vector graphics)
 
-##### Calendar Integration:
+#### Calendar Integration (Future):
 - [ ] Generate .ics file (iCalendar format) for Google/Apple Calendar
 - [ ] Create events for each day/activity with time slots
 - [ ] Add location data to calendar events (for navigation)
 - [ ] Include trip notes in event descriptions
 - [ ] Add "Add to Calendar" button with provider options
 
-##### Email Itinerary:
+#### Email Itinerary (Future):
 - [ ] Create email template (HTML with inline CSS)
 - [ ] Add `POST /api/trips/:id/email` endpoint
 - [ ] Use email service (SendGrid, Mailgun, or Resend)
@@ -567,62 +621,21 @@ interface TripPhoto {
 - [ ] Include attachments (PDF optional)
 - [ ] Add email preview before sending
 
-#### Sharing Features:
-
-##### Public Share Links:
-- [ ] Add `publicShareToken` column to trips table (UUID)
-- [ ] Create `GET /share/:token` public route (no auth required)
-- [ ] Generate shareable link with copy-to-clipboard button
-- [ ] Create read-only public view (simplified layout)
-- [ ] Add "Clone this trip" button for logged-in users viewing shared trips
-- [ ] Implement link expiration (optional, default: never)
-- [ ] Add password protection option for sensitive trips
-- [ ] Track share link views (analytics)
-
-##### Collaboration:
+#### Collaboration Features (Future):
 - [ ] Add `trip_shares` table (trip_id, shared_with_email, permission)
 - [ ] Create share modal ("Invite collaborators by email")
-- [ ] Implement `POST /api/trips/:id/share` endpoint
+- [ ] Implement collaborative share endpoint with permissions
 - [ ] Add permission levels: view-only, can-edit, can-manage
 - [ ] Send email invitations to collaborators
 - [ ] Show "Shared with" section in trip settings
 - [ ] Add real-time sync for collaborative editing (WebSocket or polling)
 
-#### Data Model Updates:
-```typescript
-interface Trip {
-  // ... existing fields
-  publicShareToken?: string; // UUID for public links
-  sharePassword?: string; // Hashed, optional
-  shareExpiresAt?: Date; // Optional expiration
-  shareViewCount?: number; // Analytics
-}
-
-interface TripShare {
-  id: string;
-  tripId: string;
-  sharedWithEmail: string;
-  permission: 'view' | 'edit' | 'manage';
-  createdAt: Date;
-  acceptedAt?: Date;
-}
-```
-
-**Acceptance Criteria**:
-- ✅ Users can download PDF itineraries (formatted beautifully)
-- ✅ Users can export to Google/Apple Calendar (.ics file)
-- ✅ Users can email itineraries to themselves or friends
-- ✅ Public share links work without authentication
-- ✅ Shared trips display "Clone" button for inspiration
-- ✅ Collaborators can edit trips in real-time (if permission granted)
-- ✅ Share link analytics track views
-
-**Technical Considerations**:
-- **Privacy**: Public links should not expose user email/profile
-- **Security**: Password-protected shares use bcrypt hashing
-- **Performance**: Cache generated PDFs (regenerate on edit)
-- **Mobile**: Email/PDF should be mobile-friendly
-- **Collaboration conflicts**: Use operational transformation or CRDTs for real-time editing (or simpler: lock editing when another user active)
+#### Advanced Share Features (Future):
+- [ ] Implement link expiration (utilize `shareExpiresAt` field)
+- [ ] Add password protection option (utilize `sharePassword` field with bcrypt)
+- [ ] Add "Clone this trip" button for logged-in users viewing shared trips
+- [ ] Social media sharing (Open Graph meta tags)
+- [ ] Embed widget for external websites
 
 ---
 
@@ -915,4 +928,4 @@ Based on current screenshot analysis:
 
 ---
 
-**Last Updated**: 2025-10-06 (Milestone 3.3 Visual Content Library completed - Unsplash integration with auto cover photos and suggestion cards)
+**Last Updated**: 2025-10-06 (Milestone 3.4 Public Share Links completed - Secure shareable URLs with read-only public views and view tracking)
