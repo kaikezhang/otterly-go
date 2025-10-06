@@ -612,6 +612,17 @@ router.post('/bulk', validateRequest(bulkOperationSchema), async (req: Request, 
         }
         result = { duplicated: duplicatedTrips.length, tripIds: duplicatedTrips };
         break;
+
+      case 'complete':
+        // Mark trips as completed
+        await prisma.trip.updateMany({
+          where: { id: { in: body.tripIds } },
+          data: {
+            status: 'completed',
+          },
+        });
+        result = { completed: body.tripIds.length };
+        break;
     }
 
     res.json({
