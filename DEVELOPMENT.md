@@ -64,18 +64,18 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 
 **Goal**: Enable secure multi-user access with Google OAuth
 
-### Milestone 2.1: Google OAuth Authentication System
-- [ ] Set up Google Cloud Console project and OAuth 2.0 credentials
-- [ ] Install OAuth libraries (`passport`, `passport-google-oauth20` or use `@react-oauth/google`)
-- [ ] Implement Google OAuth callback endpoint (`GET /api/auth/google/callback`)
-- [ ] Create user lookup/creation flow (match Google email to users table)
-- [ ] Generate JWT tokens after successful Google auth
-- [ ] Create protected route middleware (verify JWT on protected endpoints)
-- [ ] Implement token refresh mechanism
-- [ ] Add session management (store refresh tokens in database)
-- [ ] Configure Google OAuth consent screen
+### Milestone 2.1: Google OAuth Authentication System ✅ **COMPLETED** (2025-10-06)
+- [x] Set up Google Cloud Console project and OAuth 2.0 credentials
+- [x] Install OAuth libraries (`passport`, `passport-google-oauth20`)
+- [x] Implement Google OAuth callback endpoint (`GET /api/auth/google/callback`)
+- [x] Create user lookup/creation flow (match Google email to users table)
+- [x] Generate JWT tokens after successful Google auth
+- [x] Create protected route middleware (verify JWT on protected endpoints)
+- [x] Implement session management (httpOnly cookies for JWT)
+- [x] Update database schema (add googleId, name, picture fields)
+- [x] Fix environment variable loading for tsx
 
-**Acceptance Criteria**: Users can sign in with Google and access only their own trips
+**Acceptance Criteria**: ✅ Users can sign in with Google and access only their own trips
 
 **Technical Notes**:
 - Google OAuth flow: User clicks "Sign in with Google" → Redirects to Google → User approves → Google redirects to callback → Backend creates/finds user → Issues JWT
@@ -83,18 +83,18 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 - Add `googleId` column to users table (migration needed)
 - No password storage needed (remove `passwordHash` requirement from schema)
 
-### Milestone 2.2: Frontend Google Auth Integration
-- [ ] Add "Sign in with Google" button (using Google's official button or custom UI)
-- [ ] Implement OAuth redirect flow (initiate Google auth on button click)
-- [ ] Handle OAuth callback redirect (receive JWT from backend)
-- [ ] Store JWT in httpOnly cookies (secure, not accessible to JavaScript)
-- [ ] Add auth context provider (Zustand auth slice or React Context)
-- [ ] Add route guards for authenticated pages (redirect to login if no JWT)
-- [ ] Create logout functionality (clear JWT cookie, revoke Google token optionally)
-- [ ] Handle token expiration gracefully (auto-refresh or prompt re-login)
-- [ ] Replace temporary `userId` system with real authenticated user ID
+### Milestone 2.2: Frontend Google Auth Integration ✅ **COMPLETED** (2025-10-06)
+- [x] Add "Sign in with Google" button (using Google's official button or custom UI)
+- [x] Implement OAuth redirect flow (initiate Google auth on button click)
+- [x] Handle OAuth callback redirect (receive JWT from backend)
+- [x] Store JWT in httpOnly cookies (secure, not accessible to JavaScript)
+- [x] Add auth context provider (Zustand auth slice or React Context)
+- [x] Add route guards for authenticated pages (redirect to login if no JWT)
+- [x] Create logout functionality (clear JWT cookie, revoke Google token optionally)
+- [x] Handle token expiration gracefully (auto-refresh or prompt re-login)
+- [x] Replace temporary `userId` system with real authenticated user ID
 
-**Acceptance Criteria**: Unauthenticated users see Google login; authenticated users see personalized dashboard
+**Acceptance Criteria**: ✅ Unauthenticated users see Google login; authenticated users see personalized dashboard
 
 **UI/UX Notes**:
 - Landing page shows "Sign in with Google" button
