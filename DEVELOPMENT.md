@@ -1345,11 +1345,11 @@ Based on user testing and design review, the following improvements have been im
 ### Milestone 5.3: Security Hardening
 - [ ] Add HTTPS everywhere (enforced redirects)
 - [ ] Implement CSRF protection
-- [ ] Add Content Security Policy headers
-- [ ] Set up CORS properly
-- [ ] Add input validation on all endpoints (Zod)
+- [x] Add Content Security Policy headers
+- [x] Set up CORS properly
+- [x] Add input validation on all endpoints (Zod)
 - [ ] Implement API request signing
-- [ ] Run security audit (npm audit, Snyk)
+- [x] Run security audit (npm audit, Snyk)
 - [ ] Add DDoS protection (Cloudflare)
 - [ ] Implement session timeout/revocation
 - [ ] Add 2FA option (authenticator apps)

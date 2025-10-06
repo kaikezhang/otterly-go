@@ -1,9 +1,29 @@
 import express from 'express';
+import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { prisma } from '../db.js';
 
 const router = express.Router();
+
+// Validation schemas
+const dateRangeQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+const paginationQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).optional(),
+  offset: z.string().regex(/^\d+$/).optional(),
+});
+
+const userSearchQuerySchema = paginationQuerySchema.extend({
+  search: z.string().optional(),
+});
+
+const usageByDateQuerySchema = dateRangeQuerySchema.extend({
+  interval: z.enum(['day', 'week', 'month']).optional(),
+});
 
 /**
  * GET /api/admin/usage/overview
@@ -11,7 +31,16 @@ const router = express.Router();
  */
 router.get('/usage/overview', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    // Validate query parameters
+    const validation = dateRangeQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const { startDate, endDate } = validation.data;
 
     // Build date filter
     const dateFilter: any = {};
@@ -83,7 +112,16 @@ router.get('/usage/overview', requireAuth, requireAdmin, async (req, res) => {
  */
 router.get('/usage/by-user', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { limit = '50', offset = '0' } = req.query;
+    // Validate query parameters
+    const validation = paginationQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const { limit = '50', offset = '0' } = validation.data;
 
     // Get usage by user
     const usageByUser = await prisma.apiUsage.groupBy({
@@ -144,7 +182,16 @@ router.get('/usage/by-user', requireAuth, requireAdmin, async (req, res) => {
  */
 router.get('/usage/by-date', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { startDate, endDate, interval = 'day' } = req.query;
+    // Validate query parameters
+    const validation = usageByDateQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const { startDate, endDate, interval = 'day' } = validation.data;
 
     // Build date filter
     const dateFilter: any = {};
@@ -201,7 +248,16 @@ router.get('/usage/by-date', requireAuth, requireAdmin, async (req, res) => {
  */
 router.get('/users', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { limit = '50', offset = '0', search } = req.query;
+    // Validate query parameters
+    const validation = userSearchQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const { limit = '50', offset = '0', search } = validation.data;
 
     // Build search filter
     const searchFilter: any = {};

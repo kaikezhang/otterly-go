@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
+import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chatRouter from './routes/chat.js';
@@ -51,10 +52,63 @@ const PORT = process.env.PORT || 3001;
 // Configure Passport
 configurePassport();
 
-// Middleware
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for Vite dev mode
+        "https://accounts.google.com",
+        "https://js.stripe.com",
+        "https://api.mapbox.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for styled components and Vite
+        "https://api.mapbox.com",
+        "https://fonts.googleapis.com"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://images.unsplash.com",
+        "https://*.mapbox.com",
+        "https://lh3.googleusercontent.com" // Google profile photos
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://api.mapbox.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.mapbox.com",
+        "https://events.mapbox.com",
+        "https://accounts.google.com",
+        "https://api.stripe.com"
+      ],
+      frameSrc: [
+        "https://accounts.google.com",
+        "https://js.stripe.com"
+      ],
+      workerSrc: ["'self'", "blob:"]
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Required for external images
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// CORS configuration
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'],
+  maxAge: 600 // 10 minutes
 }));
 
 // Webhook routes MUST come before express.json() to preserve raw body

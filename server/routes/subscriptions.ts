@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { z } from 'zod';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { prisma } from '../db';
 import {
@@ -10,6 +11,11 @@ import {
 } from '../services/stripe';
 
 const router = express.Router();
+
+// Validation schemas
+const checkoutSchema = z.object({
+  tier: z.enum(['pro', 'team']),
+});
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -92,11 +98,16 @@ router.get('/status', optionalAuth, async (req: Request, res: Response) => {
  */
 router.post('/checkout', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { tier } = req.body;
-
-    if (!tier || !['pro', 'team'].includes(tier)) {
-      return res.status(400).json({ error: 'Invalid subscription tier' });
+    // Validate request body
+    const validation = checkoutSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid request',
+        details: validation.error.errors
+      });
     }
+
+    const { tier } = validation.data;
 
     // MOCK MODE: Simulate instant upgrade without Stripe
     if (!STRIPE_ENABLED) {

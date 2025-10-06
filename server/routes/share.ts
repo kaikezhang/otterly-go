@@ -1,7 +1,13 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../db.js';
 
 const router = Router();
+
+// Validation schema
+const shareTokenSchema = z.object({
+  token: z.string().uuid(),
+});
 
 /**
  * GET /api/share/:token
@@ -9,7 +15,16 @@ const router = Router();
  */
 router.get('/:token', async (req: Request, res: Response) => {
   try {
-    const { token } = req.params;
+    // Validate token parameter
+    const validation = shareTokenSchema.safeParse(req.params);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid share token format',
+        details: validation.error.errors
+      });
+    }
+
+    const { token } = validation.data;
 
     // Find trip by share token
     const trip = await prisma.trip.findUnique({
