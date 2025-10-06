@@ -222,8 +222,14 @@ export function ItineraryView({
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900">{trip.destination}</h2>
             <p className="text-sm text-gray-600">
-              {format(parseISO(trip.startDate), 'MMM d')} -{' '}
-              {format(parseISO(trip.endDate), 'MMM d, yyyy')}
+              {trip.startDate && trip.endDate ? (
+                <>
+                  {format(parseISO(trip.startDate), 'MMM d')} -{' '}
+                  {format(parseISO(trip.endDate), 'MMM d, yyyy')}
+                </>
+              ) : (
+                'No dates set'
+              )}
             </p>
             <div className="flex gap-2 mt-2 text-xs">
               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">

@@ -7,7 +7,13 @@ import type {
   ItineraryItem,
   User,
 } from '../types';
-import { createTrip, updateTrip, type TripResponse } from '../services/tripApi';
+import {
+  createTrip,
+  updateTrip,
+  deleteTrip as deleteTripAPI,
+  listTrips,
+  type TripResponse,
+} from '../services/tripApi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -20,7 +26,11 @@ interface StoreState {
   user: User | null;
   isAuthLoading: boolean;
 
-  // Trip state
+  // Multi-trip state (Milestone 3.5 Part 2)
+  trips: Trip[]; // All user trips (cached)
+  tripsLoaded: boolean; // Track if trips have been fetched from API
+
+  // Current trip state
   trip: Trip | null;
   currentTripId: string | null; // Database ID of current trip
   messages: ChatMessage[];
@@ -68,6 +78,15 @@ interface StoreState {
   saveTripToDatabase: () => Promise<void>;
   loadTripFromDatabase: (tripResponse: TripResponse) => void;
   setCurrentTripId: (id: string | null) => void;
+
+  // Multi-trip management actions (Milestone 3.5 Part 2)
+  loadAllTrips: () => Promise<void>;
+  loadTrip: (id: string) => Promise<void>;
+  switchTrip: (id: string) => void;
+  deleteTrip: (id: string) => Promise<void>;
+  archiveTrip: (id: string) => Promise<void>;
+  duplicateTrip: (id: string) => Promise<Trip>;
+  invalidateTripsCache: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -81,7 +100,11 @@ export const useStore = create<StoreState>()(
       user: null,
       isAuthLoading: false,
 
-      // Trip state
+      // Multi-trip state
+      trips: [],
+      tripsLoaded: false,
+
+      // Current trip state
       trip: null,
       currentTripId: null,
       messages: [],
@@ -416,12 +439,158 @@ export const useStore = create<StoreState>()(
       },
 
       setCurrentTripId: (id: string | null) => set({ currentTripId: id }),
+
+      // Multi-trip management actions (Milestone 3.5 Part 2)
+      loadAllTrips: async () => {
+        const state = get();
+        if (!state.user) return;
+
+        try {
+          const response = await listTrips();
+          // Extract tripData from each TripResponse
+          const trips = response.trips.map(tr => tr.tripData);
+          set({
+            trips,
+            tripsLoaded: true,
+          });
+        } catch (error) {
+          console.error('Failed to load trips:', error);
+        }
+      },
+
+      loadTrip: async (id: string) => {
+        try {
+          set({ isLoading: true });
+          const tripResponse = await import('../services/tripApi').then(m => m.getTrip(id));
+          get().loadTripFromDatabase(tripResponse);
+
+          // Update trips cache
+          const state = get();
+          const tripIndex = state.trips.findIndex(t => t.id === id);
+          if (tripIndex >= 0) {
+            const newTrips = [...state.trips];
+            newTrips[tripIndex] = tripResponse.tripData;
+            set({ trips: newTrips });
+          }
+        } catch (error) {
+          console.error('Failed to load trip:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      switchTrip: (id: string) => {
+        const state = get();
+        const trip = state.trips.find(t => t.id === id);
+        if (trip) {
+          set({
+            trip,
+            currentTripId: id,
+            conversationState: 'ready',
+          });
+        }
+      },
+
+      deleteTrip: async (id: string) => {
+        try {
+          await deleteTripAPI(id);
+
+          // Remove from cache
+          const state = get();
+          set({
+            trips: state.trips.filter(t => t.id !== id),
+          });
+
+          // Clear current trip if it's the deleted one
+          if (state.currentTripId === id) {
+            get().clearAll();
+          }
+        } catch (error) {
+          console.error('Failed to delete trip:', error);
+          throw error;
+        }
+      },
+
+      archiveTrip: async (id: string) => {
+        try {
+          const state = get();
+          const trip = state.trips.find(t => t.id === id);
+          if (!trip) return;
+
+          // Update trip with archived status
+          const updatedTrip = {
+            ...trip,
+            status: 'archived' as const,
+            archivedAt: new Date().toISOString(),
+          };
+
+          await updateTrip(id, updatedTrip, []);
+
+          // Update cache
+          const tripIndex = state.trips.findIndex(t => t.id === id);
+          if (tripIndex >= 0) {
+            const newTrips = [...state.trips];
+            newTrips[tripIndex] = updatedTrip;
+            set({ trips: newTrips });
+          }
+
+          // Clear current trip if it's the archived one
+          if (state.currentTripId === id) {
+            get().clearAll();
+          }
+        } catch (error) {
+          console.error('Failed to archive trip:', error);
+          throw error;
+        }
+      },
+
+      duplicateTrip: async (id: string) => {
+        try {
+          const state = get();
+          const tripToDuplicate = state.trips.find(t => t.id === id);
+          if (!tripToDuplicate) throw new Error('Trip not found');
+
+          // Create a copy without ID and dates
+          const duplicatedTrip: Trip = {
+            ...tripToDuplicate,
+            id: '', // Will be assigned by backend
+            title: `${tripToDuplicate.title || tripToDuplicate.destination} (Copy)`,
+            startDate: null,
+            endDate: null,
+            status: 'draft',
+            archivedAt: null,
+            createdAt: undefined,
+            updatedAt: undefined,
+          };
+
+          // Create the trip in the database
+          const response = await createTrip(duplicatedTrip, []);
+
+          // Add to cache
+          const newTrip = { ...duplicatedTrip, id: response.id };
+          set({
+            trips: [newTrip, ...state.trips],
+          });
+
+          return newTrip;
+        } catch (error) {
+          console.error('Failed to duplicate trip:', error);
+          throw error;
+        }
+      },
+
+      invalidateTripsCache: () => {
+        set({ tripsLoaded: false });
+      },
     }),
     {
       name: 'otterly-go-storage',
       partialize: (state) => ({
         // Persist everything except loading states and history
         user: state.user,
+        trips: state.trips, // Cache all trips
+        tripsLoaded: state.tripsLoaded,
         trip: state.trip,
         currentTripId: state.currentTripId,
         messages: state.messages,

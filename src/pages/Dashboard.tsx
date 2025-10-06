@@ -17,12 +17,16 @@ import { useStore } from '../store/useStore';
 export function Dashboard() {
   const navigate = useNavigate();
   const clearAll = useStore((state) => state.clearAll);
+  const user = useStore((state) => state.user);
+  const logout = useStore((state) => state.logout);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
 
   // State
   const [trips, setTrips] = React.useState<TripResponse[]>([]);
   const [stats, setStats] = React.useState<TripStats | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
 
   // Filter state
   const [search, setSearch] = React.useState('');
@@ -65,6 +69,22 @@ export function Dashboard() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Close user menu when clicking outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showUserMenu]);
 
   // Handlers
   const handleTripClick = (tripId: string) => {
@@ -197,49 +217,120 @@ export function Dashboard() {
               )}
             </div>
 
-            <button
-              onClick={handleNewTrip}
-              className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              New Trip
-            </button>
+            {/* User Profile Menu */}
+            {user && (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+                >
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                      {(user.name || 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      showUserMenu ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                    <button
+                      onClick={() => {
+                        navigate('/profile');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Profile & Settings
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={async () => {
+                        await logout();
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Stats overview */}
+          {/* Stats overview with New Trip button */}
           {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-              {stats.byStatus.upcoming > 0 && (
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-blue-600 font-medium">Upcoming</p>
-                  <p className="text-2xl font-bold text-blue-900">{stats.byStatus.upcoming}</p>
-                </div>
-              )}
-              {stats.byStatus.active > 0 && (
-                <div className="bg-green-50 rounded-lg p-4">
-                  <p className="text-sm text-green-600 font-medium">Active</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.byStatus.active}</p>
-                </div>
-              )}
-              {stats.totalDays > 0 && (
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <p className="text-sm text-purple-600 font-medium">Total Days</p>
-                  <p className="text-2xl font-bold text-purple-900">{stats.totalDays}</p>
-                </div>
-              )}
-              {stats.activitiesCount > 0 && (
-                <div className="bg-orange-50 rounded-lg p-4">
-                  <p className="text-sm text-orange-600 font-medium">Activities</p>
-                  <p className="text-2xl font-bold text-orange-900">{stats.activitiesCount}</p>
-                </div>
-              )}
+            <div className="flex items-start gap-4 mt-6">
+              {/* Stats Grid */}
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {stats.byStatus.upcoming > 0 && (
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-blue-600 font-medium">Upcoming</p>
+                    <p className="text-2xl font-bold text-blue-900">{stats.byStatus.upcoming}</p>
+                  </div>
+                )}
+                {stats.byStatus.active > 0 && (
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <p className="text-sm text-green-600 font-medium">Active</p>
+                    <p className="text-2xl font-bold text-green-900">{stats.byStatus.active}</p>
+                  </div>
+                )}
+                {stats.totalDays > 0 && (
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <p className="text-sm text-purple-600 font-medium">Total Days</p>
+                    <p className="text-2xl font-bold text-purple-900">{stats.totalDays}</p>
+                  </div>
+                )}
+                {stats.activitiesCount > 0 && (
+                  <div className="bg-orange-50 rounded-lg p-4">
+                    <p className="text-sm text-orange-600 font-medium">Activities</p>
+                    <p className="text-2xl font-bold text-orange-900">{stats.activitiesCount}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* New Trip Button */}
+              <button
+                onClick={handleNewTrip}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                New Trip
+              </button>
             </div>
           )}
         </div>
