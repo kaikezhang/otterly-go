@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRouter from './routes/chat.js';
+import healthRouter from './routes/health.js';
 
 dotenv.config();
 
@@ -15,10 +16,8 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Health check routes
+app.use(healthRouter);
 
 // API routes
 app.use('/api/chat', chatRouter);
