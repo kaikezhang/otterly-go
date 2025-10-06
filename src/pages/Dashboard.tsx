@@ -39,6 +39,7 @@ export function Dashboard() {
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
 
   // Selection state
+  const [isSelectionMode, setIsSelectionMode] = React.useState(false);
   const [selectedTrips, setSelectedTrips] = React.useState<Set<string>>(new Set());
 
   // Pull-to-refresh state
@@ -273,6 +274,7 @@ export function Dashboard() {
     // Optimistic update
     setTrips((prev) => prev.filter((t) => !selectedIds.includes(t.id)));
     setSelectedTrips(new Set());
+    setIsSelectionMode(false);
 
     const count = selectedIds.length;
     const toastId = toast.success(`${count} ${count === 1 ? 'trip' : 'trips'} archived`, {
@@ -299,6 +301,7 @@ export function Dashboard() {
     // Optimistic update
     setTrips((prev) => prev.filter((t) => !selectedIds.includes(t.id)));
     setSelectedTrips(new Set());
+    setIsSelectionMode(false);
 
     const count = selectedIds.length;
     const toastId = toast.success(`${count} ${count === 1 ? 'trip' : 'trips'} deleted`, {
@@ -316,6 +319,58 @@ export function Dashboard() {
     }
   };
 
+  const handleBulkComplete = async () => {
+    if (selectedTrips.size === 0) return;
+
+    const selectedIds = Array.from(selectedTrips);
+
+    // Optimistic update
+    const updatedTrips = trips.map((t) => {
+      if (selectedIds.includes(t.id)) {
+        return {
+          ...t,
+          status: 'completed' as TripStatus,
+        };
+      }
+      return t;
+    });
+    setTrips(updatedTrips);
+    setSelectedTrips(new Set());
+    setIsSelectionMode(false);
+
+    const count = selectedIds.length;
+    const toastId = toast.success(`${count} ${count === 1 ? 'trip' : 'trips'} marked as completed`, {
+      duration: 4000,
+    });
+
+    try {
+      await bulkOperateTrips('complete', selectedIds);
+    } catch (err) {
+      console.error('Error completing trips:', err);
+      toast.dismiss(toastId);
+      toast.error('Failed to mark trips as completed');
+      // Reload data on error
+      await loadData();
+    }
+  };
+
+  const handleToggleSelectionMode = () => {
+    setIsSelectionMode((prev) => !prev);
+    // Clear selection when exiting selection mode
+    if (isSelectionMode) {
+      setSelectedTrips(new Set());
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allTripIds = trips.map((t) => t.id);
+    setSelectedTrips(new Set(allTripIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedTrips(new Set());
+  };
+
   const handleSelect = (tripId: string) => {
     setSelectedTrips((prev) => {
       const next = new Set(prev);
@@ -326,6 +381,16 @@ export function Dashboard() {
       }
       return next;
     });
+  };
+
+  const handleCardClick = (tripId: string) => {
+    if (isSelectionMode) {
+      // In selection mode, clicking card toggles selection
+      handleSelect(tripId);
+    } else {
+      // Normal mode, navigate to trip
+      handleTripClick(tripId);
+    }
   };
 
   // Empty state
@@ -522,7 +587,9 @@ export function Dashboard() {
       </button>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8 ${
+        isSelectionMode && selectedTrips.size > 0 ? 'mt-20' : ''
+      }`}>
         <TripsFilterBar
           search={search}
           onSearchChange={setSearch}
@@ -532,8 +599,13 @@ export function Dashboard() {
           onViewModeChange={setViewMode}
           totalCount={trips.length}
           selectedCount={selectedTrips.size}
+          isSelectionMode={isSelectionMode}
+          onToggleSelectionMode={handleToggleSelectionMode}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
           onBulkArchive={selectedTrips.size > 0 ? handleBulkArchive : undefined}
           onBulkDelete={selectedTrips.size > 0 ? handleBulkDelete : undefined}
+          onBulkComplete={selectedTrips.size > 0 ? handleBulkComplete : undefined}
         />
 
         {/* Loading state with skeleton cards */}
@@ -581,12 +653,12 @@ export function Dashboard() {
                   createdAt: trip.createdAt,
                   updatedAt: trip.updatedAt,
                 }}
-                onClick={() => handleTripClick(trip.id)}
+                onClick={() => handleCardClick(trip.id)}
                 onDuplicate={() => handleDuplicate(trip.id)}
                 onArchive={() => handleArchive(trip.id)}
                 onDelete={() => handleDelete(trip.id)}
                 isSelected={selectedTrips.has(trip.id)}
-                onSelect={() => handleSelect(trip.id)}
+                onSelect={isSelectionMode ? () => handleSelect(trip.id) : undefined}
                 viewMode={viewMode}
               />
             ))}

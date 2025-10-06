@@ -275,7 +275,7 @@ export async function getTripStats(): Promise<TripStats> {
  * Perform bulk operations on multiple trips (Milestone 3.5)
  */
 export async function bulkOperateTrips(
-  operation: 'archive' | 'delete' | 'duplicate',
+  operation: 'archive' | 'delete' | 'duplicate' | 'complete',
   tripIds: string[]
 ): Promise<{ success: boolean; operation: string }> {
   const response = await fetch(`${API_URL}/api/trips/bulk`, {

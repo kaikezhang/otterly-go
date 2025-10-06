@@ -93,7 +93,7 @@ export type TripListQuery = z.infer<typeof tripListQuerySchema>;
 
 // Schema for bulk operations (Milestone 3.5)
 export const bulkOperationSchema = z.object({
-  operation: z.enum(['archive', 'delete', 'duplicate']),
+  operation: z.enum(['archive', 'delete', 'duplicate', 'complete']),
   tripIds: z.array(z.string().min(1)).min(1).max(50), // Max 50 trips per bulk operation
 });
 
