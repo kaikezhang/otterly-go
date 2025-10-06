@@ -22,6 +22,14 @@ model User {
   name             String?  // Display name from Google (or custom override)
   picture          String?  // Profile picture URL from Google (or custom override)
   subscriptionTier String   @default("free") @map("subscription_tier")
+
+  // User preferences (Milestone 2.3)
+  customName       String?  @map("custom_name") // User-customized name (overrides Google name)
+  customPicture    String?  @map("custom_picture") // User-uploaded picture URL (overrides Google picture)
+  emailNotifications Boolean @default(true) @map("email_notifications") // Email notifications enabled
+  tripReminders    Boolean  @default(true) @map("trip_reminders") // Trip reminder notifications
+  publicProfile    Boolean  @default(false) @map("public_profile") // Public profile visibility for social features
+
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

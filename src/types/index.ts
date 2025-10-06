@@ -6,6 +6,13 @@ export interface User {
   name: string;
   picture?: string;
   subscriptionTier: 'free' | 'premium';
+  // User preferences (Milestone 2.3)
+  customName?: string | null;
+  customPicture?: string | null;
+  emailNotifications?: boolean;
+  tripReminders?: boolean;
+  publicProfile?: boolean;
+  googleId?: string | null;
 }
 
 export type ItemType =
