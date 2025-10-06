@@ -19,28 +19,12 @@ function App() {
     updateTrip,
   } = useStore();
 
-  const [apiKey, setApiKey] = useState('');
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Check for API key in environment or local storage
-  useEffect(() => {
-    const envKey = import.meta.env.VITE_OPENAI_API_KEY;
-    const storedKey = localStorage.getItem('openai_api_key');
-
-    if (envKey) {
-      setApiKeyConfigured(true);
-      setApiKey(envKey);
-    } else if (storedKey) {
-      setApiKeyConfigured(true);
-      setApiKey(storedKey);
-    }
-  }, []);
 
   // Initialize conversation on first load
   useEffect(() => {
-    if (apiKeyConfigured && messages.length === 0) {
-      const engine = getConversationEngine(apiKey);
+    if (messages.length === 0) {
+      const engine = getConversationEngine();
       const greeting = engine.getInitialGreeting();
       addMessage({
         id: crypto.randomUUID(),
@@ -50,7 +34,7 @@ function App() {
       });
       setConversationState('eliciting');
     }
-  }, [apiKeyConfigured, messages.length, apiKey, addMessage, setConversationState]);
+  }, [messages.length, addMessage, setConversationState]);
 
   const handleSendMessage = async (userMessage: string) => {
     setError(null);
@@ -66,7 +50,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const engine = getConversationEngine(apiKey);
+      const engine = getConversationEngine();
       const response = await engine.sendMessage(userMessage, trip);
 
       // Create assistant message
@@ -157,66 +141,6 @@ function App() {
     }?`;
     handleSendMessage(message);
   };
-
-  const handleApiKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (apiKey.trim()) {
-      localStorage.setItem('openai_api_key', apiKey.trim());
-      setApiKeyConfigured(true);
-    }
-  };
-
-  // API Key Configuration Screen
-  if (!apiKeyConfigured) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">🦦 OtterlyGo</h1>
-            <p className="text-gray-600">Your conversational travel planner</p>
-          </div>
-
-          <form onSubmit={handleApiKeySubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="api-key"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                OpenAI API Key
-              </label>
-              <input
-                id="api-key"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-              <p className="mt-2 text-xs text-gray-500">
-                Get your API key from{' '}
-                <a
-                  href="https://platform.openai.com/api-keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  platform.openai.com/api-keys
-                </a>
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
-            >
-              Start Planning
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   // Main App Screen
   return (

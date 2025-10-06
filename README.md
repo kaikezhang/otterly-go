@@ -9,7 +9,8 @@ OtterlyGo is an MVP that demonstrates:
 - **Rich suggestions**: Request ideas and receive cards with images, traveler quotes (Chinese + English), and source links
 - **One-click actions**: Add or replace activities in your itinerary with a single click
 - **Local persistence**: Refresh the browser and your chat + itinerary are restored
-- **No sign-in required**: Everything runs locally in your browser (data stored in localStorage)
+- **No sign-in required**: Data stored in localStorage (no account needed)
+- **Secure backend**: API keys protected server-side (Milestone 1.1)
 
 ## Quick Start
 
@@ -20,41 +21,49 @@ OtterlyGo is an MVP that demonstrates:
 ### Installation
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Optional: Set your API key in .env (or enter it in the UI)
+# 2. Set up environment variables
 cp .env.example .env
-# Edit .env and add your key: VITE_OPENAI_API_KEY=sk-...
 
-# Start the dev server
+# 3. Edit .env and add your OpenAI API key
+# OPENAI_API_KEY=sk-...
+
+# 4. Start both frontend and backend servers
 npm run dev
 ```
 
-Open http://localhost:5173 and start planning!
+This will start:
+- **Frontend**: http://localhost:5173
+- **Backend**: http://localhost:3001
 
-### First-Time Setup
+### Environment Configuration
 
-If you didn't set `VITE_OPENAI_API_KEY` in `.env`, you'll see a configuration screen:
-1. Enter your OpenAI API key (get one from [platform.openai.com/api-keys](https://platform.openai.com/api-keys))
-2. Click "Start Planning"
-3. Your key is stored in localStorage for future sessions
+Edit `.env` and configure:
+
+```bash
+# Required
+OPENAI_API_KEY=sk-your-key-here
+
+# Optional (with defaults)
+OPENAI_MODEL=gpt-3.5-turbo
+PORT=3001
+CLIENT_URL=http://localhost:5173
+```
 
 **Troubleshooting API Key Issues:**
 - Make sure your API key starts with `sk-proj-` or `sk-`
-- Check that your API key has credits available at [platform.openai.com/account/billing](https://platform.openai.com/account/billing)
-- Open browser DevTools Console to see detailed error messages
+- Check that your API key has credits at [platform.openai.com/account/billing](https://platform.openai.com/account/billing)
+- Check backend console for detailed error messages
 - If you get a 401 error, your API key is invalid
-- If you get a 429 error, you've hit the rate limit
-- If you get an "insufficient_quota" error, add credits to your OpenAI account
+- If you get a 429 error, you've hit the rate limit (backend enforces 20 req/min)
+- If you get a 402 error, add credits to your OpenAI account
 
-**Test your API key:**
+**Test the backend:**
 ```bash
-# Test if your API key works before running the app
-node test-api-key.js sk-your-key-here
-
-# Or if you set it in .env:
-node test-api-key.js
+# Check if backend is running
+curl http://localhost:3001/health
 ```
 
 ## How to Use
@@ -85,13 +94,14 @@ Try this flow to validate the MVP:
 
 **Frontend Stack**
 - **React + TypeScript + Vite**: Fast, modern, type-safe development with instant HMR
-- **Tailwind CSS**: Utility-first styling for rapid UI development without CSS files
+- **Tailwind CSS v4**: Utility-first styling for rapid UI development
 - **Zustand + persist middleware**: Lightweight state management (~3KB) with built-in localStorage persistence
 
-**No Backend**
-- **Direct LLM integration**: OpenAI SDK in browser mode (dangerouslyAllowBrowser) keeps the MVP simple
-- **localStorage**: Meets the requirement for local draft save/resume without auth/database complexity
-- **Trade-off**: API key exposed in browser, but acceptable for MVP (production would use backend proxy)
+**Backend (Milestone 1.1)** ✅
+- **Express.js + TypeScript**: Secure API proxy for OpenAI requests
+- **Rate limiting**: 20 requests/minute per IP address
+- **Request validation**: Zod schemas for type-safe API contracts
+- **Security**: API keys stored server-side only, never exposed to client
 
 **Conversation Design**
 - **Structured JSON responses**: LLM returns typed JSON for itineraries/suggestions, making the UI predictable
@@ -106,13 +116,21 @@ Try this flow to validate the MVP:
 ### Project Structure
 
 ```
-src/
+src/                 # Frontend (React + TypeScript)
 ├── types/           # TypeScript interfaces (Trip, Day, SuggestionCard, etc.)
 ├── store/           # Zustand store with localStorage persistence
-├── services/        # Conversation engine (LLM integration)
+├── services/        # Conversation engine (fetch-based API client)
 ├── components/      # React components (Chat, ItineraryView, SuggestionCard)
 ├── App.tsx          # Main app orchestration
 └── main.tsx         # React entry point
+
+server/              # Backend (Express + TypeScript)
+├── index.ts         # Express app with CORS, error handling
+├── routes/
+│   └── chat.ts      # POST /api/chat - OpenAI proxy endpoint
+└── middleware/
+    ├── rateLimit.ts # Rate limiting (20 req/min per IP)
+    └── validation.ts # Zod request validation schemas
 ```
 
 ### Key Design Patterns
@@ -143,11 +161,16 @@ The conversation engine instructs the LLM to:
 - Offline mode
 - Real-time content scraping
 
-**Production Considerations**:
-- Backend API proxy to secure API keys
+**Completed (Milestone 1.1)** ✅:
+- ✅ Backend API proxy to secure API keys
+- ✅ Rate limiting (20 req/min per IP)
+- ✅ Request validation and error recovery
+
+**Next Steps** (See [DEVELOPMENT.md](./DEVELOPMENT.md)):
+- Database setup (PostgreSQL)
+- User authentication
 - Real content sources (Xiaohongshu API, travel blogs)
 - Image optimization and CDN
-- Rate limiting and error recovery
 - Analytics and user feedback loops
 
 ## Testing
@@ -177,11 +200,46 @@ npm run preview
 # Upload the `dist/` folder
 ```
 
+## Development Roadmap
+
+This project follows a phased development plan outlined in [DEVELOPMENT.md](./DEVELOPMENT.md):
+
+- **✅ Phase 1 - Milestone 1.1** (Completed 2025-10-06): Backend API Proxy
+  - Secure server-side API key handling
+  - Rate limiting and request validation
+  - See [MILESTONE_1.1_SUMMARY.md](./MILESTONE_1.1_SUMMARY.md) for details
+
+- **🚧 Phase 1 - Milestone 1.2** (Next): Database Setup
+  - PostgreSQL database for trips and conversations
+  - User authentication system
+  - Trip CRUD operations
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for the complete roadmap to production.
+
+## Development
+
+```bash
+# Run frontend and backend together
+npm run dev
+
+# Run frontend only
+npm run dev:client
+
+# Run backend only
+npm run dev:server
+
+# Build for production
+npm run build
+npm run build:server
+```
+
 ## License
 
 MIT
 
 ---
 
-**Built for the OtterlyGo MVP challenge**
-Demonstrates conversational travel planning with rich content cards and local-first persistence.
+**OtterlyGo** - Conversational travel planning with AI
+- **MVP**: Rich content cards and local-first persistence ✅
+- **Milestone 1.1**: Secure backend architecture ✅
+- **Next**: Database and authentication 🚧

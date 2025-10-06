@@ -8,11 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 npm install
 
-# Start dev server (opens on http://localhost:5173)
+# Start dev servers (frontend on :5173, backend on :3001)
 npm run dev
+
+# Start frontend only
+npm run dev:client
+
+# Start backend only
+npm run dev:server
 
 # Build for production (TypeScript check + Vite build)
 npm run build
+
+# Build backend
+npm run build:server
 
 # Preview production build
 npm run preview
@@ -23,9 +32,13 @@ npm run lint
 
 ## API Key Configuration
 
-The app requires an OpenAI API key. Two options:
-1. **Environment variable**: Create `.env` (copy from `.env.example`) and set `VITE_OPENAI_API_KEY`
-2. **In-app**: Enter API key in the UI on first launch (stored in localStorage)
+The app requires an OpenAI API key configured on the **backend server**:
+
+1. Copy `.env.example` to `.env`
+2. Set `OPENAI_API_KEY=sk-...` with your OpenAI API key
+3. Optionally configure `OPENAI_MODEL` (defaults to `gpt-3.5-turbo`)
+
+**Security Note**: As of Milestone 1.1 (2025-10-06), API keys are stored server-side only. The frontend never sees or handles API keys.
 
 ## Architecture Overview
 
@@ -35,15 +48,42 @@ OtterlyGo uses a **centralized Zustand store** with localStorage persistence for
 
 1. **User Input** → Chat component → App.tsx handler
 2. **App.tsx** calls `conversationEngine.sendMessage()` with current trip context
-3. **Conversation Engine** sends user message + trip context to OpenAI API (GPT-3.5-turbo) with structured system prompt
-4. **GPT-3.5-turbo responds** with one of 4 JSON formats: `message`, `itinerary`, `suggestion`, or `update`
-5. **App.tsx** parses response and updates store (creates/updates trip, adds suggestion to message)
-6. **React re-renders** Chat + ItineraryView components
-7. **localStorage** automatically syncs via Zustand persist middleware
+3. **Conversation Engine** sends POST request to `/api/chat` backend endpoint (fetch API)
+4. **Backend Server** validates request (Zod), checks rate limit, and calls OpenAI API (GPT-3.5-turbo)
+5. **GPT-3.5-turbo responds** with one of 4 JSON formats: `message`, `itinerary`, `suggestion`, or `update`
+6. **Backend** returns response + token usage to frontend
+7. **App.tsx** parses response and updates store (creates/updates trip, adds suggestion to message)
+8. **React re-renders** Chat + ItineraryView components
+9. **localStorage** automatically syncs via Zustand persist middleware
+
+### Backend Architecture (Milestone 1.1)
+
+The backend uses **Express.js** with TypeScript, running on port 3001:
+
+**File Structure:**
+```
+server/
+├── index.ts                    # Main Express app, CORS, error handling
+├── routes/
+│   └── chat.ts                 # POST /api/chat endpoint
+└── middleware/
+    ├── rateLimit.ts            # Rate limiting (20 req/min)
+    └── validation.ts           # Zod request validation
+```
+
+**Key Endpoints:**
+- `GET /health` - Health check (returns `{status: "ok", timestamp: "..."}`)
+- `POST /api/chat` - Proxy to OpenAI (validates, rate limits, returns JSON + usage)
+
+**Security Features:**
+- Rate limiting: 20 requests/minute per IP
+- Request validation: Zod schemas
+- CORS: Configured for frontend origin
+- API key: Server-side only, never exposed to client
 
 ### Conversation Engine Response Types
 
-The `conversationEngine.ts` system prompt instructs GPT-3.5-turbo to respond with typed JSON:
+The system prompt (in `server/routes/chat.ts`) instructs GPT-3.5-turbo to respond with typed JSON:
 
 - **`type: "message"`** - Simple text response (follow-up questions, acknowledgments)
 - **`type: "itinerary"`** - Full trip object with days/items (initial generation)
@@ -79,8 +119,7 @@ App.tsx (orchestration layer)
 ```
 
 **App.tsx responsibilities:**
-- Manages API key configuration flow
-- Handles all conversation engine calls
+- Handles all conversation engine calls (via backend proxy)
 - Bridges between Chat actions (onAddSuggestionToDay) and store updates (addItemToDay)
 - Orchestrates itinerary modification actions (Replace/Remove/Add Suggestion)
 
@@ -107,8 +146,14 @@ This project uses **Tailwind CSS v4** (new PostCSS-based architecture):
 
 ## Key Technical Decisions
 
-### Why No Backend?
-The app uses OpenAI SDK in browser mode (`dangerouslyAllowBrowser: true`) to ship a simple MVP. Production would add a backend proxy to secure API keys. This trade-off was acceptable to avoid auth/database complexity.
+### Backend Proxy (Milestone 1.1)
+The app now uses an **Express backend proxy** to secure OpenAI API keys server-side. The frontend calls `/api/chat` which:
+- Validates requests (Zod schemas)
+- Enforces rate limiting (20 req/min per IP)
+- Proxies to OpenAI API
+- Returns structured JSON responses + token usage
+
+This eliminates the security vulnerability of exposing API keys in browser code. The MVP originally used `dangerouslyAllowBrowser: true` for simplicity, but this has been removed.
 
 ### Why Structured JSON from LLM?
 The system prompt enforces strict JSON response formats. This makes:
@@ -132,10 +177,10 @@ Zustand's `persist` middleware auto-syncs to localStorage under key `otterly-go-
 3. Update system prompt examples in `conversationEngine.ts` if needed
 
 ### Changing LLM Model
-Edit `conversationEngine.ts` line with `model: 'gpt-3.5-turbo'` to use a different OpenAI model (e.g., `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`).
+Edit the `OPENAI_MODEL` environment variable in `.env` (defaults to `gpt-3.5-turbo`). Alternatively, update `server/routes/chat.ts` line with `process.env.OPENAI_MODEL || 'gpt-3.5-turbo'`.
 
 ### Modifying Conversation Prompts
-Edit the `SYSTEM_PROMPT` constant in `src/services/conversationEngine.ts`. The prompt includes JSON schema examples - keep the structure intact or update the parsing logic in `sendMessage()`.
+Edit the `SYSTEM_PROMPT` constant in `server/routes/chat.ts`. The prompt includes JSON schema examples - keep the structure intact or update the parsing logic in the frontend `conversationEngine.ts`.
 
 ### Adding New Store Actions
 1. Define action in `StoreState` interface in `useStore.ts`
@@ -144,8 +189,20 @@ Edit the `SYSTEM_PROMPT` constant in `src/services/conversationEngine.ts`. The p
 
 ## Debugging Tips
 
-- **Conversation not working?** Check browser console for API errors. Verify API key in localStorage (`openai_api_key`) or .env. The conversation engine is recreated when the API key changes.
+- **Conversation not working?**
+  - Check browser console for API errors
+  - Verify backend is running on port 3001: `curl http://localhost:3001/health`
+  - Check `.env` file has valid `OPENAI_API_KEY`
+  - Check backend logs in terminal for OpenAI errors
+- **Backend not starting?**
+  - Ensure `.env` file exists with `OPENAI_API_KEY`
+  - Check for port conflicts on 3001
+  - Run `npm run dev:server` separately to see detailed errors
 - **State not persisting?** Check browser localStorage for `otterly-go-storage` key
 - **Build fails on Tailwind?** Ensure `@import "tailwindcss"` in index.css (not `@tailwind` directives) and `@tailwindcss/postcss` in postcss.config.js
 - **TypeScript errors on unused vars?** Remove them - the build is strict about unused imports/variables
-- **API key errors?** The app validates the API key on first message send. Check for 401 errors in console (invalid key) or 429 (rate limit)
+- **Rate limit errors?** Backend enforces 20 req/min per IP. Set `DISABLE_RATE_LIMIT=true` in `.env` for development
+- **API key errors?**
+  - 401: Invalid OpenAI API key in backend `.env`
+  - 429: OpenAI rate limit exceeded or too many requests
+  - 402: Insufficient OpenAI credits
