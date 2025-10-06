@@ -38,6 +38,7 @@ export default function Home() {
     updateItemInDay,
     reorderItemsInDay,
     moveItemBetweenDays,
+    duplicateDay,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -317,9 +318,9 @@ export default function Home() {
               )}
               <button
                 onClick={toggleEditMode}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-all ${
                   isEditMode
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md ring-2 ring-blue-300'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 title={isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
@@ -327,7 +328,7 @@ export default function Home() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                {isEditMode ? 'View Mode' : 'Edit Mode'}
+                {isEditMode ? '✓ Editing' : 'Edit Mode'}
               </button>
               <button
                 onClick={() => {
@@ -519,6 +520,7 @@ export default function Home() {
               onUpdateItem={updateItemInDay}
               onReorderItems={reorderItemsInDay}
               onMoveItemBetweenDays={moveItemBetweenDays}
+              onDuplicateDay={duplicateDay}
               isSyncing={isSyncing}
               currentTripId={currentTripId}
             />
