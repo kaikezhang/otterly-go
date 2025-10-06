@@ -52,7 +52,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
 /**
  * Create Stripe checkout session
  */
-export async function createCheckoutSession(tier: string): Promise<{ url: string }> {
+export async function createCheckoutSession(tier: string): Promise<{ url: string; mock?: boolean }> {
   const response = await fetch(`${API_URL}/api/subscriptions/checkout`, {
     method: 'POST',
     headers: {
@@ -73,7 +73,7 @@ export async function createCheckoutSession(tier: string): Promise<{ url: string
 /**
  * Create Stripe billing portal session
  */
-export async function createBillingPortalSession(): Promise<{ url: string }> {
+export async function createBillingPortalSession(): Promise<{ url: string; mock?: boolean }> {
   const response = await fetch(`${API_URL}/api/subscriptions/portal`, {
     method: 'POST',
     headers: {

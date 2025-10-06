@@ -38,8 +38,15 @@ export default function SubscriptionPanel() {
   const handleUpgrade = async (tier: string) => {
     try {
       setError(null);
-      const { url } = await createCheckoutSession(tier);
-      window.location.href = url;
+      const response = await createCheckoutSession(tier);
+
+      // Check if mock mode
+      if ('mock' in response && response.mock) {
+        // Reload page to show updated subscription
+        window.location.reload();
+      } else {
+        window.location.href = response.url;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout');
     }
@@ -48,8 +55,15 @@ export default function SubscriptionPanel() {
   const handleManageBilling = async () => {
     try {
       setError(null);
-      const { url } = await createBillingPortalSession();
-      window.location.href = url;
+      const response = await createBillingPortalSession();
+
+      // Check if mock mode
+      if ('mock' in response && response.mock) {
+        // Reload page to show updated subscription
+        window.location.reload();
+      } else {
+        window.location.href = response.url;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to open billing portal');
     }
@@ -71,6 +85,18 @@ export default function SubscriptionPanel() {
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         Subscription
       </h2>
+
+      {/* Mock Mode Notice */}
+      {status?.tier !== 'free' && status?.subscriptionStatus === 'active' &&
+       (window.location.search.includes('mock=true') ||
+        (typeof status.subscriptionPeriodEnd === 'string' &&
+         new Date(status.subscriptionPeriodEnd).getFullYear() > new Date().getFullYear() + 1)) && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+          <p className="text-blue-800 dark:text-blue-400">
+            <strong>Development Mode:</strong> Stripe is not configured. Subscriptions are simulated for testing.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">

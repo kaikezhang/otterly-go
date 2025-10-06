@@ -6,6 +6,7 @@ import {
   createCheckoutSession,
   createBillingPortalSession,
   SUBSCRIPTION_TIERS,
+  STRIPE_ENABLED,
 } from '../services/stripe';
 
 const router = express.Router();
@@ -72,7 +73,7 @@ router.get('/status', requireAuth, async (req: Request, res: Response) => {
 
 /**
  * POST /api/subscriptions/checkout
- * Create Stripe Checkout Session
+ * Create Stripe Checkout Session (or mock upgrade)
  */
 router.post('/checkout', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -80,6 +81,27 @@ router.post('/checkout', requireAuth, async (req: Request, res: Response) => {
 
     if (!tier || !['pro', 'team'].includes(tier)) {
       return res.status(400).json({ error: 'Invalid subscription tier' });
+    }
+
+    // MOCK MODE: Simulate instant upgrade without Stripe
+    if (!STRIPE_ENABLED) {
+      console.log(`[MOCK] Upgrading user to ${tier} tier`);
+
+      await prisma.user.update({
+        where: { id: req.userId },
+        data: {
+          subscriptionTier: tier,
+          subscriptionStatus: 'active',
+          subscriptionPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          stripeCustomerId: `cus_mock_${req.userId}`,
+          stripeSubscriptionId: `sub_mock_${Date.now()}`,
+        },
+      });
+
+      return res.json({
+        url: `${FRONTEND_URL}/profile?subscription=success&mock=true`,
+        mock: true
+      });
     }
 
     const tierConfig = SUBSCRIPTION_TIERS[tier as keyof typeof SUBSCRIPTION_TIERS];
@@ -131,7 +153,7 @@ router.post('/checkout', requireAuth, async (req: Request, res: Response) => {
 
 /**
  * POST /api/subscriptions/portal
- * Create Stripe Billing Portal Session
+ * Create Stripe Billing Portal Session (or mock downgrade)
  */
 router.post('/portal', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -141,6 +163,26 @@ router.post('/portal', requireAuth, async (req: Request, res: Response) => {
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    // MOCK MODE: Simulate downgrade to free tier
+    if (!STRIPE_ENABLED) {
+      console.log(`[MOCK] Downgrading user to free tier`);
+
+      await prisma.user.update({
+        where: { id: req.userId },
+        data: {
+          subscriptionTier: 'free',
+          subscriptionStatus: null,
+          subscriptionPeriodEnd: null,
+          stripeSubscriptionId: null,
+        },
+      });
+
+      return res.json({
+        url: `${FRONTEND_URL}/profile?subscription=downgraded&mock=true`,
+        mock: true
+      });
     }
 
     if (!user.stripeCustomerId) {

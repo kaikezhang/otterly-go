@@ -1,13 +1,19 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is required');
+// Check if Stripe is configured
+const STRIPE_ENABLED = !!process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_ENABLED) {
+  console.warn('⚠️  STRIPE_SECRET_KEY not configured - running in MOCK MODE');
+  console.warn('⚠️  Subscription upgrades will be simulated without real payments');
 }
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover',
-});
+// Initialize Stripe only if configured
+const stripe = STRIPE_ENABLED
+  ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-09-30.clover',
+    })
+  : null;
 
 // Subscription tier configuration
 export const SUBSCRIPTION_TIERS = {
@@ -48,6 +54,17 @@ export async function getOrCreateCustomer(
   email: string,
   name?: string | null
 ): Promise<Stripe.Customer> {
+  // Mock mode: return fake customer
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log(`[MOCK] Creating customer for ${email}`);
+    return {
+      id: `cus_mock_${userId}`,
+      email,
+      name: name || undefined,
+      metadata: { userId },
+    } as Stripe.Customer;
+  }
+
   try {
     // Try to find existing customer by email
     const existingCustomers = await stripe.customers.list({
@@ -84,6 +101,16 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ): Promise<Stripe.Checkout.Session> {
+  // Mock mode: return fake checkout URL that redirects to success
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log(`[MOCK] Creating checkout session for customer ${customerId}`);
+    return {
+      id: `cs_mock_${Date.now()}`,
+      url: successUrl, // Redirect directly to success for mock mode
+      customer: customerId,
+    } as Stripe.Checkout.Session;
+  }
+
   try {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -118,6 +145,15 @@ export async function createBillingPortalSession(
   customerId: string,
   returnUrl: string
 ): Promise<Stripe.BillingPortal.Session> {
+  // Mock mode: return mock portal URL
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log(`[MOCK] Creating billing portal for customer ${customerId}`);
+    return {
+      id: `bps_mock_${Date.now()}`,
+      url: `${returnUrl}?mock=true`, // Redirect back with mock flag
+    } as Stripe.BillingPortal.Session;
+  }
+
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
@@ -137,6 +173,16 @@ export async function createBillingPortalSession(
 export async function getSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
+  // Mock mode: return fake subscription
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log(`[MOCK] Retrieving subscription ${subscriptionId}`);
+    return {
+      id: subscriptionId,
+      status: 'active',
+      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days from now
+    } as Stripe.Subscription;
+  }
+
   try {
     return await stripe.subscriptions.retrieve(subscriptionId);
   } catch (error) {
@@ -151,6 +197,17 @@ export async function getSubscription(
 export async function cancelSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
+  // Mock mode: return mock canceled subscription
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log(`[MOCK] Canceling subscription ${subscriptionId}`);
+    return {
+      id: subscriptionId,
+      status: 'active',
+      cancel_at_period_end: true,
+      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+    } as Stripe.Subscription;
+  }
+
   try {
     return await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
@@ -169,6 +226,12 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string
 ): Stripe.Event {
+  // Mock mode: skip verification
+  if (!STRIPE_ENABLED || !stripe) {
+    console.log('[MOCK] Skipping webhook signature verification');
+    throw new Error('Webhooks not supported in mock mode');
+  }
+
   try {
     return stripe.webhooks.constructEvent(payload, signature, secret);
   } catch (error) {
@@ -196,4 +259,4 @@ export function getModelForTier(tier: SubscriptionTier): string {
   return SUBSCRIPTION_TIERS[tier].model;
 }
 
-export { stripe };
+export { stripe, STRIPE_ENABLED };
