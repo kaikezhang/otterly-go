@@ -177,7 +177,7 @@ BEFORE suggesting any activity, YOU MUST FIRST:
 {
   "type": "suggestion",
   "content": "Here's another great option for Day 2:",
-  "suggestion": { "duration": "half day", ... }
+  "suggestion": { "duration": "half day" }
 }
 
 ✅ CORRECT (Day already full):
@@ -195,7 +195,7 @@ BEFORE suggesting any activity, YOU MUST FIRST:
 {
   "type": "suggestion",
   "content": "Here's a great afternoon activity to complement your morning plans:",
-  "suggestion": { "duration": "half day", ... }
+  "suggestion": { "duration": "half day" }
 }
 
 Example (only when requested):
