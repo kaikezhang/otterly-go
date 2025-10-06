@@ -10,6 +10,7 @@ import healthRouter from './routes/health.js';
 import tripsRouter from './routes/trips.js';
 import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
+import mapRouter from './routes/map.js';
 import { configurePassport } from './config/passport.js';
 
 // Get the directory name of the current module
@@ -62,6 +63,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/trips', tripsRouter);
 app.use('/api/user', userRouter);
+app.use('/api/map', mapRouter);
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

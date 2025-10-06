@@ -1,4 +1,5 @@
 import type { Trip, SuggestionCard, QuickReply } from '../types';
+import { geocodeLocation } from './mapApi';
 
 // Get API URL from environment or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -83,7 +84,7 @@ class ConversationEngine {
           case 'itinerary':
             return {
               message: parsed.content,
-              trip: this.enrichTrip(parsed.trip),
+              trip: await this.enrichTrip(parsed.trip),
             };
 
           case 'suggestion':
@@ -123,17 +124,58 @@ class ConversationEngine {
     }
   }
 
-  private enrichTrip(trip: any): Trip {
+  private async enrichTrip(trip: any): Promise<Trip> {
+    // Get trip destination for proximity bias
+    const destination = trip.destination;
+    let proximityBias: { lng: number; lat: number } | undefined;
+
+    // Try to geocode destination first for proximity bias
+    try {
+      const destLocation = await geocodeLocation(destination);
+      proximityBias = { lng: destLocation.lng, lat: destLocation.lat };
+    } catch (error) {
+      console.warn(`Could not geocode destination "${destination}":`, error);
+    }
+
+    // Enrich days and items with geocoding
+    const enrichedDays = await Promise.all(
+      trip.days.map(async (day: any) => {
+        const enrichedItems = await Promise.all(
+          day.items.map(async (item: any) => {
+            const enrichedItem = {
+              id: crypto.randomUUID(),
+              ...item,
+            };
+
+            // Auto-geocode item title if no location exists
+            if (!item.location && item.title) {
+              try {
+                // Combine destination + item title for better geocoding
+                const query = `${item.title}, ${destination}`;
+                const location = await geocodeLocation(query, proximityBias);
+                enrichedItem.location = location;
+                console.log(`Geocoded "${item.title}" → ${location.address}`);
+              } catch (error) {
+                console.warn(`Could not geocode "${item.title}":`, error);
+                // Continue without location - graceful degradation
+              }
+            }
+
+            return enrichedItem;
+          })
+        );
+
+        return {
+          ...day,
+          items: enrichedItems,
+        };
+      })
+    );
+
     return {
       id: crypto.randomUUID(),
       ...trip,
-      days: trip.days.map((day: any) => ({
-        ...day,
-        items: day.items.map((item: any) => ({
-          id: crypto.randomUUID(),
-          ...item,
-        })),
-      })),
+      days: enrichedDays,
     };
   }
 
