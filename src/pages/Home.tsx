@@ -21,6 +21,7 @@ export default function Home() {
     hasUnsavedChanges,
     setTrip,
     addMessage,
+    markSuggestionAdded,
     setConversationState,
     setIsLoading,
     addItemToDay,
@@ -202,6 +203,9 @@ export default function Home() {
     };
 
     addItemToDay(dayIndex, item);
+
+    // Mark suggestion as added in the store
+    markSuggestionAdded(suggestionId, dayIndex);
 
     // Add confirmation message
     const confirmMsg = {
