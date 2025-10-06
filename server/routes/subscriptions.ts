@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth';
 import { prisma } from '../db';
 import {
   getOrCreateCustomer,
@@ -36,9 +36,24 @@ router.get('/tiers', (req: Request, res: Response) => {
 /**
  * GET /api/subscriptions/status
  * Get current user's subscription status
+ * Works with or without authentication (returns free tier if not logged in)
  */
-router.get('/status', requireAuth, async (req: Request, res: Response) => {
+router.get('/status', optionalAuth, async (req: Request, res: Response) => {
   try {
+    // If not authenticated, return default free tier status
+    if (!req.userId) {
+      const tierConfig = SUBSCRIPTION_TIERS.free;
+      return res.json({
+        tier: 'free',
+        status: null,
+        periodEnd: null,
+        tripCount: 0,
+        tripLimit: tierConfig.tripLimit,
+        hasReachedLimit: false,
+        features: tierConfig.features,
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {

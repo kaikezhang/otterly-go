@@ -176,7 +176,7 @@ export default function SubscriptionPanel() {
         </div>
       )}
 
-      {status?.tier === 'free' && (
+      {status?.tier === 'free' && status.tripCount !== undefined && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Upgrade Your Plan
