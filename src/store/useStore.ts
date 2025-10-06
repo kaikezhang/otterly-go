@@ -12,6 +12,10 @@ import { createTrip, updateTrip, type TripResponse } from '../services/tripApi';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface StoreState {
+  // Hydration state
+  hasHydrated: boolean;
+  setHasHydrated: (hydrated: boolean) => void;
+
   // Auth state
   user: User | null;
   isAuthLoading: boolean;
@@ -69,6 +73,10 @@ interface StoreState {
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      // Hydration state
+      hasHydrated: false,
+      setHasHydrated: (hydrated: boolean) => set({ hasHydrated: hydrated }),
+
       // Auth state
       user: null,
       isAuthLoading: false,
@@ -419,8 +427,11 @@ export const useStore = create<StoreState>()(
         messages: state.messages,
         conversationState: state.conversationState,
         isEditMode: state.isEditMode,
-        // Exclude: isAuthLoading, isLoading, isSyncing, history, historyIndex, hasUnsavedChanges
+        // Exclude: isAuthLoading, isLoading, isSyncing, history, historyIndex, hasUnsavedChanges, hasHydrated
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

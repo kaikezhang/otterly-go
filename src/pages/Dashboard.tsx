@@ -12,9 +12,11 @@ import {
   type TripFilters,
 } from '../services/tripApi';
 import type { TripStatus } from '../types';
+import { useStore } from '../store/useStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const clearAll = useStore((state) => state.clearAll);
 
   // State
   const [trips, setTrips] = React.useState<TripResponse[]>([]);
@@ -70,6 +72,7 @@ export function Dashboard() {
   };
 
   const handleNewTrip = () => {
+    clearAll(); // Clear previous trip state
     navigate('/trip/new');
   };
 

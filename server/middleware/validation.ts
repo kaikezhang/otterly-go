@@ -124,7 +124,8 @@ export function validateRequest<T extends z.ZodType>(schema: T) {
 export function validateQuery<T extends z.ZodType>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.query = schema.parse(req.query) as any;
+      // Validate query params (don't try to reassign req.query as it's read-only)
+      schema.parse(req.query);
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -135,6 +136,7 @@ export function validateQuery<T extends z.ZodType>(schema: T) {
       } else {
         res.status(400).json({
           error: 'Invalid query parameters',
+          message: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }

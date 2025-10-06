@@ -144,9 +144,10 @@ router.get('/stats', async (req: Request, res: Response) => {
  */
 router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Response) => {
   try {
-    const query = req.query as unknown as TripListQuery;
-    const page = query.page || 1;
-    const limit = Math.min(query.limit || 20, 100); // Max 100 per page, default 20
+    const query = req.query;
+    // Parse pagination params (they come as strings from URL)
+    const page = query.page ? parseInt(query.page as string, 10) : 1;
+    const limit = Math.min(query.limit ? parseInt(query.limit as string, 10) : 20, 100);
     const skip = (page - 1) * limit;
 
     // req.userId is set by requireAuth middleware
@@ -161,7 +162,8 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
 
     // Filter by archived status
     if (query.archived !== undefined) {
-      where.archivedAt = query.archived ? { not: null } : null;
+      const archived = query.archived === 'true';
+      where.archivedAt = archived ? { not: null } : null;
     } else {
       // By default, hide archived trips unless explicitly requested
       where.archivedAt = null;
@@ -169,50 +171,56 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
 
     // Filter by trip status
     if (query.status && query.status !== 'all') {
-      if (query.status === 'past') {
+      const statusStr = query.status as string;
+      if (statusStr === 'past') {
         // Past trips = completed or archived
         where.OR = [
           { status: 'completed' },
           { status: 'archived' },
         ];
       } else {
-        where.status = query.status;
+        where.status = statusStr;
       }
     }
 
-    // Filter by tags
-    if (query.tags && query.tags.length > 0) {
-      where.tags = {
-        hasSome: query.tags,
-      };
+    // Filter by tags (comma-separated string from URL)
+    if (query.tags) {
+      const tagsArray = (query.tags as string).split(',');
+      if (tagsArray.length > 0) {
+        where.tags = {
+          hasSome: tagsArray,
+        };
+      }
     }
 
     // Search across title and destination
     if (query.search) {
       where.OR = [
-        { title: { contains: query.search, mode: 'insensitive' } },
-        { destination: { contains: query.search, mode: 'insensitive' } },
+        { title: { contains: query.search as string, mode: 'insensitive' } },
+        { destination: { contains: query.search as string, mode: 'insensitive' } },
       ];
     }
 
     // Build orderBy clause for sorting
     let orderBy: Prisma.TripOrderByWithRelationInput = { createdAt: 'desc' }; // Default sort
     if (query.sort) {
-      switch (query.sort) {
+      const sortStr = query.sort as string;
+      const orderStr = (query.order as string) || 'desc';
+      switch (sortStr) {
         case 'recent':
-          orderBy = { lastViewedAt: query.order || 'desc' };
+          orderBy = { lastViewedAt: orderStr };
           break;
         case 'oldest':
-          orderBy = { createdAt: query.order || 'asc' };
+          orderBy = { createdAt: orderStr };
           break;
         case 'name':
-          orderBy = { title: query.order || 'asc' };
+          orderBy = { title: orderStr };
           break;
         case 'startDate':
-          orderBy = { startDate: query.order || 'desc' };
+          orderBy = { startDate: orderStr };
           break;
         case 'endDate':
-          orderBy = { endDate: query.order || 'desc' };
+          orderBy = { endDate: orderStr };
           break;
       }
     }

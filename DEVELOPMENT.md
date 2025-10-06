@@ -1555,4 +1555,131 @@ Based on user testing and design review, the following improvements have been im
 
 ---
 
-**Last Updated**: 2025-10-06 (Milestone 3.5 Comprehensive Trip Management & Dashboard designed - Transformative UX for multi-trip organization with modern dashboard patterns)
+---
+
+### Milestone 3.5 Post-Implementation Fixes ✅ **COMPLETED** (2025-10-06)
+
+**Goal**: Fix critical UX issues discovered during testing of the dashboard implementation
+
+#### Issues Fixed:
+
+**1. Query Parameter Validation Error** ✅
+- **Problem**: Dashboard failing to load trips with 400 Bad Request error
+- **Root Cause**: Validation middleware trying to reassign read-only `req.query` property
+- **Fix**: Modified `validateQuery` middleware to only validate without reassignment
+- **Files Changed**: `server/middleware/validation.ts`, `server/routes/trips.ts`
+- **Impact**: Dashboard now loads successfully showing all user trips
+
+**2. Duplicate Greeting Messages** ✅
+- **Problem**: Multiple identical greeting messages appearing when starting new trip
+- **Root Cause**: React Strict Mode mounting component twice before Zustand rehydration
+- **Fix**: Implemented hydration tracking with `hasHydrated` state and `onRehydrateStorage` callback
+- **Files Changed**: `src/store/useStore.ts`, `src/pages/Home.tsx`
+- **Impact**: Clean single greeting on new trip creation
+
+**3. Trip Not Loading from Dashboard** ✅
+- **Problem**: Clicking trip in dashboard showed greeting instead of loading trip data
+- **Root Cause**: No logic to detect tripId from URL and load trip data
+- **Fix**: Added useEffect to extract tripId from URL params and call `getTrip()` API
+- **Files Changed**: `src/pages/Home.tsx`
+- **Impact**: Trips now load correctly with chat history and itinerary
+
+**4. Start Over Button Not Working** ✅
+- **Problem**: "Start Over" button redirected to dashboard or showed old chat content
+- **Root Cause**: Clearing localStorage removed user auth, causing redirect; race condition on state clearing
+- **Fix**: Modified to only clear trip data (preserve auth) with proper state persistence wait
+- **Files Changed**: `src/pages/Home.tsx`
+- **Impact**: Start Over now correctly clears trip and shows fresh greeting
+
+**5. Browser Alerts (Poor UX)** ✅
+- **Problem**: Using native browser `confirm()` dialogs for Start Over and Sign Out
+- **Root Cause**: Quick implementation without custom UI components
+- **Fix**: Created `ConfirmModal` component with modern design and animations
+- **Files Changed**: `src/components/ConfirmModal.tsx`, `src/pages/Home.tsx`, `src/index.css`
+- **Features**:
+  - Reusable modal with danger/primary variants
+  - Smooth scale-in animation
+  - Dark backdrop overlay
+  - Clear messaging for Start Over and Sign Out actions
+- **Impact**: Professional UX matching app design system
+
+**6. New Trip Not Clearing State** ✅
+- **Problem**: Clicking "New Trip" in dashboard showed previous trip data
+- **Root Cause**: Navigation didn't clear state before loading new trip page
+- **Fix**: Call `clearAll()` before navigating to `/trip/new`
+- **Files Changed**: `src/pages/Dashboard.tsx`
+- **Impact**: New trips always start with fresh state
+
+#### Technical Implementation:
+
+**Hydration Tracking Pattern**:
+```typescript
+// Store
+interface StoreState {
+  hasHydrated: boolean;
+  setHasHydrated: (hydrated: boolean) => void;
+}
+
+// Persist config
+onRehydrateStorage: () => (state) => {
+  state?.setHasHydrated(true);
+}
+
+// Component
+useEffect(() => {
+  if (hasHydrated && (!tripId || tripId === 'new') && messages.length === 0) {
+    // Initialize greeting only after hydration
+  }
+}, [hasHydrated, tripId, messages.length]);
+```
+
+**Trip Loading Pattern**:
+```typescript
+useEffect(() => {
+  if (hasHydrated && tripId && tripId !== 'new' && tripId !== currentTripId) {
+    const loadTrip = async () => {
+      const tripData = await getTrip(tripId);
+      loadTripFromDatabase(tripData);
+    };
+    loadTrip();
+  }
+}, [hasHydrated, tripId, currentTripId]);
+```
+
+**Confirmation Modal Pattern**:
+```typescript
+<ConfirmModal
+  isOpen={showModal}
+  title="Start Over?"
+  message="This will clear your current trip..."
+  confirmText="Start Over"
+  variant="danger"
+  onConfirm={handleConfirm}
+  onCancel={() => setShowModal(false)}
+/>
+```
+
+#### Acceptance Criteria Met:
+- ✅ Dashboard loads trips without errors
+- ✅ Single greeting message on new trip creation
+- ✅ Trips load correctly when clicked from dashboard
+- ✅ Start Over clears state and shows fresh chat
+- ✅ Professional confirmation modals replace browser alerts
+- ✅ New Trip button clears previous state
+
+#### Files Modified:
+- `server/middleware/validation.ts` - Fixed query validation
+- `server/routes/trips.ts` - Added manual query param parsing
+- `src/store/useStore.ts` - Added hydration tracking
+- `src/pages/Home.tsx` - Trip loading logic, modal integration
+- `src/pages/Dashboard.tsx` - Clear state on New Trip
+- `src/components/ConfirmModal.tsx` - New reusable modal component (NEW FILE)
+- `src/index.css` - Added scale-in animation
+
+**Priority**: Critical (blocking user workflows)
+**Effort**: 1 day
+**Status**: ✅ Completed and tested
+
+---
+
+**Last Updated**: 2025-10-06 (Milestone 3.5 Post-Implementation Fixes - Critical UX issues resolved, dashboard fully functional)
