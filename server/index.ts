@@ -1,14 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import chatRouter from './routes/chat.js';
 import healthRouter from './routes/health.js';
 import tripsRouter from './routes/trips.js';
+import authRouter from './routes/auth.js';
+import { configurePassport } from './config/passport.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Configure Passport
+configurePassport();
 
 // Middleware
 app.use(cors({
@@ -16,11 +23,14 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
+app.use(passport.initialize());
 
 // Health check routes
 app.use(healthRouter);
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/trips', tripsRouter);
 

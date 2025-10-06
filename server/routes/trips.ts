@@ -10,8 +10,12 @@ import {
   type UpdateTripRequest,
   type TripListQuery,
 } from '../middleware/validation.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+// Apply auth middleware to all trip routes
+router.use(requireAuth);
 
 /**
  * POST /api/trips
@@ -21,21 +25,15 @@ router.post('/', validateRequest(createTripSchema), async (req: Request, res: Re
   try {
     const body = req.body as CreateTripRequest;
 
-    // Ensure user exists (auto-create if not - temporary until Milestone 2.1)
-    const tempEmail = `${body.userId}@temporary.local`;
-    const user = await prisma.user.upsert({
-      where: { email: tempEmail },
-      create: {
-        email: tempEmail,
-        passwordHash: '', // Empty for now (no auth yet)
-      },
-      update: {}, // No updates needed if user exists
-    });
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     // Create trip in database
     const trip = await prisma.trip.create({
       data: {
-        userId: user.id, // Use the actual database user ID
+        userId: req.userId, // Use authenticated user ID from JWT
         title: body.title,
         destination: body.destination,
         startDate: new Date(body.startDate),
@@ -85,34 +83,19 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
     const limit = Math.min(query.limit || 10, 100); // Max 100 per page
     const skip = (page - 1) * limit;
 
-    // Find user by temporary email (until Milestone 2.1 auth)
-    const tempEmail = `${query.userId}@temporary.local`;
-    const user = await prisma.user.findUnique({
-      where: { email: tempEmail },
-    });
-
-    // If user doesn't exist, return empty list
-    if (!user) {
-      return res.json({
-        trips: [],
-        pagination: {
-          page,
-          limit,
-          totalCount: 0,
-          totalPages: 0,
-          hasMore: false,
-        },
-      });
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Get total count
     const totalCount = await prisma.trip.count({
-      where: { userId: user.id },
+      where: { userId: req.userId },
     });
 
     // Get paginated trips
     const trips = await prisma.trip.findMany({
-      where: { userId: user.id },
+      where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
