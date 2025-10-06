@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Trip, ItineraryItem } from '../types';
 import { EditableText } from './EditableText';
 import { TimeRangePicker } from './TimePicker';
+import { ShareButton } from './ShareButton';
 
 interface ItineraryViewProps {
   trip: Trip;
@@ -31,6 +32,9 @@ interface ItineraryViewProps {
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   onReorderItems?: (dayIndex: number, startIndex: number, endIndex: number) => void;
   onMoveItemBetweenDays?: (fromDayIndex: number, toDayIndex: number, itemId: string, toIndex: number) => void;
+  isSyncing?: boolean;
+  currentTripId?: string | null;
+  hideShareButton?: boolean;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -98,6 +102,9 @@ export function ItineraryView({
   onUpdateItem,
   onReorderItems,
   onMoveItemBetweenDays,
+  isSyncing = false,
+  currentTripId = null,
+  hideShareButton = false,
 }: ItineraryViewProps) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
     new Set(trip.days.map((_, i) => i))
@@ -209,23 +216,37 @@ export function ItineraryView({
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-        <h2 className="text-xl font-bold text-gray-900">{trip.destination}</h2>
-        <p className="text-sm text-gray-600">
-          {format(parseISO(trip.startDate), 'MMM d')} -{' '}
-          {format(parseISO(trip.endDate), 'MMM d, yyyy')}
-        </p>
-        <div className="flex gap-2 mt-2 text-xs">
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-            {trip.pace} pace
-          </span>
-          {trip.interests.map((interest) => (
-            <span
-              key={interest}
-              className="px-2 py-1 bg-green-100 text-green-800 rounded"
-            >
-              {interest}
-            </span>
-          ))}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900">{trip.destination}</h2>
+            <p className="text-sm text-gray-600">
+              {format(parseISO(trip.startDate), 'MMM d')} -{' '}
+              {format(parseISO(trip.endDate), 'MMM d, yyyy')}
+            </p>
+            <div className="flex gap-2 mt-2 text-xs">
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                {trip.pace} pace
+              </span>
+              {trip.interests.map((interest) => (
+                <span
+                  key={interest}
+                  className="px-2 py-1 bg-green-100 text-green-800 rounded"
+                >
+                  {interest}
+                </span>
+              ))}
+            </div>
+          </div>
+          {!hideShareButton && (
+            <div className="flex-shrink-0">
+              <ShareButton
+                tripId={trip.id}
+                tripTitle={`${trip.destination} Trip`}
+                isSyncing={isSyncing}
+                currentTripId={currentTripId}
+              />
+            </div>
+          )}
         </div>
       </div>
 

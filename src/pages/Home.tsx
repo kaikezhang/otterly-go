@@ -19,6 +19,7 @@ export default function Home() {
     isSyncing,
     isEditMode,
     hasUnsavedChanges,
+    currentTripId,
     setTrip,
     addMessage,
     markSuggestionAdded,
@@ -518,6 +519,8 @@ export default function Home() {
               onUpdateItem={updateItemInDay}
               onReorderItems={reorderItemsInDay}
               onMoveItemBetweenDays={moveItemBetweenDays}
+              isSyncing={isSyncing}
+              currentTripId={currentTripId}
             />
           </div>
         )}

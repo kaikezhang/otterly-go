@@ -11,6 +11,7 @@ import {
   type TripListQuery,
 } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -296,6 +297,104 @@ router.delete('/:id', async (req: Request, res: Response) => {
     console.error('Error deleting trip:', error);
     res.status(500).json({
       error: 'Failed to delete trip',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/trips/:id/share
+ * Generate or retrieve a shareable link for a trip
+ */
+router.post('/:id/share', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check if trip exists and belongs to user
+    const trip = await prisma.trip.findUnique({
+      where: { id },
+    });
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to share this trip' });
+    }
+
+    // Generate share token if not exists
+    let shareToken = trip.publicShareToken;
+    if (!shareToken) {
+      shareToken = randomUUID();
+      await prisma.trip.update({
+        where: { id },
+        data: { publicShareToken: shareToken },
+      });
+    }
+
+    // Use frontend URL from env, fallback to localhost:5173
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    res.json({
+      shareToken,
+      shareUrl: `${frontendUrl}/share/${shareToken}`,
+    });
+  } catch (error) {
+    console.error('Error generating share link:', error);
+    res.status(500).json({
+      error: 'Failed to generate share link',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * DELETE /api/trips/:id/share
+ * Revoke the share link for a trip
+ */
+router.delete('/:id/share', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check if trip exists and belongs to user
+    const trip = await prisma.trip.findUnique({
+      where: { id },
+    });
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to modify this trip' });
+    }
+
+    // Remove share token
+    await prisma.trip.update({
+      where: { id },
+      data: {
+        publicShareToken: null,
+        sharePassword: null,
+        shareExpiresAt: null,
+      },
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error revoking share link:', error);
+    res.status(500).json({
+      error: 'Failed to revoke share link',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

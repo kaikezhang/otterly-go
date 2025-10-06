@@ -49,6 +49,13 @@ model Trip {
   endDate      DateTime @map("end_date")
   dataJson     Json     @map("data_json") // Stores full trip object from frontend
   coverPhotoId String?  @map("cover_photo_id") // FK to PhotoLibrary for trip cover photo
+
+  // Sharing fields (Milestone 3.4)
+  publicShareToken String?  @unique @map("public_share_token") // UUID for public share links
+  sharePassword    String?  @map("share_password") // Hashed password for protected shares (optional)
+  shareExpiresAt   DateTime? @map("share_expires_at") // Optional expiration date
+  shareViewCount   Int      @default(0) @map("share_view_count") // Track number of views
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -60,6 +67,7 @@ model Trip {
 
   @@index([userId])
   @@index([coverPhotoId])
+  @@index([publicShareToken])
   @@map("trips")
 }
 
