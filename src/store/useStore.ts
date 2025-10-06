@@ -49,6 +49,7 @@ interface StoreState {
   login: () => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 
   // Trip actions
   setTrip: (trip: Trip | null) => void;
@@ -163,6 +164,24 @@ export const useStore = create<StoreState>()(
         } catch (error) {
           console.error('Auth check failed:', error);
           set({ user: null, isAuthLoading: false });
+        }
+      },
+
+      refreshAuth: async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            set({ user });
+          } else {
+            console.error('Failed to refresh auth token');
+          }
+        } catch (error) {
+          console.error('Error refreshing auth token:', error);
         }
       },
 

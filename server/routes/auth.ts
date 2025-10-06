@@ -110,6 +110,56 @@ router.get('/me', (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/auth/refresh
+ * Refresh JWT token with latest user data from database
+ */
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
+
+    // Fetch latest user data from database
+    const { prisma } = await import('../db.js');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate new token with latest data
+    const newToken = generateToken(user);
+
+    // Set new JWT cookie
+    res.cookie('auth_token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: 'localhost',
+      path: '/',
+    });
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      subscriptionTier: user.subscriptionTier,
+    });
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(500).json({ error: 'Failed to refresh token' });
+  }
+});
+
+/**
  * POST /api/auth/logout
  * Logout user by clearing auth cookie
  */

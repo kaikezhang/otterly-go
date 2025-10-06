@@ -7,12 +7,14 @@ import {
   type SubscriptionTier,
   type SubscriptionStatus,
 } from '../services/subscriptionApi';
+import { useStore } from '../store/useStore';
 
 export default function SubscriptionPanel() {
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const refreshAuth = useStore((state) => state.refreshAuth);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -42,8 +44,10 @@ export default function SubscriptionPanel() {
 
       // Check if mock mode
       if ('mock' in response && response.mock) {
-        // Reload page to show updated subscription
-        window.location.reload();
+        // Refresh auth token to get updated subscription tier
+        await refreshAuth();
+        // Reload subscription data
+        await loadSubscriptionData();
       } else {
         window.location.href = response.url;
       }
@@ -59,8 +63,10 @@ export default function SubscriptionPanel() {
 
       // Check if mock mode
       if ('mock' in response && response.mock) {
-        // Reload page to show updated subscription
-        window.location.reload();
+        // Refresh auth token to get updated subscription tier
+        await refreshAuth();
+        // Reload subscription data
+        await loadSubscriptionData();
       } else {
         window.location.href = response.url;
       }
