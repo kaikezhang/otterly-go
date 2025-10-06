@@ -21,10 +21,21 @@ router.post('/', validateRequest(createTripSchema), async (req: Request, res: Re
   try {
     const body = req.body as CreateTripRequest;
 
+    // Ensure user exists (auto-create if not - temporary until Milestone 2.1)
+    const tempEmail = `${body.userId}@temporary.local`;
+    const user = await prisma.user.upsert({
+      where: { email: tempEmail },
+      create: {
+        email: tempEmail,
+        passwordHash: '', // Empty for now (no auth yet)
+      },
+      update: {}, // No updates needed if user exists
+    });
+
     // Create trip in database
     const trip = await prisma.trip.create({
       data: {
-        userId: body.userId,
+        userId: user.id, // Use the actual database user ID
         title: body.title,
         destination: body.destination,
         startDate: new Date(body.startDate),
@@ -74,14 +85,34 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
     const limit = Math.min(query.limit || 10, 100); // Max 100 per page
     const skip = (page - 1) * limit;
 
+    // Find user by temporary email (until Milestone 2.1 auth)
+    const tempEmail = `${query.userId}@temporary.local`;
+    const user = await prisma.user.findUnique({
+      where: { email: tempEmail },
+    });
+
+    // If user doesn't exist, return empty list
+    if (!user) {
+      return res.json({
+        trips: [],
+        pagination: {
+          page,
+          limit,
+          totalCount: 0,
+          totalPages: 0,
+          hasMore: false,
+        },
+      });
+    }
+
     // Get total count
     const totalCount = await prisma.trip.count({
-      where: { userId: query.userId },
+      where: { userId: user.id },
     });
 
     // Get paginated trips
     const trips = await prisma.trip.findMany({
-      where: { userId: query.userId },
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
