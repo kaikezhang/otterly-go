@@ -1,5 +1,13 @@
 export type TravelPace = 'fast' | 'medium' | 'slow';
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  subscriptionTier: 'free' | 'premium';
+}
+
 export type ItemType =
   | 'sight'
   | 'food'
