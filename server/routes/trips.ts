@@ -85,7 +85,7 @@ router.post('/', checkTripLimit, validateRequest(createTripSchema), async (req: 
  * Get statistics about user's trips (Milestone 3.5)
  * IMPORTANT: This must come before /:id route
  */
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', requireAuth, async (req: Request, res: Response) => {
   try {
     // req.userId is set by requireAuth middleware
     if (!req.userId) {
