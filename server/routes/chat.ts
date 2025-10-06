@@ -3,6 +3,9 @@ import OpenAI from 'openai';
 import { chatRateLimiter } from '../middleware/rateLimit.js';
 import { validateRequest, chatRequestSchema } from '../middleware/validation.js';
 import type { ChatRequest } from '../middleware/validation.js';
+import { requireAuth } from '../middleware/auth.js';
+import { prisma } from '../db.js';
+import { getModelForTier } from '../services/stripe.js';
 
 const router = express.Router();
 
@@ -358,11 +361,24 @@ FINAL CHECK BEFORE SENDING:
 // POST /api/chat - Proxy to OpenAI
 router.post(
   '/',
+  requireAuth,
   chatRateLimiter,
   validateRequest(chatRequestSchema),
   async (req, res) => {
     try {
       const { message, conversationHistory = [], currentTrip } = req.body as ChatRequest;
+
+      // Get user's subscription tier to determine which model to use
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { subscriptionTier: true },
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const model = getModelForTier(user.subscriptionTier as 'free' | 'pro' | 'team');
 
       // Build context message if trip exists
       const contextMessage = currentTrip
@@ -382,9 +398,9 @@ router.post(
         },
       ];
 
-      // Call OpenAI API
+      // Call OpenAI API with model based on subscription tier
       const response = await getOpenAIClient().chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+        model,
         messages,
         temperature: 0.7,
       });

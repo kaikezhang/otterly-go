@@ -13,6 +13,8 @@ import userRouter from './routes/user.js';
 import mapRouter from './routes/map.js';
 import photosRouter from './routes/photos.js';
 import shareRouter from './routes/share.js';
+import subscriptionsRouter from './routes/subscriptions.js';
+import webhooksRouter from './routes/webhooks.js';
 import { configurePassport } from './config/passport.js';
 
 // Get the directory name of the current module
@@ -53,6 +55,10 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
+
+// Webhook routes MUST come before express.json() to preserve raw body
+app.use('/api/webhooks', webhooksRouter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(passport.initialize());
@@ -68,6 +74,7 @@ app.use('/api/user', userRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/photos', photosRouter);
 app.use('/api/share', shareRouter); // Public share links (no auth required)
+app.use('/api/subscriptions', subscriptionsRouter);
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

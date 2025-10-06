@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import SubscriptionPanel from '../components/SubscriptionPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -354,6 +355,11 @@ export default function Profile() {
               </label>
             </div>
           </div>
+        </div>
+
+        {/* Subscription */}
+        <div className="mb-6">
+          <SubscriptionPanel />
         </div>
 
         {/* Danger Zone */}

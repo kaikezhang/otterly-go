@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+// Function to get JWT_SECRET (loaded lazily to ensure .env is loaded first)
+const getJwtSecret = () => process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
 // Extend Express Request to include user info
 declare global {
@@ -19,13 +20,23 @@ declare global {
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
+    console.log('[AUTH] Cookies received:', Object.keys(req.cookies));
+    console.log('[AUTH] Raw Cookie header:', req.headers.cookie);
+
     const token = req.cookies.auth_token;
 
     if (!token) {
+      console.log('[AUTH] No token found in cookies');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log('[AUTH] Token found, verifying...');
+    console.log('[AUTH] Token preview:', token.substring(0, 20) + '...');
+    console.log('[AUTH] JWT_SECRET preview:', getJwtSecret().substring(0, 10) + '...');
+
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
+
+    console.log('[AUTH] Token verified successfully for user:', decoded.id);
 
     // Add user info to request
     req.userId = decoded.id;
@@ -34,12 +45,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
+      console.error('[AUTH] JWT verification error:', error.message);
       return res.status(401).json({ error: 'Invalid token' });
     }
     if (error instanceof jwt.TokenExpiredError) {
+      console.error('[AUTH] Token expired:', error.message);
       return res.status(401).json({ error: 'Token expired' });
     }
-    console.error('Error verifying token:', error);
+    console.error('[AUTH] Unknown error verifying token:', error);
     res.status(500).json({ error: 'Authentication error' });
   }
 }
@@ -53,7 +66,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
     const token = req.cookies.auth_token;
 
     if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const decoded = jwt.verify(token, getJwtSecret()) as any;
       req.userId = decoded.id;
       req.userEmail = decoded.email;
     }
