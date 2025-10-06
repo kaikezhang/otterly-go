@@ -31,6 +31,8 @@ export interface ItineraryItem {
   description: string;
   notes?: string;
   duration?: string;
+  startTime?: string; // Format: "HH:MM" (24-hour)
+  endTime?: string; // Format: "HH:MM" (24-hour)
 }
 
 export interface Day {
