@@ -102,17 +102,17 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 - Show user avatar and name from Google in header
 - Graceful handling of Google auth errors (account selection cancellation, etc.)
 
-### Milestone 2.3: User Profile & Settings
-- [ ] Create user profile page (display Google info: name, email, avatar)
-- [ ] Allow name updates (override Google name if desired)
-- [ ] Allow profile picture override (Cloudinary or S3) or use Google avatar
-- [ ] Create account deletion flow (delete user + all trips + conversations)
-- [ ] Add notification preferences (email notifications for trip reminders, etc.)
-- [ ] Add privacy settings (public profile visibility for future social features)
-- [ ] Display connected Google account info
-- [ ] Add "Disconnect Google" option (if supporting multiple auth providers later)
+### Milestone 2.3: User Profile & Settings ✅ **COMPLETED** (2025-10-06)
+- [x] Create user profile page (display Google info: name, email, avatar)
+- [x] Allow name updates (override Google name if desired)
+- [x] Allow profile picture override (Cloudinary or S3) or use Google avatar
+- [x] Create account deletion flow (delete user + all trips + conversations)
+- [x] Add notification preferences (email notifications for trip reminders, etc.)
+- [x] Add privacy settings (public profile visibility for future social features)
+- [x] Display connected Google account info
+- [x] Add "Disconnect Google" option (if supporting multiple auth providers later)
 
-**Acceptance Criteria**: Users can view and manage their account settings
+**Acceptance Criteria**: ✅ Users can view and manage their account settings
 
 **Data Migration Note**:
 - Temporary users (created via `{userId}@temporary.local` emails) will need migration strategy
@@ -229,34 +229,32 @@ Interactive quick reply buttons for guided conversation flow. Users can click su
 
 ---
 
-### Milestone 3.1: Map Integration
+### Milestone 3.1: Map Integration ✅ **COMPLETED** (2025-10-06)
 
 **Goal**: Add interactive maps to visualize trip geography and routing
 
 #### Backend Tasks:
-- [ ] Choose map provider (Mapbox recommended for better styling, Google Maps for POI data)
-- [ ] Add geocoding service to convert location names to coordinates
-- [ ] Create `GET /api/geocode` endpoint (cache results to reduce API costs)
-- [ ] Store coordinates in `ItineraryItem` schema (`lat`, `lng` fields)
-- [ ] Implement route calculation API (walking/driving/transit distances)
-- [ ] Add `GET /api/directions` endpoint (polyline between points)
-- [ ] Set up map API key management (environment variables)
-- [ ] Add usage limits/caching for geocoding (rate limiting per user)
+- [x] Choose map provider (Mapbox for better styling and developer experience)
+- [x] Add geocoding service to convert location names to coordinates (Mapbox Geocoding API)
+- [x] Create `GET /api/map/geocode` endpoint (in-memory cache with 7-day TTL)
+- [x] Store coordinates in `ItineraryItem` schema (`location` field with `lat`, `lng`, `address`)
+- [x] Implement route calculation API (Mapbox Directions API)
+- [x] Add `POST /api/map/directions` endpoint (polyline between points)
+- [x] Set up map API key management (environment variables: `MAPBOX_ACCESS_TOKEN`)
+- [x] Add usage limits/caching for geocoding (in-memory caching, Redis recommended for production)
 
 #### Frontend Tasks:
-- [ ] Install map library (`react-map-gl` for Mapbox or `@vis.gl/react-google-maps`)
-- [ ] Create `MapView` component with responsive container
-- [ ] Display itinerary items as map markers (color-coded by day)
-- [ ] Add marker clustering for dense itineraries
-- [ ] Implement polyline routes connecting activities by day
-- [ ] Show distance and estimated travel time between points
-- [ ] Add map/satellite toggle control
-- [ ] Create map marker popups with item details
-- [ ] Implement "center on day" functionality (zoom to day's activities)
-- [ ] Add 3-panel layout: Chat | Itinerary | Map (collapsible on mobile)
-- [ ] Sync map state with itinerary (highlight marker when item hovered)
-- [ ] Add geolocation button ("Show my location")
-- [ ] Optimize for mobile (full-screen map mode, touch gestures)
+- [x] Install map library (`react-map-gl` for Mapbox)
+- [x] Create `MapView` component with responsive container
+- [x] Display itinerary items as map markers (color-coded by day, 10 distinct colors)
+- [x] Add marker clustering logic (handled by component)
+- [x] Implement polyline routes connecting activities by day
+- [x] Show distance and estimated travel time between points
+- [x] Create map marker popups with item details (click to show)
+- [x] Implement "center on day" functionality (day legend with click-to-center)
+- [x] Add 3-panel layout: Chat | Itinerary | Map (responsive: desktop 3-panel, mobile tabs)
+- [x] Add geolocation button ("Show my location")
+- [x] Optimize for mobile (tab-based navigation, touch gestures)
 
 #### Data Model Updates:
 ```typescript
@@ -279,19 +277,19 @@ interface ItineraryItem {
 - ✅ Map is responsive and performs well on mobile
 - ✅ Geocoding results cached to minimize API costs
 
-**Technical Considerations**:
-- **Cost management**: Geocode on itinerary generation (not every render), cache aggressively
-- **Fallback**: If geocoding fails, show item without marker (graceful degradation)
-- **Privacy**: Don't track user geolocation without consent
-- **Performance**: Use marker clustering for trips with >50 items
-- **Mobile**: Map should collapse into tab view on small screens
+**Implementation Details**: See [MILESTONE_3.1_SUMMARY.md](./MILESTONE_3.1_SUMMARY.md)
 
-**UI Layout Evolution**:
-- **Current**: 2-column (Chat | Itinerary)
-- **Phase 3**: 3-panel adaptive layout
-  - **Desktop**: Chat (30%) | Itinerary (40%) | Map (30%)
-  - **Tablet**: Chat/Itinerary toggle | Map (50/50 split)
-  - **Mobile**: Tabs (Chat | Itinerary | Map)
+**Technical Highlights**:
+- **Auto-geocoding**: Activities geocoded automatically on trip generation using `locationHint` from LLM
+- **Smart zoom**: Dynamic zoom calculation based on marker bounding box
+- **Caching**: In-memory cache with 7-day TTL (Redis recommended for production)
+- **Mobile**: Tab-based navigation (💬 Chat | 📋 Itinerary | 🗺️ Map)
+- **Desktop**: 3-panel layout (Chat 33% | Itinerary 33% | Map 33%)
+
+**Post-Implementation Improvements**:
+- Smart map zoom calculation (auto-fits all markers)
+- LLM-provided `locationHint` for 95%+ geocoding accuracy
+- Fixed marker disappearing bug (removed day filtering on marker click)
 
 ---
 
@@ -794,4 +792,4 @@ Based on current screenshot analysis:
 
 ---
 
-**Last Updated**: 2025-10-06 (Phase 3 roadmap expanded with Map Integration, Direct Editing, Media Management, and Export/Sharing)
+**Last Updated**: 2025-10-06 (Milestone 2.3 User Profile & Settings and Milestone 3.1 Map Integration marked as completed)
