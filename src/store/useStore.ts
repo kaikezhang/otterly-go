@@ -5,10 +5,18 @@ import type {
   ChatMessage,
   ConversationState,
   ItineraryItem,
+  User,
 } from '../types';
-import { createTrip, updateTrip, getUserId, type TripResponse } from '../services/tripApi';
+import { createTrip, updateTrip, type TripResponse } from '../services/tripApi';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface StoreState {
+  // Auth state
+  user: User | null;
+  isAuthLoading: boolean;
+
+  // Trip state
   trip: Trip | null;
   currentTripId: string | null; // Database ID of current trip
   messages: ChatMessage[];
@@ -16,7 +24,13 @@ interface StoreState {
   isLoading: boolean;
   isSyncing: boolean; // True when syncing to database
 
-  // Actions
+  // Auth actions
+  setUser: (user: User | null) => void;
+  login: () => void;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+
+  // Trip actions
   setTrip: (trip: Trip | null) => void;
   addMessage: (message: ChatMessage) => void;
   setConversationState: (state: ConversationState) => void;
@@ -36,6 +50,11 @@ interface StoreState {
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
+      // Auth state
+      user: null,
+      isAuthLoading: false,
+
+      // Trip state
       trip: null,
       currentTripId: null,
       messages: [],
@@ -43,6 +62,48 @@ export const useStore = create<StoreState>()(
       isLoading: false,
       isSyncing: false,
 
+      // Auth actions
+      setUser: (user) => set({ user }),
+
+      login: () => {
+        // Redirect to backend Google OAuth endpoint
+        window.location.href = `${API_URL}/api/auth/google`;
+      },
+
+      logout: async () => {
+        try {
+          await fetch(`${API_URL}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include', // Include cookies
+          });
+          set({ user: null });
+          // Clear trip data on logout
+          get().clearAll();
+        } catch (error) {
+          console.error('Logout failed:', error);
+        }
+      },
+
+      checkAuth: async () => {
+        set({ isAuthLoading: true });
+        try {
+          const response = await fetch(`${API_URL}/api/auth/me`, {
+            credentials: 'include', // Include cookies
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            set({ user, isAuthLoading: false });
+          } else {
+            set({ user: null, isAuthLoading: false });
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          set({ user: null, isAuthLoading: false });
+        }
+      },
+
+      // Trip actions
       setTrip: (trip) => set({ trip }),
 
       addMessage: (message) =>
@@ -109,19 +170,17 @@ export const useStore = create<StoreState>()(
       // Database sync actions
       saveTripToDatabase: async () => {
         const state = get();
-        if (!state.trip) return;
+        if (!state.trip || !state.user) return; // Require authenticated user
 
         set({ isSyncing: true });
 
         try {
-          const userId = getUserId();
-
           if (state.currentTripId) {
             // Update existing trip
             await updateTrip(state.currentTripId, state.trip, state.messages);
           } else {
-            // Create new trip
-            const response = await createTrip(userId, state.trip, state.messages);
+            // Create new trip (no userId needed - backend uses authenticated user)
+            const response = await createTrip(state.trip, state.messages);
             set({ currentTripId: response.id });
           }
         } catch (error) {
@@ -144,6 +203,15 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'otterly-go-storage',
+      partialize: (state) => ({
+        // Persist everything except loading states
+        user: state.user,
+        trip: state.trip,
+        currentTripId: state.currentTripId,
+        messages: state.messages,
+        conversationState: state.conversationState,
+        // Exclude: isAuthLoading, isLoading, isSyncing
+      }),
     }
   )
 );

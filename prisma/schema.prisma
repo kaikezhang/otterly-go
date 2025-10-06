@@ -17,7 +17,10 @@ datasource db {
 model User {
   id               String   @id @default(cuid())
   email            String   @unique
-  passwordHash     String   @map("password_hash")
+  passwordHash     String?  @map("password_hash") // Optional: only for email/password auth (not used with Google OAuth)
+  googleId         String?  @unique @map("google_id") // Google OAuth user ID
+  name             String?  // Display name from Google (or custom override)
+  picture          String?  // Profile picture URL from Google (or custom override)
   subscriptionTier String   @default("free") @map("subscription_tier")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")

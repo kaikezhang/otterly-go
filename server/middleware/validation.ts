@@ -17,7 +17,6 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 
 // Schema for creating a trip
 export const createTripSchema = z.object({
-  userId: z.string().min(1), // Temporary: will be replaced with auth in Milestone 2.1
   title: z.string().min(1).max(200),
   destination: z.string().min(1).max(200),
   startDate: z.string().min(1), // ISO date string (e.g., "2025-11-01" or "2025-11-01T00:00:00Z")
@@ -44,7 +43,6 @@ export type UpdateTripRequest = z.infer<typeof updateTripSchema>;
 export const tripListQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
-  userId: z.string().min(1), // Temporary: will be from auth token in Milestone 2.1
 });
 
 export type TripListQuery = z.infer<typeof tripListQuerySchema>;

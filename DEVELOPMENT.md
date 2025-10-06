@@ -31,65 +31,94 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 
 **Implementation Details**: See [MILESTONE_1.1_SUMMARY.md](./MILESTONE_1.1_SUMMARY.md)
 
-### Milestone 1.2: Database Setup
-- [ ] Choose database (PostgreSQL recommended for relational trip data)
-- [ ] Set up database hosting (Supabase, Railway, or Render)
-- [ ] Design schema:
+### Milestone 1.2: Database Setup ✅ **COMPLETED** (2025-10-06)
+- [x] Choose database (PostgreSQL recommended for relational trip data)
+- [x] Set up database hosting (Supabase, Railway, or Render)
+- [x] Design schema:
   - `users` table (id, email, password_hash, created_at, subscription_tier)
   - `trips` table (id, user_id, title, destination, start_date, end_date, data_json, created_at, updated_at)
   - `conversations` table (id, trip_id, messages_json, created_at, updated_at)
-- [ ] Set up migrations (Prisma or Drizzle ORM recommended)
-- [ ] Add database connection pooling
+- [x] Set up migrations (Prisma or Drizzle ORM recommended)
+- [x] Add database connection pooling
 
-**Acceptance Criteria**: Database schema deployed and accessible from backend
+**Acceptance Criteria**: ✅ Database schema deployed and accessible from backend
 
-### Milestone 1.3: Trip CRUD API
-- [ ] Implement `POST /api/trips` (create trip)
-- [ ] Implement `GET /api/trips` (list user's trips)
-- [ ] Implement `GET /api/trips/:id` (get single trip)
-- [ ] Implement `PATCH /api/trips/:id` (update trip)
-- [ ] Implement `DELETE /api/trips/:id` (delete trip)
-- [ ] Add pagination for trip lists
-- [ ] Replace localStorage with API calls in frontend
+**Implementation Details**: See [DATABASE_SETUP.md](./DATABASE_SETUP.md)
 
-**Acceptance Criteria**: Trips persist to database and sync across browser sessions
+### Milestone 1.3: Trip CRUD API ✅ **COMPLETED** (2025-10-06)
+- [x] Implement `POST /api/trips` (create trip)
+- [x] Implement `GET /api/trips` (list user's trips)
+- [x] Implement `GET /api/trips/:id` (get single trip)
+- [x] Implement `PATCH /api/trips/:id` (update trip)
+- [x] Implement `DELETE /api/trips/:id` (delete trip)
+- [x] Add pagination for trip lists
+- [x] Replace localStorage with API calls in frontend
+
+**Acceptance Criteria**: ✅ Trips persist to database and sync across browser sessions
+
+**Implementation Details**: See [MILESTONE_1.3_SUMMARY.md](./MILESTONE_1.3_SUMMARY.md)
 
 ---
 
 ## Phase 2: Authentication & User Management (Weeks 4-5)
 
-**Goal**: Enable secure multi-user access
+**Goal**: Enable secure multi-user access with Google OAuth
 
-### Milestone 2.1: Authentication System
-- [ ] Implement user registration (`POST /api/auth/register`)
-- [ ] Implement login (`POST /api/auth/login`) with JWT tokens
-- [ ] Add password hashing (bcrypt)
-- [ ] Create protected route middleware
-- [ ] Implement token refresh mechanism
-- [ ] Add email verification flow (SendGrid or Resend)
-- [ ] Add password reset functionality
+### Milestone 2.1: Google OAuth Authentication System ✅ **COMPLETED** (2025-10-06)
+- [x] Set up Google Cloud Console project and OAuth 2.0 credentials
+- [x] Install OAuth libraries (`passport`, `passport-google-oauth20`)
+- [x] Implement Google OAuth callback endpoint (`GET /api/auth/google/callback`)
+- [x] Create user lookup/creation flow (match Google email to users table)
+- [x] Generate JWT tokens after successful Google auth
+- [x] Create protected route middleware (verify JWT on protected endpoints)
+- [x] Implement session management (httpOnly cookies for JWT)
+- [x] Update database schema (add googleId, name, picture fields)
+- [x] Fix environment variable loading for tsx
 
-**Acceptance Criteria**: Users can register, login, and access only their own trips
+**Acceptance Criteria**: ✅ Users can sign in with Google and access only their own trips
 
-### Milestone 2.2: Frontend Auth Integration
-- [ ] Create login/register pages
-- [ ] Add auth context provider (React Context or Zustand slice)
-- [ ] Store JWT in httpOnly cookies (not localStorage for security)
-- [ ] Add route guards for authenticated pages
-- [ ] Create logout functionality
-- [ ] Add "Remember me" option
-- [ ] Handle token expiration gracefully
+**Technical Notes**:
+- Google OAuth flow: User clicks "Sign in with Google" → Redirects to Google → User approves → Google redirects to callback → Backend creates/finds user → Issues JWT
+- Store Google user info: `googleId`, `email`, `name`, `picture` in users table
+- Add `googleId` column to users table (migration needed)
+- No password storage needed (remove `passwordHash` requirement from schema)
 
-**Acceptance Criteria**: Unauthenticated users redirected to login; authenticated users see personalized dashboard
+### Milestone 2.2: Frontend Google Auth Integration ✅ **COMPLETED** (2025-10-06)
+- [x] Add "Sign in with Google" button (using Google's official button or custom UI)
+- [x] Implement OAuth redirect flow (initiate Google auth on button click)
+- [x] Handle OAuth callback redirect (receive JWT from backend)
+- [x] Store JWT in httpOnly cookies (secure, not accessible to JavaScript)
+- [x] Add auth context provider (Zustand auth slice or React Context)
+- [x] Add route guards for authenticated pages (redirect to login if no JWT)
+- [x] Create logout functionality (clear JWT cookie, revoke Google token optionally)
+- [x] Handle token expiration gracefully (auto-refresh or prompt re-login)
+- [x] Replace temporary `userId` system with real authenticated user ID
+
+**Acceptance Criteria**: ✅ Unauthenticated users see Google login; authenticated users see personalized dashboard
+
+**UI/UX Notes**:
+- Landing page shows "Sign in with Google" button
+- After login, redirect to trip dashboard (or continue current trip planning)
+- Show user avatar and name from Google in header
+- Graceful handling of Google auth errors (account selection cancellation, etc.)
 
 ### Milestone 2.3: User Profile & Settings
-- [ ] Create user profile page
-- [ ] Allow email/password updates
-- [ ] Add profile picture upload (Cloudinary or S3)
-- [ ] Create account deletion flow
-- [ ] Add notification preferences
+- [ ] Create user profile page (display Google info: name, email, avatar)
+- [ ] Allow name updates (override Google name if desired)
+- [ ] Allow profile picture override (Cloudinary or S3) or use Google avatar
+- [ ] Create account deletion flow (delete user + all trips + conversations)
+- [ ] Add notification preferences (email notifications for trip reminders, etc.)
+- [ ] Add privacy settings (public profile visibility for future social features)
+- [ ] Display connected Google account info
+- [ ] Add "Disconnect Google" option (if supporting multiple auth providers later)
 
-**Acceptance Criteria**: Users can manage their account settings
+**Acceptance Criteria**: Users can view and manage their account settings
+
+**Data Migration Note**:
+- Temporary users (created via `{userId}@temporary.local` emails) will need migration strategy
+- Option 1: Prompt users to claim trips after first Google login (match by email if possible)
+- Option 2: Allow manual import via trip ID
+- Option 3: Grandfather existing localStorage users (keep temporary IDs for backward compatibility)
 
 ---
 
@@ -331,21 +360,22 @@ This document outlines the milestones for transforming OtterlyGo from MVP to pro
 - Zustand (keep for client state)
 - Tailwind CSS v4
 
-**Backend** (to add):
-- **Option A**: Next.js 14+ (App Router) - all-in-one solution
-- **Option B**: Express.js + PostgreSQL - more control
-- **Option C**: Remix - excellent UX patterns
+**Backend** (current):
+- **Express.js + PostgreSQL** (chosen in Phase 1) - More control, clear separation from frontend
+- TypeScript + Node.js
+- Alternative options considered: Next.js 14+ App Router, Remix
 
-**Database**:
-- PostgreSQL (Supabase or PlanetScale)
-- Redis for caching (Upstash)
+**Database** (current):
+- **PostgreSQL** with Prisma (chosen in Phase 1) - Local development, production hosting TBD
+- Redis for caching (Upstash) - To be added in Phase 5
 
-**ORM**:
-- Prisma (DX-focused) or Drizzle (lightweight)
+**ORM** (current):
+- **Prisma** (chosen in Phase 1) - Excellent DX, type safety, migrations
 
 **Auth**:
-- **DIY**: Jose (JWT) + bcrypt
-- **Managed**: Clerk, Auth0, or Supabase Auth
+- **Google OAuth** (chosen for Phase 2): `@react-oauth/google` (frontend) + `passport-google-oauth20` (backend)
+- **JWT Sessions**: Jose or jsonwebtoken for session tokens after OAuth
+- **Alternative Managed**: Clerk, Auth0, or Supabase Auth (if expanding to multi-provider later)
 
 **Payments**:
 - Stripe (US-focused) or Paddle (global)

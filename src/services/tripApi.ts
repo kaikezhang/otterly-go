@@ -30,15 +30,14 @@ export interface TripListResponse {
  * Create a new trip in the database
  */
 export async function createTrip(
-  userId: string,
   trip: Trip,
   messages: ChatMessage[]
 ): Promise<TripResponse> {
   const response = await fetch(`${API_URL}/api/trips`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // Include auth cookies
     body: JSON.stringify({
-      userId,
       title: `${trip.destination} Trip`, // Generate a title
       destination: trip.destination,
       startDate: trip.startDate,
@@ -67,6 +66,7 @@ export async function updateTrip(
   const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // Include auth cookies
     body: JSON.stringify({
       ...(tripData && {
         title: `${tripData.destination} Trip`,
@@ -91,7 +91,9 @@ export async function updateTrip(
  * Get a single trip by ID
  */
 export async function getTrip(tripId: string): Promise<TripResponse> {
-  const response = await fetch(`${API_URL}/api/trips/${tripId}`);
+  const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
+    credentials: 'include', // Include auth cookies
+  });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Failed to fetch trip' }));
@@ -102,20 +104,20 @@ export async function getTrip(tripId: string): Promise<TripResponse> {
 }
 
 /**
- * List all trips for a user
+ * List all trips for the authenticated user
  */
 export async function listTrips(
-  userId: string,
   page = 1,
   limit = 10
 ): Promise<TripListResponse> {
   const params = new URLSearchParams({
-    userId,
     page: page.toString(),
     limit: limit.toString(),
   });
 
-  const response = await fetch(`${API_URL}/api/trips?${params}`);
+  const response = await fetch(`${API_URL}/api/trips?${params}`, {
+    credentials: 'include', // Include auth cookies
+  });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Failed to list trips' }));
@@ -131,27 +133,11 @@ export async function listTrips(
 export async function deleteTrip(tripId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/trips/${tripId}`, {
     method: 'DELETE',
+    credentials: 'include', // Include auth cookies
   });
 
   if (!response.ok && response.status !== 204) {
     const error = await response.json().catch(() => ({ error: 'Failed to delete trip' }));
     throw new Error(error.error || 'Failed to delete trip');
   }
-}
-
-/**
- * Generate or retrieve a user ID (temporary solution until authentication is implemented)
- * In Milestone 2.1, this will be replaced with proper authentication
- */
-export function getUserId(): string {
-  const STORAGE_KEY = 'otterly-go-user-id';
-  let userId = localStorage.getItem(STORAGE_KEY);
-
-  if (!userId) {
-    // Generate a simple UUID-like ID
-    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    localStorage.setItem(STORAGE_KEY, userId);
-  }
-
-  return userId;
 }
