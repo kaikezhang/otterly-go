@@ -1,4 +1,4 @@
-import type { Trip, SuggestionCard } from '../types';
+import type { Trip, SuggestionCard, QuickReply } from '../types';
 
 // Get API URL from environment or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -14,6 +14,7 @@ class ConversationEngine {
     trip?: Trip;
     suggestion?: SuggestionCard;
     tripUpdate?: Partial<Trip>;
+    quickReplies?: QuickReply[];
   }> {
     this.conversationHistory.push({
       role: 'user',
@@ -61,10 +62,23 @@ class ConversationEngine {
       // Parse the JSON response
       try {
         const parsed = JSON.parse(assistantMessage);
+        console.log('[ConversationEngine] Parsed response:', parsed);
 
         switch (parsed.type) {
           case 'message':
-            return { message: parsed.content };
+            // Add default quick replies if AI forgot to include them
+            let quickReplies = parsed.quickReplies;
+            if (!quickReplies || quickReplies.length === 0) {
+              console.warn('AI did not provide quick replies, adding defaults');
+              quickReplies = [
+                { text: 'Let me type my answer', action: 'custom' as const }
+              ];
+            }
+            console.log('[ConversationEngine] Returning message with quickReplies:', quickReplies);
+            return {
+              message: parsed.content,
+              quickReplies,
+            };
 
           case 'itinerary':
             return {
@@ -85,9 +99,12 @@ class ConversationEngine {
             };
 
           default:
+            console.warn('[ConversationEngine] Unknown response type:', parsed.type);
             return { message: assistantMessage };
         }
-      } catch {
+      } catch (error) {
+        console.error('[ConversationEngine] Failed to parse JSON response:', error);
+        console.error('[ConversationEngine] Raw message:', assistantMessage);
         // If not valid JSON, treat as regular message
         return { message: assistantMessage };
       }
@@ -127,8 +144,16 @@ class ConversationEngine {
     };
   }
 
-  getInitialGreeting(): string {
-    return "Hi! I'm OtterlyGo, your travel planning assistant. Tell me about your trip in one sentence.";
+  getInitialGreeting(): { message: string; quickReplies?: QuickReply[] } {
+    return {
+      message: "Hey there! 👋 Where are you thinking of traveling?",
+      quickReplies: [
+        { text: "Peru", action: "confirm" },
+        { text: "Japan", action: "confirm" },
+        { text: "Italy", action: "confirm" },
+        { text: "Type my own", action: "custom" }
+      ]
+    };
   }
 
   reset() {

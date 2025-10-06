@@ -15,6 +15,42 @@ export const chatRequestSchema = z.object({
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 
+// Schema for quick replies in AI responses
+export const quickReplySchema = z.object({
+  text: z.string().min(1).max(100),
+  action: z.enum(['info', 'confirm', 'alternative', 'custom']),
+});
+
+// Schema for AI response validation
+export const aiResponseSchema = z.discriminatedUnion('type', [
+  // Message response with optional quick replies
+  z.object({
+    type: z.literal('message'),
+    content: z.string(),
+    quickReplies: z.array(quickReplySchema).min(1).max(6).optional(),
+  }),
+  // Itinerary response
+  z.object({
+    type: z.literal('itinerary'),
+    content: z.string(),
+    trip: z.any(), // Trip object
+  }),
+  // Suggestion card response
+  z.object({
+    type: z.literal('suggestion'),
+    content: z.string(),
+    suggestion: z.any(), // SuggestionCard object
+  }),
+  // Update response
+  z.object({
+    type: z.literal('update'),
+    content: z.string(),
+    updates: z.any(), // Partial trip updates
+  }),
+]);
+
+export type AIResponse = z.infer<typeof aiResponseSchema>;
+
 // Schema for creating a trip
 export const createTripSchema = z.object({
   title: z.string().min(1).max(200),
