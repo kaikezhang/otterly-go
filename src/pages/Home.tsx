@@ -18,6 +18,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { id: tripId } = useParams<{ id: string }>();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
   const {
     user,
     trip,
@@ -137,11 +138,19 @@ export default function Home() {
     }
   }, [hasHydrated, tripId, currentTripId, loadTripFromDatabase, setIsLoading, navigate]);
 
-  // Initialize conversation on first load (wait for hydration to complete)
+  // Clear state and initialize when navigating to /trip/new
   useEffect(() => {
-    // Wait for store to rehydrate from localStorage before adding initial greeting
-    // Only add greeting if no tripId (new trip) and no messages
-    if (hasHydrated && (!tripId || tripId === 'new') && messages.length === 0) {
+    if (hasHydrated && (!tripId || tripId === 'new')) {
+      // Prevent double execution (React StrictMode in dev)
+      if (hasInitialized.current) {
+        return;
+      }
+      hasInitialized.current = true;
+
+      // Clear any existing state (same as Start Over button)
+      useStore.getState().clearAll();
+
+      // Add initial greeting after clearing
       const engine = getConversationEngine();
       const greeting = engine.getInitialGreeting();
       addMessage({
@@ -153,7 +162,14 @@ export default function Home() {
       });
       setConversationState('eliciting');
     }
-  }, [hasHydrated, tripId, messages.length, addMessage, setConversationState]);
+
+    // Reset flag when navigating away from new trip
+    return () => {
+      if (tripId && tripId !== 'new') {
+        hasInitialized.current = false;
+      }
+    };
+  }, [hasHydrated, tripId, addMessage, setConversationState]);
 
   // Auto-save trip to database whenever it changes
   useEffect(() => {
