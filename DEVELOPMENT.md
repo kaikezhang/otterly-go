@@ -219,32 +219,313 @@ Interactive quick reply buttons for guided conversation flow. Users can click su
 
 ## Phase 3: Enhanced Features (Weeks 6-8)
 
-**Goal**: Add production-grade features
+**Goal**: Transform the planning experience with visual maps, intuitive editing, rich media, and seamless sharing
 
-### Milestone 3.1: Trip Sharing & Collaboration
-- [ ] Add `trip_shares` table (trip_id, shared_with_user_id, permission_level)
-- [ ] Implement share trip endpoint (`POST /api/trips/:id/share`)
-- [ ] Add read-only vs. edit permissions
-- [ ] Create shareable public links (optional, with `public_share_token` column)
-- [ ] Add UI for managing collaborators
+**Implementation Order**:
+1. **Week 6**: Milestone 3.2 (Direct Editing) - Immediate UX improvement
+2. **Week 7**: Milestone 3.1 (Map Integration) - High visual impact
+3. **Week 8**: Milestone 3.4 (Export/Sharing) - Viral growth driver
+4. **Week 8+**: Milestone 3.3 (Media) - Nice-to-have, can defer if needed
 
-**Acceptance Criteria**: Users can share trips with others via email or public link
+---
 
-### Milestone 3.2: Export & Print
-- [ ] Generate PDF itineraries (using react-pdf or Puppeteer)
-- [ ] Add CSV export for expenses (future feature)
-- [ ] Create print-optimized view
-- [ ] Add "Email itinerary" feature
+### Milestone 3.1: Map Integration
 
-**Acceptance Criteria**: Users can download/print their trips
+**Goal**: Add interactive maps to visualize trip geography and routing
 
-### Milestone 3.3: Search & Filtering
-- [ ] Add full-text search on trips (PostgreSQL `tsvector` or Algolia)
-- [ ] Implement filters (destination, date range, tags)
-- [ ] Add trip templates/favorites
-- [ ] Create archive functionality
+#### Backend Tasks:
+- [ ] Choose map provider (Mapbox recommended for better styling, Google Maps for POI data)
+- [ ] Add geocoding service to convert location names to coordinates
+- [ ] Create `GET /api/geocode` endpoint (cache results to reduce API costs)
+- [ ] Store coordinates in `ItineraryItem` schema (`lat`, `lng` fields)
+- [ ] Implement route calculation API (walking/driving/transit distances)
+- [ ] Add `GET /api/directions` endpoint (polyline between points)
+- [ ] Set up map API key management (environment variables)
+- [ ] Add usage limits/caching for geocoding (rate limiting per user)
 
-**Acceptance Criteria**: Users can quickly find trips in large collections
+#### Frontend Tasks:
+- [ ] Install map library (`react-map-gl` for Mapbox or `@vis.gl/react-google-maps`)
+- [ ] Create `MapView` component with responsive container
+- [ ] Display itinerary items as map markers (color-coded by day)
+- [ ] Add marker clustering for dense itineraries
+- [ ] Implement polyline routes connecting activities by day
+- [ ] Show distance and estimated travel time between points
+- [ ] Add map/satellite toggle control
+- [ ] Create map marker popups with item details
+- [ ] Implement "center on day" functionality (zoom to day's activities)
+- [ ] Add 3-panel layout: Chat | Itinerary | Map (collapsible on mobile)
+- [ ] Sync map state with itinerary (highlight marker when item hovered)
+- [ ] Add geolocation button ("Show my location")
+- [ ] Optimize for mobile (full-screen map mode, touch gestures)
+
+#### Data Model Updates:
+```typescript
+// Add to ItineraryItem interface
+interface ItineraryItem {
+  // ... existing fields
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string; // Full formatted address
+  };
+}
+```
+
+**Acceptance Criteria**:
+- ✅ All itinerary items with locations appear as markers on map
+- ✅ Clicking marker shows item details popup
+- ✅ Route polylines connect activities chronologically
+- ✅ Distance/time calculations display for each day
+- ✅ Map is responsive and performs well on mobile
+- ✅ Geocoding results cached to minimize API costs
+
+**Technical Considerations**:
+- **Cost management**: Geocode on itinerary generation (not every render), cache aggressively
+- **Fallback**: If geocoding fails, show item without marker (graceful degradation)
+- **Privacy**: Don't track user geolocation without consent
+- **Performance**: Use marker clustering for trips with >50 items
+- **Mobile**: Map should collapse into tab view on small screens
+
+**UI Layout Evolution**:
+- **Current**: 2-column (Chat | Itinerary)
+- **Phase 3**: 3-panel adaptive layout
+  - **Desktop**: Chat (30%) | Itinerary (40%) | Map (30%)
+  - **Tablet**: Chat/Itinerary toggle | Map (50/50 split)
+  - **Mobile**: Tabs (Chat | Itinerary | Map)
+
+---
+
+### Milestone 3.2: Direct Editing & Manipulation ✅ **COMPLETED** (2025-10-06)
+
+**Goal**: Enable inline editing without chatbot, with drag-and-drop reordering
+
+#### Frontend Tasks:
+- [x] Install drag-and-drop library (`@dnd-kit/core` recommended for accessibility)
+- [x] Create `EditableText` component (inline editing with click-to-edit)
+- [x] Make item titles editable (double-click or pencil icon)
+- [x] Make item descriptions editable (expandable textarea)
+- [x] Add time picker component for activity times
+- [x] Implement drag-to-reorder items within a day
+- [x] Implement drag items between days
+- [x] Add undo/redo stack (limit to last 20 actions)
+- [x] Add keyboard shortcuts (Ctrl+Z for undo, Ctrl+Y for redo)
+- [x] Show "Unsaved changes" indicator when edits pending
+- [x] Debounce auto-save (1 second after last edit)
+- [x] Add loading states for database sync
+
+#### Backend Tasks:
+- [x] Update `PATCH /api/trips/:id` to handle partial updates efficiently (already existed)
+- [x] Validate item structure on update (Zod schema - already existed)
+
+#### UX Enhancements:
+- [x] Add visual feedback during drag (DragOverlay component)
+- [x] Animate item movements (CSS transitions)
+- [x] Add "✏️ Edit Mode" toggle button in header:
+  - **View Mode**: Current read-only itinerary
+  - **Edit Mode**: Shows drag handles, inline edit fields, delete buttons
+
+**Acceptance Criteria**:
+- ✅ Users can edit any text field inline without chatbot
+- ✅ Items can be dragged between days seamlessly
+- ✅ Undo/redo works for all editing actions
+- ✅ Changes auto-save to database (visible sync indicator)
+- ✅ Keyboard shortcuts work as expected
+- ✅ Mobile: Long-press to drag (touch-friendly)
+
+**Technical Considerations**:
+- **Conflict resolution**: If user edits in two tabs, last-write-wins (show warning)
+- **Accessibility**: Ensure drag-and-drop works with keyboard (arrow keys)
+- **Performance**: Use `React.memo` for itinerary items to prevent unnecessary re-renders
+- **Data integrity**: Validate moves (e.g., can't drag item to non-existent day)
+
+---
+
+### Milestone 3.3: Media Management
+
+**Goal**: Add photo uploads, galleries, and visual inspiration for trips
+
+#### Backend Tasks:
+- [ ] Choose image hosting service (Cloudinary recommended, or S3)
+- [ ] Set up image upload endpoint `POST /api/upload` (multipart/form-data)
+- [ ] Add image optimization pipeline (resize, WebP conversion)
+- [ ] Create `trip_images` table (id, trip_id, item_id, url, caption, order)
+- [ ] Add `GET /api/trips/:id/images` endpoint
+- [ ] Add `DELETE /api/images/:id` endpoint
+- [ ] Implement file size limits (max 5MB per image)
+- [ ] Add virus scanning for uploads (ClamAV or cloud service)
+- [ ] Set up image CDN distribution (Cloudinary auto-handles this)
+
+#### Frontend Tasks:
+- [ ] Create `ImageUpload` component (drag-and-drop zone)
+- [ ] Add image picker for itinerary items ("Add photos" button)
+- [ ] Create `ImageGallery` component (lightbox view)
+- [ ] Add image captions/descriptions (editable)
+- [ ] Implement reordering images within gallery
+- [ ] Add cover photo selection for trips (shown in trip list)
+- [ ] Create inspiration board (Pinterest-style grid of saved images)
+- [ ] Add image search integration (Unsplash API for stock photos)
+- [ ] Show image thumbnails in itinerary items
+- [ ] Add loading states and upload progress bars
+- [ ] Implement lazy loading for images (intersection observer)
+- [ ] Add image compression before upload (browser-side with `browser-image-compression`)
+
+#### Data Model Updates:
+```typescript
+interface Trip {
+  // ... existing fields
+  coverImage?: string; // URL to cover photo
+}
+
+interface ItineraryItem {
+  // ... existing fields
+  images?: Array<{
+    url: string;
+    caption?: string;
+    order: number;
+  }>;
+}
+
+interface TripImage {
+  id: string;
+  tripId: string;
+  itemId?: string; // null if inspiration board image
+  url: string;
+  thumbnailUrl: string;
+  caption?: string;
+  order: number;
+  createdAt: Date;
+}
+```
+
+**Acceptance Criteria**:
+- ✅ Users can upload images to trips and individual activities
+- ✅ Images display in responsive galleries (grid + lightbox)
+- ✅ Image upload shows progress indicator
+- ✅ Cover photos appear in trip list dashboard
+- ✅ Inspiration board allows saving reference images
+- ✅ Images optimized for web (WebP, lazy loading)
+- ✅ Mobile: Camera integration for on-the-go uploads
+
+**Technical Considerations**:
+- **Storage costs**: Compress images aggressively, delete when trip deleted
+- **Security**: Validate file types (only images), scan for malware
+- **Performance**: Use CDN, serve different sizes for mobile/desktop
+- **UX**: Show thumbnails in itinerary, full-size in lightbox
+- **Accessibility**: Require alt text for images (or generate with AI)
+
+---
+
+### Milestone 3.4: Export & Sharing
+
+**Goal**: Enable users to share trips and export for offline use
+
+#### Export Features:
+
+##### PDF Export:
+- [ ] Install PDF library (`react-pdf` or `jsPDF` with `html2canvas`)
+- [ ] Create print-optimized trip template (clean, minimal layout)
+- [ ] Generate PDF with cover page, day-by-day breakdown, maps
+- [ ] Include images in PDF (optional, increases file size)
+- [ ] Add QR code linking to live itinerary (for updates)
+- [ ] Implement "Download PDF" button in trip header
+- [ ] Add PDF customization options (include/exclude sections)
+- [ ] Optimize PDF size (compress images, vector graphics)
+
+##### Calendar Integration:
+- [ ] Generate .ics file (iCalendar format) for Google/Apple Calendar
+- [ ] Create events for each day/activity with time slots
+- [ ] Add location data to calendar events (for navigation)
+- [ ] Include trip notes in event descriptions
+- [ ] Add "Add to Calendar" button with provider options
+
+##### Email Itinerary:
+- [ ] Create email template (HTML with inline CSS)
+- [ ] Add `POST /api/trips/:id/email` endpoint
+- [ ] Use email service (SendGrid, Mailgun, or Resend)
+- [ ] Allow users to email itinerary to themselves or others
+- [ ] Include attachments (PDF optional)
+- [ ] Add email preview before sending
+
+#### Sharing Features:
+
+##### Public Share Links:
+- [ ] Add `publicShareToken` column to trips table (UUID)
+- [ ] Create `GET /share/:token` public route (no auth required)
+- [ ] Generate shareable link with copy-to-clipboard button
+- [ ] Create read-only public view (simplified layout)
+- [ ] Add "Clone this trip" button for logged-in users viewing shared trips
+- [ ] Implement link expiration (optional, default: never)
+- [ ] Add password protection option for sensitive trips
+- [ ] Track share link views (analytics)
+
+##### Collaboration:
+- [ ] Add `trip_shares` table (trip_id, shared_with_email, permission)
+- [ ] Create share modal ("Invite collaborators by email")
+- [ ] Implement `POST /api/trips/:id/share` endpoint
+- [ ] Add permission levels: view-only, can-edit, can-manage
+- [ ] Send email invitations to collaborators
+- [ ] Show "Shared with" section in trip settings
+- [ ] Add real-time sync for collaborative editing (WebSocket or polling)
+
+#### Data Model Updates:
+```typescript
+interface Trip {
+  // ... existing fields
+  publicShareToken?: string; // UUID for public links
+  sharePassword?: string; // Hashed, optional
+  shareExpiresAt?: Date; // Optional expiration
+  shareViewCount?: number; // Analytics
+}
+
+interface TripShare {
+  id: string;
+  tripId: string;
+  sharedWithEmail: string;
+  permission: 'view' | 'edit' | 'manage';
+  createdAt: Date;
+  acceptedAt?: Date;
+}
+```
+
+**Acceptance Criteria**:
+- ✅ Users can download PDF itineraries (formatted beautifully)
+- ✅ Users can export to Google/Apple Calendar (.ics file)
+- ✅ Users can email itineraries to themselves or friends
+- ✅ Public share links work without authentication
+- ✅ Shared trips display "Clone" button for inspiration
+- ✅ Collaborators can edit trips in real-time (if permission granted)
+- ✅ Share link analytics track views
+
+**Technical Considerations**:
+- **Privacy**: Public links should not expose user email/profile
+- **Security**: Password-protected shares use bcrypt hashing
+- **Performance**: Cache generated PDFs (regenerate on edit)
+- **Mobile**: Email/PDF should be mobile-friendly
+- **Collaboration conflicts**: Use operational transformation or CRDTs for real-time editing (or simpler: lock editing when another user active)
+
+---
+
+### UI/UX Improvements for Phase 3
+
+Based on current screenshot analysis:
+
+#### Visual Hierarchy Improvements:
+- [ ] **Reduce text density**: Truncate long descriptions (expand on click)
+- [ ] **Add whitespace**: More padding between days
+- [ ] **Iconography**: Use consistent icons for item types (current emojis work, but consider icon library for consistency)
+- [ ] **Budget display**: Add cost estimates to items (optional field)
+
+#### Error State Improvement:
+- [ ] Replace "Sorry, I encountered an error" with:
+  - Specific error message ("OpenAI is temporarily unavailable")
+  - Retry button
+  - "Continue in offline mode" (if maps/editing available)
+
+#### Success Metrics:
+- [ ] Feature adoption: >30% use sharing
+- [ ] Map engagement: >50% users view map during planning
+- [ ] Direct editing: >40% users edit without chatbot
+- [ ] PDF downloads: >20% users export trips
 
 ---
 
@@ -513,4 +794,4 @@ Interactive quick reply buttons for guided conversation flow. Users can click su
 
 ---
 
-**Last Updated**: 2025-10-06 (Milestone 2.4 added)
+**Last Updated**: 2025-10-06 (Phase 3 roadmap expanded with Map Integration, Direct Editing, Media Management, and Export/Sharing)

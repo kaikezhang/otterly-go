@@ -24,6 +24,12 @@ interface StoreState {
   isLoading: boolean;
   isSyncing: boolean; // True when syncing to database
 
+  // Edit mode state (Milestone 3.2)
+  isEditMode: boolean;
+  history: Trip[]; // History stack for undo/redo
+  historyIndex: number; // Current position in history (-1 means no history)
+  hasUnsavedChanges: boolean;
+
   // Auth actions
   setUser: (user: User | null) => void;
   login: () => void;
@@ -40,6 +46,17 @@ interface StoreState {
   removeItemFromDay: (dayIndex: number, itemId: string) => void;
   updateTrip: (updates: Partial<Trip>) => void;
   clearAll: () => void;
+
+  // Edit mode actions (Milestone 3.2)
+  toggleEditMode: () => void;
+  pushHistory: () => void; // Save current trip state to history
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  updateItemInDay: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
+  reorderItemsInDay: (dayIndex: number, startIndex: number, endIndex: number) => void;
+  moveItemBetweenDays: (fromDayIndex: number, toDayIndex: number, itemId: string, toIndex: number) => void;
 
   // Database sync actions
   saveTripToDatabase: () => Promise<void>;
@@ -61,6 +78,12 @@ export const useStore = create<StoreState>()(
       conversationState: 'initial',
       isLoading: false,
       isSyncing: false,
+
+      // Edit mode state
+      isEditMode: false,
+      history: [],
+      historyIndex: -1,
+      hasUnsavedChanges: false,
 
       // Auth actions
       setUser: (user) => set({ user }),
@@ -155,7 +178,139 @@ export const useStore = create<StoreState>()(
       updateTrip: (updates) =>
         set((state) => ({
           trip: state.trip ? { ...state.trip, ...updates } : null,
+          hasUnsavedChanges: true,
         })),
+
+      // Edit mode actions
+      toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
+
+      pushHistory: () =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          // Remove any future history if we're not at the end
+          const newHistory = state.history.slice(0, state.historyIndex + 1);
+
+          // Add current trip to history
+          newHistory.push(JSON.parse(JSON.stringify(state.trip))); // Deep clone
+
+          // Limit history to last 20 entries
+          const trimmedHistory = newHistory.slice(-20);
+
+          return {
+            history: trimmedHistory,
+            historyIndex: trimmedHistory.length - 1,
+          };
+        }),
+
+      undo: () =>
+        set((state) => {
+          if (state.historyIndex <= 0) return state;
+
+          const newIndex = state.historyIndex - 1;
+          const previousTrip = state.history[newIndex];
+
+          return {
+            trip: JSON.parse(JSON.stringify(previousTrip)), // Deep clone
+            historyIndex: newIndex,
+            hasUnsavedChanges: true,
+          };
+        }),
+
+      redo: () =>
+        set((state) => {
+          if (state.historyIndex >= state.history.length - 1) return state;
+
+          const newIndex = state.historyIndex + 1;
+          const nextTrip = state.history[newIndex];
+
+          return {
+            trip: JSON.parse(JSON.stringify(nextTrip)), // Deep clone
+            historyIndex: newIndex,
+            hasUnsavedChanges: true,
+          };
+        }),
+
+      canUndo: () => {
+        const state = get();
+        return state.historyIndex > 0;
+      },
+
+      canRedo: () => {
+        const state = get();
+        return state.historyIndex < state.history.length - 1;
+      },
+
+      updateItemInDay: (dayIndex, itemId, updates) =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          // Push current state to history before making changes
+          get().pushHistory();
+
+          const newTrip = { ...state.trip };
+          newTrip.days = [...newTrip.days];
+          const day = newTrip.days[dayIndex];
+          const itemIndex = day.items.findIndex((item) => item.id === itemId);
+
+          if (itemIndex === -1) return state;
+
+          const newItems = [...day.items];
+          newItems[itemIndex] = { ...newItems[itemIndex], ...updates };
+          newTrip.days[dayIndex] = { ...day, items: newItems };
+
+          return { trip: newTrip, hasUnsavedChanges: true };
+        }),
+
+      reorderItemsInDay: (dayIndex, startIndex, endIndex) =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          // Push current state to history before making changes
+          get().pushHistory();
+
+          const newTrip = { ...state.trip };
+          newTrip.days = [...newTrip.days];
+          const day = newTrip.days[dayIndex];
+          const newItems = [...day.items];
+
+          // Reorder items
+          const [removed] = newItems.splice(startIndex, 1);
+          newItems.splice(endIndex, 0, removed);
+
+          newTrip.days[dayIndex] = { ...day, items: newItems };
+
+          return { trip: newTrip, hasUnsavedChanges: true };
+        }),
+
+      moveItemBetweenDays: (fromDayIndex, toDayIndex, itemId, toIndex) =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          // Push current state to history before making changes
+          get().pushHistory();
+
+          const newTrip = { ...state.trip };
+          newTrip.days = [...newTrip.days];
+
+          // Find and remove item from source day
+          const fromDay = newTrip.days[fromDayIndex];
+          const itemIndex = fromDay.items.findIndex((item) => item.id === itemId);
+          if (itemIndex === -1) return state;
+
+          const item = fromDay.items[itemIndex];
+          const newFromItems = [...fromDay.items];
+          newFromItems.splice(itemIndex, 1);
+          newTrip.days[fromDayIndex] = { ...fromDay, items: newFromItems };
+
+          // Add item to destination day
+          const toDay = newTrip.days[toDayIndex];
+          const newToItems = [...toDay.items];
+          newToItems.splice(toIndex, 0, item);
+          newTrip.days[toDayIndex] = { ...toDay, items: newToItems };
+
+          return { trip: newTrip, hasUnsavedChanges: true };
+        }),
 
       clearAll: () =>
         set({
@@ -165,6 +320,10 @@ export const useStore = create<StoreState>()(
           conversationState: 'initial',
           isLoading: false,
           isSyncing: false,
+          isEditMode: false,
+          history: [],
+          historyIndex: -1,
+          hasUnsavedChanges: false,
         }),
 
       // Database sync actions
@@ -204,13 +363,14 @@ export const useStore = create<StoreState>()(
     {
       name: 'otterly-go-storage',
       partialize: (state) => ({
-        // Persist everything except loading states
+        // Persist everything except loading states and history
         user: state.user,
         trip: state.trip,
         currentTripId: state.currentTripId,
         messages: state.messages,
         conversationState: state.conversationState,
-        // Exclude: isAuthLoading, isLoading, isSyncing
+        isEditMode: state.isEditMode,
+        // Exclude: isAuthLoading, isLoading, isSyncing, history, historyIndex, hasUnsavedChanges
       }),
     }
   )

@@ -15,6 +15,8 @@ export default function Home() {
     messages,
     isLoading,
     isSyncing,
+    isEditMode,
+    hasUnsavedChanges,
     setTrip,
     addMessage,
     setConversationState,
@@ -24,6 +26,14 @@ export default function Home() {
     updateTrip,
     saveTripToDatabase,
     logout,
+    toggleEditMode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    updateItemInDay,
+    reorderItemsInDay,
+    moveItemBetweenDays,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +54,41 @@ export default function Home() {
       };
     }
   }, [showUserMenu]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      // Check if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Undo: Ctrl+Z (Windows/Linux) or Cmd+Z (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        if (canUndo()) {
+          undo();
+        }
+      }
+
+      // Redo: Ctrl+Y (Windows/Linux) or Cmd+Shift+Z (Mac)
+      if (
+        ((event.ctrlKey || event.metaKey) && event.key === 'y') ||
+        ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'z')
+      ) {
+        event.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [undo, redo, canUndo, canRedo]);
 
   // Initialize conversation on first load
   useEffect(() => {
@@ -213,8 +258,59 @@ export default function Home() {
               Saving...
             </span>
           )}
+          {hasUnsavedChanges && !isSyncing && (
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              Unsaved changes
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4">
+          {/* Edit Mode Controls */}
+          {trip && (
+            <div className="flex items-center gap-2">
+              {isEditMode && (
+                <>
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo()}
+                    className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Undo (Ctrl+Z)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={redo}
+                    disabled={!canRedo()}
+                    className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Redo (Ctrl+Y)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              <button
+                onClick={toggleEditMode}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
+                  isEditMode
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title={isEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {isEditMode ? 'View Mode' : 'Edit Mode'}
+              </button>
+            </div>
+          )}
           <button
             onClick={() => {
               if (confirm('Clear all data and start over?')) {
@@ -327,9 +423,13 @@ export default function Home() {
           <div className="w-1/3 bg-white">
             <ItineraryView
               trip={trip}
+              isEditMode={isEditMode}
               onRemoveItem={handleRemoveItem}
               onRequestSuggestion={handleRequestSuggestion}
               onRequestReplace={handleRequestReplace}
+              onUpdateItem={updateItemInDay}
+              onReorderItems={reorderItemsInDay}
+              onMoveItemBetweenDays={moveItemBetweenDays}
             />
           </div>
         )}
