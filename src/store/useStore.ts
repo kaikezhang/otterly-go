@@ -58,6 +58,7 @@ interface StoreState {
   updateItemInDay: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   reorderItemsInDay: (dayIndex: number, startIndex: number, endIndex: number) => void;
   moveItemBetweenDays: (fromDayIndex: number, toDayIndex: number, itemId: string, toIndex: number) => void;
+  duplicateDay: (dayIndex: number) => void;
 
   // Database sync actions
   saveTripToDatabase: () => Promise<void>;
@@ -325,6 +326,32 @@ export const useStore = create<StoreState>()(
           const newToItems = [...toDay.items];
           newToItems.splice(toIndex, 0, item);
           newTrip.days[toDayIndex] = { ...toDay, items: newToItems };
+
+          return { trip: newTrip, hasUnsavedChanges: true };
+        }),
+
+      duplicateDay: (dayIndex) =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          // Push current state to history before making changes
+          get().pushHistory();
+
+          const newTrip = { ...state.trip };
+          newTrip.days = [...newTrip.days];
+
+          // Deep clone the day to duplicate
+          const dayToDuplicate = newTrip.days[dayIndex];
+          const duplicatedDay = {
+            ...dayToDuplicate,
+            items: dayToDuplicate.items.map((item) => ({
+              ...item,
+              id: crypto.randomUUID(), // Generate new IDs for items
+            })),
+          };
+
+          // Insert duplicated day right after the original
+          newTrip.days.splice(dayIndex + 1, 0, duplicatedDay);
 
           return { trip: newTrip, hasUnsavedChanges: true };
         }),

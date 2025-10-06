@@ -32,6 +32,7 @@ interface ItineraryViewProps {
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   onReorderItems?: (dayIndex: number, startIndex: number, endIndex: number) => void;
   onMoveItemBetweenDays?: (fromDayIndex: number, toDayIndex: number, itemId: string, toIndex: number) => void;
+  onDuplicateDay?: (dayIndex: number) => void;
   isSyncing?: boolean;
   currentTripId?: string | null;
   hideShareButton?: boolean;
@@ -102,6 +103,7 @@ export function ItineraryView({
   onUpdateItem,
   onReorderItems,
   onMoveItemBetweenDays,
+  onDuplicateDay,
   isSyncing = false,
   currentTripId = null,
   hideShareButton = false,
@@ -267,39 +269,54 @@ export function ItineraryView({
                 className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
               >
                 {/* Day Header */}
-                <button
-                  onClick={() => toggleDay(dayIndex)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                  aria-expanded={isExpanded}
-                >
-                  <div className="text-left">
-                    <h3 className="font-semibold text-gray-900">
-                      Day {dayIndex + 1}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {format(parseISO(day.date), 'EEEE, MMM d')}
-                      {day.location && ` • ${day.location}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      {day.items.length} items
-                    </span>
-                    <svg
-                      className={`w-5 h-5 text-gray-400 transition-transform ${
-                        isExpanded ? 'rotate-180' : ''
-                      }`}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                <div className="flex items-stretch">
+                  <button
+                    onClick={() => toggleDay(dayIndex)}
+                    className="flex-1 px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="text-left">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Day {dayIndex + 1}
+                      </h3>
+                      <p className="text-sm text-gray-600 font-medium">
+                        {format(parseISO(day.date), 'EEEE, MMM d')}
+                        {day.location && ` • ${day.location}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {day.items.length} items
+                      </span>
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Duplicate Day Button (Edit Mode Only) */}
+                  {isEditMode && onDuplicateDay && (
+                    <button
+                      onClick={() => onDuplicateDay(dayIndex)}
+                      className="px-3 border-l border-gray-200 hover:bg-blue-50 text-blue-600 hover:text-blue-800 transition-colors"
+                      title="Duplicate this day"
                     >
-                      <path d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                </button>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
 
                 {/* Day Items */}
                 {isExpanded && (
@@ -327,14 +344,12 @@ export function ItineraryView({
 
                     {/* Add Suggestion Button */}
                     {day.items.length > 0 && (
-                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                        <button
-                          onClick={() => onRequestSuggestion(dayIndex)}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          + Add suggestion
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => onRequestSuggestion(dayIndex)}
+                        className="w-full px-4 py-3 bg-gray-50 border-t border-gray-200 text-left text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-medium transition-colors"
+                      >
+                        + Add suggestion
+                      </button>
                     )}
                   </div>
                 )}
@@ -383,6 +398,7 @@ function SortableItineraryItem({
   onUpdate,
 }: SortableItineraryItemProps) {
   const [showActions, setShowActions] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !isEditMode });
@@ -392,6 +408,13 @@ function SortableItineraryItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Truncate description if longer than 150 characters
+  const MAX_LENGTH = 150;
+  const shouldTruncate = item.description.length > MAX_LENGTH;
+  const displayDescription = shouldTruncate && !isExpanded && !isEditMode
+    ? item.description.slice(0, MAX_LENGTH) + '...'
+    : item.description;
 
   return (
     <div
@@ -445,7 +468,17 @@ function SortableItineraryItem({
               placeholder="Activity description"
             />
           ) : (
-            <p className="text-sm text-gray-600">{item.description}</p>
+            <div>
+              <p className="text-sm text-gray-600">{displayDescription}</p>
+              {shouldTruncate && !isEditMode && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-xs text-blue-600 hover:text-blue-800 mt-1 font-medium"
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              )}
+            </div>
           )}
 
           {/* Notes */}
@@ -483,7 +516,7 @@ function SortableItineraryItem({
 
           {/* Duration */}
           {item.duration && !isEditMode && (
-            <p className="text-xs text-gray-500">⏱️ {item.duration}</p>
+            <p className="text-sm text-gray-700 font-medium">🕐 {item.duration}</p>
           )}
         </div>
 

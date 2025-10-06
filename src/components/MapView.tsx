@@ -346,7 +346,7 @@ export function MapView({ trip, selectedDayIndex, isVisible = true }: MapViewPro
       </Map>
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
+      <div className="absolute bottom-8 right-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
         <h4 className="font-semibold text-sm mb-2">Legend</h4>
         <div className="space-y-1">
           {trip.days.map((_day, idx) => {
@@ -356,8 +356,9 @@ export function MapView({ trip, selectedDayIndex, isVisible = true }: MapViewPro
             return (
               <div
                 key={idx}
-                className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded"
+                className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors"
                 onClick={() => centerOnDay(idx)}
+                title="Click to center on this day"
               >
                 <div
                   className="w-3 h-3 rounded-full border-2 border-white"
