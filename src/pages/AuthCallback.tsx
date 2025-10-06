@@ -6,6 +6,7 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const checkAuth = useStore((state) => state.checkAuth);
+  const user = useStore((state) => state.user);
   const success = searchParams.get('success');
 
   useEffect(() => {
@@ -13,8 +14,16 @@ export default function AuthCallback() {
       if (success === 'true') {
         // Check authentication status
         await checkAuth();
-        // Redirect to home page
-        navigate('/', { replace: true });
+        // Redirect based on user role
+        // Note: We need to wait for the next render to get the user from store
+        setTimeout(() => {
+          const currentUser = useStore.getState().user;
+          if (currentUser?.role === 'admin') {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
+        }, 100);
       } else {
         // Redirect to login with error
         navigate('/login?error=callback_failed', { replace: true });

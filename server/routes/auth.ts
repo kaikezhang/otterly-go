@@ -20,6 +20,7 @@ function generateToken(user: User): string {
     name: user.name || '',
     picture: user.picture || '',
     subscriptionTier: user.subscriptionTier,
+    role: user.role,
   };
 
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiresIn() } as SignOptions);
@@ -96,6 +97,7 @@ router.get('/me', (req: Request, res: Response) => {
       name: decoded.name,
       picture: decoded.picture,
       subscriptionTier: decoded.subscriptionTier,
+      role: decoded.role,
     });
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -152,6 +154,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
       name: user.name,
       picture: user.picture,
       subscriptionTier: user.subscriptionTier,
+      role: user.role,
     });
   } catch (error) {
     console.error('Error refreshing token:', error);

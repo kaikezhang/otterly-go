@@ -1,5 +1,6 @@
 import type { Trip, SuggestionCard, QuickReply } from '../types';
 import { geocodeLocation } from './mapApi';
+import type { UsageWarningData } from '../components/UsageWarning';
 
 // Get API URL from environment or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -16,6 +17,7 @@ class ConversationEngine {
     suggestion?: SuggestionCard;
     tripUpdate?: Partial<Trip>;
     quickReplies?: QuickReply[];
+    usageWarning?: UsageWarningData;
   }> {
     this.conversationHistory.push({
       role: 'user',
@@ -28,6 +30,7 @@ class ConversationEngine {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: Include cookies for authentication
         body: JSON.stringify({
           message: userMessage,
           conversationHistory: this.conversationHistory.slice(0, -1),
@@ -40,7 +43,10 @@ class ConversationEngine {
 
         // Handle specific error codes
         if (response.status === 401) {
-          throw new Error('Invalid API key. Please check server configuration.');
+          // Auth error - throw special error that triggers logout
+          const error: any = new Error('Authentication failed. Please log in again.');
+          error.requiresLogout = true;
+          throw error;
         }
         if (response.status === 429) {
           throw new Error(errorData.message || 'Rate limit exceeded. Please wait a moment and try again.');
@@ -54,6 +60,7 @@ class ConversationEngine {
 
       const data = await response.json();
       const assistantMessage = data.message || '';
+      const usageWarning = data.usageWarning; // Extract usage warning from API response
 
       this.conversationHistory.push({
         role: 'assistant',
@@ -62,7 +69,17 @@ class ConversationEngine {
 
       // Parse the JSON response
       try {
-        const parsed = JSON.parse(assistantMessage);
+        // Strip markdown code blocks if present (```json ... ```)
+        let cleanedMessage = assistantMessage.trim();
+        if (cleanedMessage.startsWith('```')) {
+          // Remove opening ```json and closing ```
+          cleanedMessage = cleanedMessage
+            .replace(/^```(?:json)?\n?/, '')
+            .replace(/\n?```$/, '')
+            .trim();
+        }
+
+        const parsed = JSON.parse(cleanedMessage);
         console.log('[ConversationEngine] Parsed response:', parsed);
 
         switch (parsed.type) {
@@ -79,35 +96,39 @@ class ConversationEngine {
             return {
               message: parsed.content,
               quickReplies,
+              usageWarning,
             };
 
           case 'itinerary':
             return {
               message: parsed.content,
               trip: await this.enrichTrip(parsed.trip),
+              usageWarning,
             };
 
           case 'suggestion':
             return {
               message: parsed.content,
               suggestion: this.enrichSuggestion(parsed.suggestion),
+              usageWarning,
             };
 
           case 'update':
             return {
               message: parsed.content,
               tripUpdate: parsed.updates,
+              usageWarning,
             };
 
           default:
             console.warn('[ConversationEngine] Unknown response type:', parsed.type);
-            return { message: assistantMessage };
+            return { message: assistantMessage, usageWarning };
         }
       } catch (error) {
         console.error('[ConversationEngine] Failed to parse JSON response:', error);
         console.error('[ConversationEngine] Raw message:', assistantMessage);
         // If not valid JSON, treat as regular message
-        return { message: assistantMessage };
+        return { message: assistantMessage, usageWarning };
       }
     } catch (error) {
       console.error('Error calling API:', error);

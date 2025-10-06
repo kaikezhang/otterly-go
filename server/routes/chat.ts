@@ -6,6 +6,8 @@ import type { ChatRequest } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { prisma } from '../db.js';
 import { getModelForTier } from '../services/stripe.js';
+import { calculateCost } from '../utils/costCalculation.js';
+import { checkApiUsageLimits, addUsageWarning } from '../middleware/usageLimits.js';
 
 const router = express.Router();
 
@@ -362,6 +364,7 @@ FINAL CHECK BEFORE SENDING:
 router.post(
   '/',
   requireAuth,
+  checkApiUsageLimits,
   chatRateLimiter,
   validateRequest(chatRequestSchema),
   async (req, res) => {
@@ -407,11 +410,44 @@ router.post(
 
       const assistantMessage = response.choices[0]?.message?.content || '';
 
-      // Return the response
-      res.json({
+      // Track API usage in database (Milestone 4.2)
+      if (response.usage) {
+        try {
+          const estimatedCost = calculateCost(
+            model,
+            response.usage.prompt_tokens || 0,
+            response.usage.completion_tokens || 0
+          );
+
+          await prisma.apiUsage.create({
+            data: {
+              userId: req.userId!,
+              tripId: currentTrip?.id || null,
+              model,
+              promptTokens: response.usage.prompt_tokens || 0,
+              completionTokens: response.usage.completion_tokens || 0,
+              totalTokens: response.usage.total_tokens || 0,
+              estimatedCost,
+              endpoint: '/api/chat',
+            },
+          });
+        } catch (error) {
+          // Don't fail the request if usage tracking fails
+          console.error('Failed to track API usage:', error);
+        }
+      }
+
+      // Build response with usage warnings if applicable
+      const responseData = {
         message: assistantMessage,
         usage: response.usage, // Include token usage for monitoring
-      });
+      };
+
+      // Add usage warning if user is approaching limits
+      const finalResponse = addUsageWarning(responseData, req.usageInfo);
+
+      // Return the response
+      res.json(finalResponse);
 
     } catch (error) {
       console.error('OpenAI API error:', error);

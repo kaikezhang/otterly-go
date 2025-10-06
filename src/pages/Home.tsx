@@ -8,6 +8,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { TripHeader } from '../components/TripHeader';
 import { TripSettingsModal } from '../components/TripSettingsModal';
 import { ShareButton } from '../components/ShareButton';
+import UsageWarning, { type UsageWarningData } from '../components/UsageWarning';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
 import { getTrip } from '../services/tripApi';
@@ -53,6 +54,7 @@ export default function Home() {
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
+  const [usageWarning, setUsageWarning] = useState<UsageWarningData | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedDayIndex, _setSelectedDayIndex] = useState<number | null>(null);
   const [showMap, setShowMap] = useState(false);
@@ -185,6 +187,11 @@ export default function Home() {
       const engine = getConversationEngine();
       const response = await engine.sendMessage(userMessage, trip);
 
+      // Set usage warning if present
+      if (response.usageWarning) {
+        setUsageWarning(response.usageWarning);
+      }
+
       // Create assistant message
       const assistantMsg = {
         id: crypto.randomUUID(),
@@ -214,6 +221,13 @@ export default function Home() {
         updateTrip(response.tripUpdate);
       }
     } catch (err) {
+      // Check if this is an auth error that requires logout
+      if (err instanceof Error && (err as any).requiresLogout) {
+        logout();
+        navigate('/login');
+        return;
+      }
+
       setError(err instanceof Error ? err.message : 'An error occurred');
       const errorMsg = {
         id: crypto.randomUUID(),
@@ -392,6 +406,19 @@ export default function Home() {
             )}
           </div>
           <div className="flex items-center gap-4">
+            {/* Start Over Button - only show if there are messages */}
+            {messages.length > 0 && (
+              <button
+                onClick={() => setShowStartOverModal(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                title="Start a new trip"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="hidden sm:inline">Start Over</span>
+              </button>
+            )}
             {user && (
               <div className="relative" ref={userMenuRef}>
                 <button
@@ -597,6 +624,16 @@ export default function Home() {
           >
             🗺️ Map
           </button>
+        </div>
+      )}
+
+      {/* Usage Warning Banner */}
+      {usageWarning && (
+        <div className="px-4 pt-4 max-w-7xl mx-auto w-full">
+          <UsageWarning
+            warning={usageWarning}
+            onDismiss={() => setUsageWarning(null)}
+          />
         </div>
       )}
 
