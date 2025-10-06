@@ -10,6 +10,7 @@ function App() {
     trip,
     messages,
     isLoading,
+    isSyncing,
     setTrip,
     addMessage,
     setConversationState,
@@ -17,6 +18,7 @@ function App() {
     addItemToDay,
     removeItemFromDay,
     updateTrip,
+    saveTripToDatabase,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,21 @@ function App() {
       setConversationState('eliciting');
     }
   }, [messages.length, addMessage, setConversationState]);
+
+  // Auto-save trip to database whenever it changes
+  useEffect(() => {
+    if (trip) {
+      // Debounce the save operation
+      const timeoutId = setTimeout(() => {
+        saveTripToDatabase().catch((error) => {
+          console.error('Auto-save failed:', error);
+          // Don't show error to user - localStorage backup exists
+        });
+      }, 1000); // Wait 1 second after last change
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [trip, messages, saveTripToDatabase]);
 
   const handleSendMessage = async (userMessage: string) => {
     setError(null);
@@ -151,6 +168,15 @@ function App() {
           <h1 className="text-2xl font-bold text-gray-900">🦦 OtterlyGo</h1>
           {trip && (
             <span className="text-sm text-gray-500">• {trip.destination}</span>
+          )}
+          {isSyncing && (
+            <span className="text-xs text-blue-600 flex items-center gap-1">
+              <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Saving...
+            </span>
           )}
         </div>
         <button

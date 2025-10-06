@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRouter from './routes/chat.js';
 import healthRouter from './routes/health.js';
+import tripsRouter from './routes/trips.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(healthRouter);
 
 // API routes
 app.use('/api/chat', chatRouter);
+app.use('/api/trips', tripsRouter);
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

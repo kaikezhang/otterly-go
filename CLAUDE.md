@@ -60,9 +60,21 @@ The app uses **PostgreSQL** with **Prisma ORM** for data persistence:
 
 ## Architecture Overview
 
-### Data Flow Pattern
+### Data Flow Pattern (Updated in Milestone 1.3)
 
-OtterlyGo uses a **centralized Zustand store** with localStorage persistence for all state:
+OtterlyGo uses a **hybrid persistence strategy** with Zustand store:
+
+**Client-Side (Milestone 1.0-1.2)**:
+- Zustand store with localStorage persistence
+- All state stored locally in browser
+
+**Database Sync (Milestone 1.3+)**:
+- Auto-save to PostgreSQL database
+- Trip API for CRUD operations
+- Debounced saves (1 second after changes)
+- Temporary userId (replaced with auth in Milestone 2.1)
+
+**Full Flow**:
 
 1. **User Input** → Chat component → App.tsx handler
 2. **App.tsx** calls `conversationEngine.sendMessage()` with current trip context
@@ -74,7 +86,31 @@ OtterlyGo uses a **centralized Zustand store** with localStorage persistence for
 8. **React re-renders** Chat + ItineraryView components
 9. **localStorage** automatically syncs via Zustand persist middleware
 
-### Backend Architecture (Milestone 1.1)
+### Trip API (Milestone 1.3)
+
+**File**: `server/routes/trips.ts`
+
+REST endpoints for trip management:
+```
+POST   /api/trips       - Create trip
+GET    /api/trips       - List trips (with pagination)
+GET    /api/trips/:id   - Get single trip
+PATCH  /api/trips/:id   - Update trip
+DELETE /api/trips/:id   - Delete trip
+```
+
+**Frontend Integration**:
+- `src/services/tripApi.ts` - API client functions
+- Auto-save in `App.tsx` via useEffect (debounced 1 second)
+- `useStore` actions: `saveTripToDatabase()`, `loadTripFromDatabase()`
+- Sync status indicator in header
+
+**Temporary Auth** (until Milestone 2.1):
+- userId generated on first visit and stored in localStorage
+- Passed in request body/query params
+- Will be replaced with JWT authentication
+
+### Backend Architecture (Milestone 1.1-1.3)
 
 The backend uses **Express.js** with TypeScript, running on port 3001:
 

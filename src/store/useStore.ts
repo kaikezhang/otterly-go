@@ -6,12 +6,15 @@ import type {
   ConversationState,
   ItineraryItem,
 } from '../types';
+import { createTrip, updateTrip, getUserId, type TripResponse } from '../services/tripApi';
 
 interface StoreState {
   trip: Trip | null;
+  currentTripId: string | null; // Database ID of current trip
   messages: ChatMessage[];
   conversationState: ConversationState;
   isLoading: boolean;
+  isSyncing: boolean; // True when syncing to database
 
   // Actions
   setTrip: (trip: Trip | null) => void;
@@ -23,15 +26,22 @@ interface StoreState {
   removeItemFromDay: (dayIndex: number, itemId: string) => void;
   updateTrip: (updates: Partial<Trip>) => void;
   clearAll: () => void;
+
+  // Database sync actions
+  saveTripToDatabase: () => Promise<void>;
+  loadTripFromDatabase: (tripResponse: TripResponse) => void;
+  setCurrentTripId: (id: string | null) => void;
 }
 
 export const useStore = create<StoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       trip: null,
+      currentTripId: null,
       messages: [],
       conversationState: 'initial',
       isLoading: false,
+      isSyncing: false,
 
       setTrip: (trip) => set({ trip }),
 
@@ -89,10 +99,48 @@ export const useStore = create<StoreState>()(
       clearAll: () =>
         set({
           trip: null,
+          currentTripId: null,
           messages: [],
           conversationState: 'initial',
           isLoading: false,
+          isSyncing: false,
         }),
+
+      // Database sync actions
+      saveTripToDatabase: async () => {
+        const state = get();
+        if (!state.trip) return;
+
+        set({ isSyncing: true });
+
+        try {
+          const userId = getUserId();
+
+          if (state.currentTripId) {
+            // Update existing trip
+            await updateTrip(state.currentTripId, state.trip, state.messages);
+          } else {
+            // Create new trip
+            const response = await createTrip(userId, state.trip, state.messages);
+            set({ currentTripId: response.id });
+          }
+        } catch (error) {
+          console.error('Failed to save trip to database:', error);
+          // Don't throw - continue with local storage
+        } finally {
+          set({ isSyncing: false });
+        }
+      },
+
+      loadTripFromDatabase: (tripResponse: TripResponse) => {
+        set({
+          trip: tripResponse.tripData,
+          currentTripId: tripResponse.id,
+          messages: tripResponse.messages,
+        });
+      },
+
+      setCurrentTripId: (id: string | null) => set({ currentTripId: id }),
     }),
     {
       name: 'otterly-go-storage',
