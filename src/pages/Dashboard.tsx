@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { TripCard } from '../components/TripCard';
 import { SkeletonTripCard } from '../components/SkeletonTripCard';
 import { TripsFilterBar } from '../components/TripsFilterBar';
+import { MobileBottomNav } from '../components/MobileBottomNav';
 import {
   listTripsWithFilters,
   getTripStats,
@@ -40,6 +41,12 @@ export function Dashboard() {
   // Selection state
   const [selectedTrips, setSelectedTrips] = React.useState<Set<string>>(new Set());
 
+  // Pull-to-refresh state
+  const [isPulling, setIsPulling] = React.useState(false);
+  const [pullDistance, setPullDistance] = React.useState(0);
+  const pullStartY = React.useRef(0);
+  const isPullingRef = React.useRef(false);
+
   // Load trips and stats
   const loadData = React.useCallback(async () => {
     try {
@@ -71,6 +78,50 @@ export function Dashboard() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Pull-to-refresh handlers (mobile only)
+  React.useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0 && window.innerWidth < 768) {
+        pullStartY.current = e.touches[0].clientY;
+        isPullingRef.current = true;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isPullingRef.current) return;
+
+      const touchY = e.touches[0].clientY;
+      const distance = touchY - pullStartY.current;
+
+      if (distance > 0 && distance < 100) {
+        setPullDistance(distance);
+        setIsPulling(true);
+      }
+    };
+
+    const handleTouchEnd = async () => {
+      if (isPullingRef.current && pullDistance > 60) {
+        setIsPulling(true);
+        await loadData();
+        toast.success('Trips refreshed');
+      }
+
+      setIsPulling(false);
+      setPullDistance(0);
+      isPullingRef.current = false;
+    };
+
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [pullDistance, loadData]);
 
   // Close user menu when clicking outside
   React.useEffect(() => {
@@ -313,6 +364,18 @@ export function Dashboard() {
   return (
     <>
       <Toaster position="top-right" />
+      {/* Pull-to-refresh indicator (mobile only) */}
+      {isPulling && pullDistance > 0 && (
+        <div
+          className="md:hidden fixed top-0 left-0 right-0 flex items-center justify-center z-50 transition-all"
+          style={{
+            height: `${pullDistance}px`,
+            opacity: pullDistance / 100,
+          }}
+        >
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      )}
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
@@ -447,8 +510,19 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* Floating Action Button (FAB) - Mobile only */}
+      <button
+        onClick={handleNewTrip}
+        className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 z-40"
+        aria-label="Create new trip"
+      >
+        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
         <TripsFilterBar
           search={search}
           onSearchChange={setSearch}
@@ -467,11 +541,11 @@ export function Dashboard() {
           <div
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-6'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mt-6'
                 : 'space-y-4 mt-6'
             }
           >
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <SkeletonTripCard key={i} viewMode={viewMode} />
             ))}
           </div>
@@ -489,7 +563,7 @@ export function Dashboard() {
           <div
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-6'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mt-6'
                 : 'space-y-4 mt-6'
             }
           >
@@ -550,6 +624,7 @@ export function Dashboard() {
         )}
       </div>
       </div>
+      <MobileBottomNav />
     </>
   );
 }
