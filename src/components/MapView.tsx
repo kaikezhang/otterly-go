@@ -335,7 +335,7 @@ export function MapView({ trip, selectedDayIndex }: MapViewProps) {
       <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
         <h4 className="font-semibold text-sm mb-2">Legend</h4>
         <div className="space-y-1">
-          {trip.days.map((day, idx) => {
+          {trip.days.map((_day, idx) => {
             const dayMarkers = markers.filter((m) => m.dayIndex === idx);
             if (dayMarkers.length === 0) return null;
 

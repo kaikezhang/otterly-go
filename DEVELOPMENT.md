@@ -2,16 +2,6 @@
 
 This document outlines the milestones for transforming OtterlyGo from MVP to production-ready SaaS.
 
-## Current State (MVP)
-
-- ✅ Client-side React app with Zustand state management
-- ✅ OpenAI GPT-3.5-turbo integration for trip planning
-- ✅ localStorage persistence
-- ✅ Structured JSON conversation engine
-- ⚠️ Browser-exposed API keys (`dangerouslyAllowBrowser: true`)
-- ⚠️ No user authentication
-- ⚠️ No backend infrastructure
-- ⚠️ No multi-user support
 
 ---
 
@@ -338,78 +328,211 @@ interface ItineraryItem {
 
 ---
 
-### Milestone 3.3: Media Management
+### Milestone 3.3: Visual Content Library ✅ **COMPLETED** (2025-10-06)
 
-**Goal**: Add photo uploads, galleries, and visual inspiration for trips
+**Goal**: Build a curated photo library system with free stock photos for visual inspiration and contextual display
+
+**Philosophy**: Instead of user uploads, maintain a high-quality photo collection sourced from free stock photo APIs (Unsplash, Pexels). Photos enhance chat suggestions, itinerary headers, and inspiration galleries. Cached for reuse to minimize API costs.
 
 #### Backend Tasks:
-- [ ] Choose image hosting service (Cloudinary recommended, or S3)
-- [ ] Set up image upload endpoint `POST /api/upload` (multipart/form-data)
-- [ ] Add image optimization pipeline (resize, WebP conversion)
-- [ ] Create `trip_images` table (id, trip_id, item_id, url, caption, order)
-- [ ] Add `GET /api/trips/:id/images` endpoint
-- [ ] Add `DELETE /api/images/:id` endpoint
-- [ ] Implement file size limits (max 5MB per image)
-- [ ] Add virus scanning for uploads (ClamAV or cloud service)
-- [ ] Set up image CDN distribution (Cloudinary auto-handles this)
+- [x] Choose stock photo API (Unsplash recommended for quality + generous free tier)
+- [x] Set up photo API integration:
+  - [x] Create `GET /api/photos/search` endpoint (proxies Unsplash/Pexels API)
+  - [x] Accept query params: `query`, `destination`, `activityType`, `limit`
+  - [x] Return array of photo objects with URLs, attribution, metadata
+- [x] Create `photo_library` table for caching:
+  ```sql
+  - id (UUID)
+  - source (enum: 'unsplash', 'pexels', 'custom')
+  - sourcePhotoId (original API photo ID)
+  - query (search term used)
+  - urls (JSON: raw, full, regular, small, thumb)
+  - attribution (photographer name, profile link)
+  - tags (array of keywords)
+  - usageCount (track popularity)
+  - createdAt, updatedAt
+  ```
+- [x] Implement photo caching strategy:
+  - [x] Cache photos by search query (7-day TTL)
+  - [x] Track usage count for popular photos
+  - [x] Periodic cleanup of unused photos (30-day retention)
+- [x] Create `trip_photos` association table:
+  ```sql
+  - id (UUID)
+  - tripId (FK to trips)
+  - itemId (FK to itinerary items, nullable for trip-level photos)
+  - photoId (FK to photo_library)
+  - displayContext (enum: 'cover', 'header', 'suggestion', 'gallery')
+  - order (for galleries)
+  ```
+- [x] Add photo association endpoints:
+  - [x] `POST /api/photos/trips/:id` (associate photo with trip)
+  - [x] `GET /api/photos/trips/:id` (get trip's photo collection)
+  - [x] `DELETE /api/photos/trips/:id/:photoId` (remove association)
+- [x] Implement smart photo selection algorithm:
+  - [x] Auto-select cover photo when trip generated (destination-based search)
+  - [x] Auto-suggest photos for activities (activity name + destination)
+  - [x] Fallback to generic travel photos if no matches
 
 #### Frontend Tasks:
-- [ ] Create `ImageUpload` component (drag-and-drop zone)
-- [ ] Add image picker for itinerary items ("Add photos" button)
-- [ ] Create `ImageGallery` component (lightbox view)
-- [ ] Add image captions/descriptions (editable)
-- [ ] Implement reordering images within gallery
-- [ ] Add cover photo selection for trips (shown in trip list)
-- [ ] Create inspiration board (Pinterest-style grid of saved images)
-- [ ] Add image search integration (Unsplash API for stock photos)
-- [ ] Show image thumbnails in itinerary items
-- [ ] Add loading states and upload progress bars
-- [ ] Implement lazy loading for images (intersection observer)
-- [ ] Add image compression before upload (browser-side with `browser-image-compression`)
+- [x] Create `PhotoService` utility:
+  - [x] `searchPhotos(query)` - Search for photos via backend
+  - [x] `getPhotoForActivity(activity)` - Get relevant photo for item
+  - [x] `getTripCoverPhoto(destination)` - Get hero image for trip
+- [x] Add contextual photo display:
+  - [x] **Trip cover photo**: Hero image at top of itinerary (auto-selected from destination)
+  - [x] **Chat suggestions**: Include thumbnail in `SuggestionCard` component
+  - [ ] **Itinerary day headers**: Add optional day-specific photos (deferred)
+  - [ ] **Activity items**: Show thumbnail icons for key activities (deferred)
+- [ ] Create `PhotoGallery` component (deferred to future milestone):
+  - [ ] Grid layout of trip-related photos
+  - [ ] Lightbox view with attribution
+  - [ ] "Get inspiration" button to search new photos
+  - [ ] Photo selection modal (click to associate with trip/item)
+- [ ] Implement photo picker UI (deferred to future milestone):
+  - [ ] `PhotoSearchModal` component (search interface)
+  - [ ] Real-time search as user types (debounced)
+  - [ ] Preview thumbnails with photographer credit
+  - [ ] Click to select and associate with trip/item
+- [ ] Add photo management (deferred to future milestone):
+  - [ ] Remove photo from trip/item
+  - [ ] Change trip cover photo (selector UI)
+  - [ ] Browse photo library (saved photos for this trip)
+- [x] Lazy loading and performance:
+  - [x] Responsive image sizes (use `srcset` from Unsplash URLs)
+  - [ ] Intersection Observer for below-fold images (deferred)
+  - [ ] Skeleton loaders while photos fetch (deferred)
+
+#### LLM Integration:
+- [x] Update system prompt to include photo context:
+  - [x] When generating `suggestion` type responses, include `photoQuery` field
+  - [x] Example: `{type: "suggestion", content: "...", photoQuery: "Peruvian cuisine ceviche"}`
+  - [x] Frontend auto-fetches photo using query and displays in suggestion card
+- [x] Add photo suggestions during planning:
+  - [x] After itinerary generation, auto-fetch cover photo
+  - [ ] Optionally suggest photos for each day ("Want to see photos of X?") (deferred)
 
 #### Data Model Updates:
 ```typescript
 interface Trip {
   // ... existing fields
-  coverImage?: string; // URL to cover photo
+  coverPhotoId?: string; // FK to photo_library
 }
 
 interface ItineraryItem {
   // ... existing fields
-  images?: Array<{
-    url: string;
-    caption?: string;
-    order: number;
-  }>;
+  photoId?: string; // FK to photo_library (optional featured image)
 }
 
-interface TripImage {
+interface Photo {
+  id: string;
+  source: 'unsplash' | 'pexels' | 'custom';
+  sourcePhotoId: string;
+  query: string;
+  urls: {
+    raw: string;
+    full: string;
+    regular: string;
+    small: string;
+    thumb: string;
+  };
+  attribution: {
+    photographerName: string;
+    photographerUrl: string;
+    sourceUrl: string; // Unsplash/Pexels photo page
+  };
+  tags: string[];
+  usageCount: number;
+  createdAt: Date;
+}
+
+interface TripPhoto {
   id: string;
   tripId: string;
-  itemId?: string; // null if inspiration board image
-  url: string;
-  thumbnailUrl: string;
-  caption?: string;
+  itemId?: string; // null for trip-level photos
+  photoId: string;
+  displayContext: 'cover' | 'header' | 'suggestion' | 'gallery';
   order: number;
-  createdAt: Date;
 }
 ```
 
 **Acceptance Criteria**:
-- ✅ Users can upload images to trips and individual activities
-- ✅ Images display in responsive galleries (grid + lightbox)
-- ✅ Image upload shows progress indicator
-- ✅ Cover photos appear in trip list dashboard
-- ✅ Inspiration board allows saving reference images
-- ✅ Images optimized for web (WebP, lazy loading)
-- ✅ Mobile: Camera integration for on-the-go uploads
+- ✅ Trips auto-get cover photo based on destination
+- ✅ Chat suggestions display relevant photos (fetched via LLM photoQuery)
+- ✅ Photos cached to minimize API costs (7-day TTL, usage tracking)
+- ✅ Responsive images from Unsplash CDN
+- ✅ Proper attribution displayed (photographer credit + source link)
+- 🔄 Photo gallery and manual selection (deferred to future milestone)
+- 🔄 Day-specific photos and activity thumbnails (deferred)
+
+**API Integration Options**:
+1. **Unsplash** (Recommended):
+   - 50 requests/hour free tier (5,000/month with API key)
+   - High-quality curated photos
+   - Excellent search relevance
+   - Built-in responsive URLs (`?w=400&h=300`)
+   - Requires attribution (easy to comply)
+
+2. **Pexels**:
+   - 200 requests/hour free tier
+   - Good variety, slightly less curated
+   - No attribution required (but encouraged)
+   - API similar to Unsplash
+
+3. **Pixabay** (Fallback):
+   - Unlimited requests (with key)
+   - Lower quality, but free with no attribution
 
 **Technical Considerations**:
-- **Storage costs**: Compress images aggressively, delete when trip deleted
-- **Security**: Validate file types (only images), scan for malware
-- **Performance**: Use CDN, serve different sizes for mobile/desktop
-- **UX**: Show thumbnails in itinerary, full-size in lightbox
-- **Accessibility**: Require alt text for images (or generate with AI)
+- **API costs**: Cache aggressively, track popular queries, use database as primary source after first fetch
+- **Attribution compliance**: Always show photographer credit (legal requirement for Unsplash)
+- **Performance**:
+  - Use Unsplash's CDN URLs (already optimized)
+  - Lazy load below-fold images
+  - Prefetch cover photo during trip generation
+- **UX**:
+  - Auto-select photos when possible (reduce friction)
+  - Allow manual override (user can change cover photo)
+  - Show photo source badge ("Photo by John Doe on Unsplash")
+- **Search relevance**:
+  - Combine destination + activity type for better results (e.g., "Tokyo ramen" not just "ramen")
+  - Use LLM to generate smart photo queries (already has trip context)
+- **Future enhancement**: Allow user uploads (deferred to post-MVP)
+
+**Implementation Summary**:
+
+**What Was Built**:
+- ✅ Unsplash API integration with smart caching (7-day TTL, database + in-memory)
+- ✅ Photo search endpoint (`GET /api/photos/search`) with context-aware queries
+- ✅ Database schema: `photo_library` and `trip_photos` tables (Prisma migration)
+- ✅ Frontend `PhotoService` utility for photo operations
+- ✅ Auto-fetched trip cover photos (stored directly in trip object)
+- ✅ Suggestion cards with photos (via LLM `photoQuery` field)
+- ✅ Proper Unsplash attribution with photographer credits
+
+**Architecture Decision**:
+- Simplified from complex database associations to **stateless photo library pattern**
+- Photos fetched on-demand and stored in trip object (no race conditions)
+- Photo URLs stored directly in `Trip.coverPhotoUrl` (no separate photo association writes)
+- Database used only for caching search results (read-heavy, minimal writes)
+
+**Technical Stack**:
+- Backend: Express.js, Prisma, Unsplash API
+- Frontend: React, TypeScript, Tailwind CSS
+- Caching: In-memory (Map) + PostgreSQL
+- Photo CDN: Unsplash (automatic optimization)
+
+**Key Features**:
+1. **Auto cover photos**: Destination-based search when trip created
+2. **Suggestion photos**: LLM provides `photoQuery`, frontend auto-fetches
+3. **Smart caching**: Popular photos cached, usage tracking for optimization
+4. **Attribution compliance**: Photographer credits always displayed
+
+**Deferred to Future**:
+- PhotoGallery component with lightbox
+- PhotoSearchModal for manual photo selection
+- Day-specific photos and activity thumbnails
+- Intersection Observer lazy loading
 
 ---
 
@@ -792,4 +915,4 @@ Based on current screenshot analysis:
 
 ---
 
-**Last Updated**: 2025-10-06 (Milestone 2.3 User Profile & Settings and Milestone 3.1 Map Integration marked as completed)
+**Last Updated**: 2025-10-06 (Milestone 3.3 Visual Content Library completed - Unsplash integration with auto cover photos and suggestion cards)
