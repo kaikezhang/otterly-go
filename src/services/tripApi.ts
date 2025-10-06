@@ -201,3 +201,111 @@ export async function getSharedTrip(shareToken: string): Promise<SharedTripRespo
 
   return response.json();
 }
+
+/**
+ * List trips with advanced filtering and sorting (Milestone 3.5)
+ */
+export interface TripFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  archived?: boolean;
+  tags?: string[];
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+export async function listTripsWithFilters(filters: TripFilters = {}): Promise<TripListResponse> {
+  const params = new URLSearchParams();
+
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.search) params.append('search', filters.search);
+  if (filters.status) params.append('status', filters.status);
+  if (filters.archived !== undefined) params.append('archived', filters.archived.toString());
+  if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
+  if (filters.sort) params.append('sort', filters.sort);
+  if (filters.order) params.append('order', filters.order);
+
+  const response = await fetch(`${API_URL}/api/trips?${params}`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to list trips' }));
+    throw new Error(error.error || 'Failed to list trips');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get trip statistics (Milestone 3.5)
+ */
+export interface TripStats {
+  total: number;
+  byStatus: {
+    draft: number;
+    planning: number;
+    upcoming: number;
+    active: number;
+    completed: number;
+    archived: number;
+  };
+  destinationsCount: number;
+  totalDays: number;
+  activitiesCount: number;
+}
+
+export async function getTripStats(): Promise<TripStats> {
+  const response = await fetch(`${API_URL}/api/trips/stats`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch trip stats' }));
+    throw new Error(error.error || 'Failed to fetch trip stats');
+  }
+
+  return response.json();
+}
+
+/**
+ * Perform bulk operations on multiple trips (Milestone 3.5)
+ */
+export async function bulkOperateTrips(
+  operation: 'archive' | 'delete' | 'duplicate',
+  tripIds: string[]
+): Promise<{ success: boolean; operation: string }> {
+  const response = await fetch(`${API_URL}/api/trips/bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ operation, tripIds }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to perform bulk operation' }));
+    throw new Error(error.error || 'Failed to perform bulk operation');
+  }
+
+  return response.json();
+}
+
+/**
+ * Duplicate a single trip (Milestone 3.5)
+ */
+export async function duplicateTrip(tripId: string): Promise<TripResponse> {
+  const response = await fetch(`${API_URL}/api/trips/${tripId}/duplicate`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to duplicate trip' }));
+    throw new Error(error.error || 'Failed to duplicate trip');
+  }
+
+  return response.json();
+}

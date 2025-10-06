@@ -1,15 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Chat } from '../components/Chat';
 import { ItineraryView } from '../components/ItineraryView';
 import { MapView } from '../components/MapView';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
+import { getTrip } from '../services/tripApi';
 import type { ItineraryItem, QuickReply } from '../types';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { id: tripId } = useParams<{ id: string }>();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const {
     user,
@@ -19,6 +22,7 @@ export default function Home() {
     isSyncing,
     isEditMode,
     hasUnsavedChanges,
+    hasHydrated,
     currentTripId,
     setTrip,
     addMessage,
@@ -29,6 +33,7 @@ export default function Home() {
     removeItemFromDay,
     updateTrip,
     saveTripToDatabase,
+    loadTripFromDatabase,
     logout,
     toggleEditMode,
     undo,
@@ -46,6 +51,8 @@ export default function Home() {
   const [selectedDayIndex, _setSelectedDayIndex] = useState<number | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'itinerary' | 'map'>('chat');
+  const [showStartOverModal, setShowStartOverModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -98,9 +105,31 @@ export default function Home() {
     };
   }, [undo, redo, canUndo, canRedo]);
 
-  // Initialize conversation on first load
+  // Load trip from database when navigating to /trip/:id
   useEffect(() => {
-    if (messages.length === 0) {
+    if (hasHydrated && tripId && tripId !== 'new' && tripId !== currentTripId) {
+      const loadTrip = async () => {
+        try {
+          setIsLoading(true);
+          const tripData = await getTrip(tripId);
+          loadTripFromDatabase(tripData);
+        } catch (err) {
+          console.error('Failed to load trip:', err);
+          setError('Failed to load trip. Redirecting to dashboard...');
+          setTimeout(() => navigate('/dashboard'), 2000);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadTrip();
+    }
+  }, [hasHydrated, tripId, currentTripId, loadTripFromDatabase, setIsLoading, navigate]);
+
+  // Initialize conversation on first load (wait for hydration to complete)
+  useEffect(() => {
+    // Wait for store to rehydrate from localStorage before adding initial greeting
+    // Only add greeting if no tripId (new trip) and no messages
+    if (hasHydrated && (!tripId || tripId === 'new') && messages.length === 0) {
       const engine = getConversationEngine();
       const greeting = engine.getInitialGreeting();
       addMessage({
@@ -112,7 +141,7 @@ export default function Home() {
       });
       setConversationState('eliciting');
     }
-  }, [messages.length, addMessage, setConversationState]);
+  }, [hasHydrated, tripId, messages.length, addMessage, setConversationState]);
 
   // Auto-save trip to database whenever it changes
   useEffect(() => {
@@ -255,9 +284,18 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to sign out?')) {
-      await logout();
-    }
+    await logout();
+    setShowLogoutModal(false);
+  };
+
+  const handleStartOver = async () => {
+    // Clear trip data but keep user auth
+    useStore.getState().clearAll();
+    // Wait for state to be persisted to localStorage
+    await new Promise(resolve => setTimeout(resolve, 100));
+    // Navigate to new trip page
+    setShowStartOverModal(false);
+    window.location.href = '/trip/new';
   };
 
   // Main App Screen
@@ -266,6 +304,15 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Back to Dashboard"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
           <h1 className="text-2xl font-bold text-gray-900">🦦 OtterlyGo</h1>
           {trip && (
             <span className="text-sm text-gray-500">• {trip.destination}</span>
@@ -350,12 +397,7 @@ export default function Home() {
             </div>
           )}
           <button
-            onClick={() => {
-              if (confirm('Clear all data and start over?')) {
-                useStore.getState().clearAll();
-                window.location.reload();
-              }
-            }}
+            onClick={() => setShowStartOverModal(true)}
             className="text-sm text-gray-600 hover:text-gray-800"
           >
             Start Over
@@ -411,7 +453,7 @@ export default function Home() {
                   <div className="border-t border-gray-100 my-1"></div>
                   <button
                     onClick={() => {
-                      handleLogout();
+                      setShowLogoutModal(true);
                       setShowUserMenu(false);
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -540,6 +582,29 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modals */}
+      <ConfirmModal
+        isOpen={showStartOverModal}
+        title="Start Over?"
+        message="This will clear your current trip and start a fresh conversation. Your saved trips will not be affected."
+        confirmText="Start Over"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleStartOver}
+        onCancel={() => setShowStartOverModal(false)}
+      />
+
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Sign Out?"
+        message="Are you sure you want to sign out? Your trips are saved and will be available when you sign in again."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        variant="primary"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   );
 }

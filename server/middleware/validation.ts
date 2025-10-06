@@ -79,9 +79,25 @@ export type UpdateTripRequest = z.infer<typeof updateTripSchema>;
 export const tripListQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  // Filtering and search (Milestone 3.5)
+  search: z.string().optional(),
+  status: z.enum(['draft', 'planning', 'upcoming', 'active', 'completed', 'archived', 'all', 'past']).optional(),
+  archived: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
+  tags: z.string().transform(val => val.split(',')).optional(), // Comma-separated tags
+  // Sorting
+  sort: z.enum(['recent', 'oldest', 'name', 'startDate', 'endDate']).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
 });
 
 export type TripListQuery = z.infer<typeof tripListQuerySchema>;
+
+// Schema for bulk operations (Milestone 3.5)
+export const bulkOperationSchema = z.object({
+  operation: z.enum(['archive', 'delete', 'duplicate']),
+  tripIds: z.array(z.string().min(1)).min(1).max(50), // Max 50 trips per bulk operation
+});
+
+export type BulkOperationRequest = z.infer<typeof bulkOperationSchema>;
 
 // Validation middleware factory
 export function validateRequest<T extends z.ZodType>(schema: T) {
@@ -108,7 +124,8 @@ export function validateRequest<T extends z.ZodType>(schema: T) {
 export function validateQuery<T extends z.ZodType>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.query = schema.parse(req.query) as any;
+      // Validate query params (don't try to reassign req.query as it's read-only)
+      schema.parse(req.query);
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -119,6 +136,7 @@ export function validateQuery<T extends z.ZodType>(schema: T) {
       } else {
         res.status(400).json({
           error: 'Invalid query parameters',
+          message: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }

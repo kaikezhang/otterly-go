@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
+import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
@@ -40,10 +41,10 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  // Redirect to home if already logged in and on login page
+  // Redirect to dashboard if already logged in and on login page
   useEffect(() => {
     if (user && window.location.pathname === '/login') {
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -58,14 +59,44 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/share/:token" element={<SharedTrip />} />
+
+          {/* Redirect root to dashboard */}
           <Route
             path="/"
+            element={<Navigate to="/dashboard" replace />}
+          />
+
+          {/* Dashboard - list all trips */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Create new trip */}
+          <Route
+            path="/trip/new"
             element={
               <ProtectedRoute>
                 <Home />
               </ProtectedRoute>
             }
           />
+
+          {/* View/edit specific trip */}
+          <Route
+            path="/trip/:id"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* User profile */}
           <Route
             path="/profile"
             element={
