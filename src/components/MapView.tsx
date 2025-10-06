@@ -33,7 +33,6 @@ const TYPE_ICONS: Record<string, string> = {
 interface MapViewProps {
   trip: Trip;
   selectedDayIndex?: number | null;
-  onMarkerClick?: (dayIndex: number, itemId: string) => void;
 }
 
 interface MarkerData {
@@ -43,7 +42,7 @@ interface MarkerData {
   color: string;
 }
 
-export function MapView({ trip, selectedDayIndex, onMarkerClick }: MapViewProps) {
+export function MapView({ trip, selectedDayIndex }: MapViewProps) {
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 0,
@@ -81,19 +80,39 @@ export function MapView({ trip, selectedDayIndex, onMarkerClick }: MapViewProps)
     return markers;
   }, [markers, selectedDayIndex]);
 
-  // Calculate initial map center from markers
+  // Calculate initial map center and zoom from markers
   useEffect(() => {
     if (markers.length > 0) {
       const lngs = markers.map((m) => m.item.location!.lng);
       const lats = markers.map((m) => m.item.location!.lat);
 
-      const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+
+      const centerLng = (minLng + maxLng) / 2;
+      const centerLat = (minLat + maxLat) / 2;
+
+      // Calculate zoom based on bounding box
+      // Approximate degrees per pixel at zoom levels
+      const lngDiff = maxLng - minLng;
+      const latDiff = maxLat - minLat;
+      const maxDiff = Math.max(lngDiff, latDiff);
+
+      // Auto-zoom to fit all markers with padding
+      let zoom = 10; // default
+      if (maxDiff < 0.01) zoom = 14; // Very close markers (~1km)
+      else if (maxDiff < 0.05) zoom = 12; // Close markers (~5km)
+      else if (maxDiff < 0.1) zoom = 11; // Nearby markers (~10km)
+      else if (maxDiff < 0.5) zoom = 9; // City-level (~50km)
+      else if (maxDiff < 2) zoom = 7; // Region-level (~200km)
+      else zoom = 6; // Country-level
 
       setViewState({
         longitude: centerLng,
         latitude: centerLat,
-        zoom: 11,
+        zoom,
       });
     }
   }, [markers]);
@@ -141,14 +160,30 @@ export function MapView({ trip, selectedDayIndex, onMarkerClick }: MapViewProps)
         const lngs = dayMarkers.map((m) => m.item.location!.lng);
         const lats = dayMarkers.map((m) => m.item.location!.lat);
 
-        const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-        const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+
+        const centerLng = (minLng + maxLng) / 2;
+        const centerLat = (minLat + maxLat) / 2;
+
+        // Calculate zoom for day view (more zoomed in than full trip)
+        const lngDiff = maxLng - minLng;
+        const latDiff = maxLat - minLat;
+        const maxDiff = Math.max(lngDiff, latDiff);
+
+        let zoom = 13; // default for single day
+        if (maxDiff < 0.01) zoom = 15; // Very close (~1km)
+        else if (maxDiff < 0.05) zoom = 13; // Close (~5km)
+        else if (maxDiff < 0.1) zoom = 12; // Nearby (~10km)
+        else zoom = 11; // Spread out
 
         setViewState((prev) => ({
           ...prev,
           longitude: centerLng,
           latitude: centerLat,
-          zoom: 13,
+          zoom,
         }));
       }
     },
@@ -236,9 +271,6 @@ export function MapView({ trip, selectedDayIndex, onMarkerClick }: MapViewProps)
             onClick={(e) => {
               e.originalEvent.stopPropagation();
               setSelectedMarker(marker);
-              if (onMarkerClick) {
-                onMarkerClick(marker.dayIndex, marker.item.id);
-              }
             }}
           >
             <div

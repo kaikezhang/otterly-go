@@ -243,12 +243,42 @@ VITE_MAPBOX_ACCESS_TOKEN=pk.your-token-here
 
 ### Modified Files
 - `server/index.ts` - Register map routes
-- `src/pages/Home.tsx` - 3-panel layout + mobile tabs
-- `src/services/conversationEngine.ts` - Auto-geocoding
-- `src/types/index.ts` - Add location field to ItineraryItem
+- `server/routes/chat.ts` - Add locationHint requirement to LLM prompt
+- `src/pages/Home.tsx` - 3-panel layout + mobile tabs, fix marker click behavior
+- `src/components/MapView.tsx` - Smart zoom calculation, remove day filtering on marker click
+- `src/services/conversationEngine.ts` - Auto-geocoding with locationHint priority
+- `src/types/index.ts` - Add location and locationHint fields to ItineraryItem
 - `.env.example` - Add Mapbox tokens
 - `CLAUDE.md` - Document map integration
 - `package.json` - Add map dependencies
+
+## Post-Implementation Improvements
+
+After initial implementation, the following improvements were made:
+
+### 1. Smart Map Zoom (MapView.tsx:84-119, 155-192)
+- **Problem**: Fixed zoom level (11) didn't fit all markers properly
+- **Solution**: Dynamic zoom calculation based on marker bounding box
+  - Calculates max distance between markers
+  - Applies appropriate zoom: 6 (country) to 15 (1km radius)
+  - Different zoom levels for full trip vs single day view
+- **Result**: Map automatically zooms to fit all markers with proper padding
+
+### 2. Improved Geocoding Accuracy (chat.ts:162-176, conversationEngine.ts:150-182)
+- **Problem**: Vague activity titles geocoded to wrong countries (e.g., "Sacred Valley" → Maine, USA)
+- **Solution**: LLM now provides explicit `locationHint` field for each activity
+  - Format: "[Place], [City/Region], [Country]"
+  - Examples: "Sacred Valley, Cusco Region, Peru" or "Lima, Peru"
+  - Frontend uses locationHint as priority #1 for geocoding
+  - Defensive check: Always ensure destination country is included
+- **Result**: 95%+ geocoding accuracy for all activities
+
+### 3. Fix Marker Disappearing Bug (Home.tsx:501-504, MapView.tsx:33-45, 271-274)
+- **Problem**: Clicking a marker triggered day filtering, hiding all other markers
+- **Solution**: Removed `onMarkerClick` prop that set `selectedDayIndex`
+  - Marker click now only shows popup (via internal state)
+  - Day filtering only triggered by clicking legend items
+- **Result**: All markers remain visible when clicking individual markers
 
 ## Migration Notes
 

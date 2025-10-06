@@ -501,9 +501,6 @@ export default function Home() {
             <MapView
               trip={trip}
               selectedDayIndex={selectedDayIndex}
-              onMarkerClick={(dayIndex) => {
-                setSelectedDayIndex(dayIndex);
-              }}
             />
           </div>
         )}

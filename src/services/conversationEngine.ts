@@ -147,11 +147,34 @@ class ConversationEngine {
               ...item,
             };
 
-            // Auto-geocode item title if no location exists
-            if (!item.location && item.title) {
+            // Auto-geocode item if no location exists
+            if (!item.location) {
               try {
-                // Combine destination + item title for better geocoding
-                const query = `${item.title}, ${destination}`;
+                let query: string;
+
+                // Priority 1: Use locationHint from LLM (most accurate)
+                if (item.locationHint) {
+                  query = item.locationHint;
+                  // Ensure destination is included if not already present
+                  if (!query.toLowerCase().includes(destination.toLowerCase())) {
+                    query = `${query}, ${destination}`;
+                  }
+                }
+                // Priority 2: Extract from description
+                else if (item.description) {
+                  const desc = item.description.toLowerCase();
+                  const locationMatch = desc.match(/(?:in|at|near|visit|explore)\s+([A-Z][a-zA-Z\s]+(?:,\s*[A-Z][a-zA-Z\s]+)?)/i);
+                  if (locationMatch) {
+                    query = `${locationMatch[1]}, ${destination}`;
+                  } else {
+                    query = `${item.title}, ${destination}`;
+                  }
+                }
+                // Priority 3: Fallback to title + destination
+                else {
+                  query = `${item.title}, ${destination}`;
+                }
+
                 const location = await geocodeLocation(query, proximityBias);
                 enrichedItem.location = location;
                 console.log(`Geocoded "${item.title}" → ${location.address}`);

@@ -121,13 +121,15 @@ IMPORTANT: If you send type="message", you MUST include quickReplies. No excepti
             "title": "Arrive in Lima",
             "type": "transport",
             "description": "Check into hotel and rest",
-            "duration": "evening"
+            "duration": "evening",
+            "locationHint": "Lima, Peru"
           },
           {
             "title": "Dinner in Miraflores",
             "type": "food",
             "description": "Explore the coastal neighborhood and try ceviche",
-            "duration": "2 hours"
+            "duration": "2 hours",
+            "locationHint": "Miraflores, Lima, Peru"
           }
         ]
       }
@@ -156,6 +158,22 @@ Example (only when requested):
 }
 
 ⚠️ IMPORTANT: Leave images, quotes, and sourceLinks as EMPTY ARRAYS for now!
+
+⚠️ LOCATION HINT REQUIREMENT (for map integration):
+Every itinerary item MUST include a "locationHint" field with specific location information.
+CRITICAL: Always include the COUNTRY name to prevent geocoding to wrong countries!
+
+Format: "[Specific Place], [City/Region], [Country]"
+- ✅ GOOD: "Miraflores, Lima, Peru" or "Sacred Valley, Cusco Region, Peru" or "Machu Picchu, Peru"
+- ❌ BAD: "Sacred Valley" (could geocode to USA!) or "Miraflores" (ambiguous city name)
+
+Guidelines:
+- For landmarks: "Machu Picchu, Peru" or "Colosseum, Rome, Italy"
+- For neighborhoods: "Miraflores, Lima, Peru" or "Shibuya, Tokyo, Japan"
+- For regions: "Sacred Valley, Cusco Region, Peru" or "Tuscany, Italy"
+- For generic activities: Specify the city - "Lima, Peru" for "Culinary Experience in Lima"
+- For transport: Use DESTINATION - "Cusco, Peru" for "Fly to Cusco"
+- Always include country name (even if it seems obvious from context)
 
 4. For itinerary updates:
 {
