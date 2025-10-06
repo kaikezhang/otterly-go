@@ -180,6 +180,33 @@ export function ItineraryView({
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
+      {/* Cover Photo */}
+      {trip.coverPhotoUrl && (
+        <div className="relative w-full h-48 overflow-hidden">
+          <img
+            src={trip.coverPhotoUrl}
+            alt={trip.destination}
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+          {/* Photo attribution */}
+          {trip.coverPhotoAttribution && (
+            <div className="absolute bottom-2 right-2 text-white text-xs opacity-75 hover:opacity-100 transition-opacity">
+              <a
+                href={trip.coverPhotoAttribution.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                Photo by {trip.coverPhotoAttribution.photographerName}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
         <h2 className="text-xl font-bold text-gray-900">{trip.destination}</h2>
@@ -327,7 +354,7 @@ interface SortableItineraryItemProps {
 
 function SortableItineraryItem({
   item,
-  dayIndex,
+  dayIndex: _dayIndex,
   isEditMode,
   isFirst,
   onRemove,

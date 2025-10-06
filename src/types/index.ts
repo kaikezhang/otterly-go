@@ -39,6 +39,7 @@ export interface ItineraryItem {
     lng: number;
     address?: string; // Full formatted address
   };
+  photoId?: string; // Optional photo from library
 }
 
 export interface Day {
@@ -56,6 +57,13 @@ export interface Trip {
   interests: string[];
   mustSee: string[];
   days: Day[];
+  coverPhotoId?: string; // Optional cover photo from library (deprecated - use coverPhotoUrl instead)
+  coverPhotoUrl?: string; // Direct URL to cover photo
+  coverPhotoAttribution?: {
+    photographerName: string;
+    photographerUrl: string;
+    sourceUrl: string;
+  };
 }
 
 export interface Quote {
@@ -78,6 +86,7 @@ export interface SuggestionCard {
   defaultDayIndex?: number; // Suggested day to add to (0-based)
   itemType: ItemType;
   duration?: string;
+  photoQuery?: string; // LLM-generated photo search query (Milestone 3.3)
 }
 
 export interface QuickReply {

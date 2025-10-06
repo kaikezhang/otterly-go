@@ -151,6 +151,7 @@ Example (only when requested):
     "summary": "Explore Lima's culinary scene with visits to local markets and traditional restaurants.",
     "quotes": [],
     "sourceLinks": [],
+    "photoQuery": "Lima Peru food market ceviche",
     "defaultDayIndex": 1,
     "itemType": "food",
     "duration": "half day"
@@ -158,6 +159,7 @@ Example (only when requested):
 }
 
 ⚠️ IMPORTANT: Leave images, quotes, and sourceLinks as EMPTY ARRAYS for now!
+⚠️ PHOTO QUERY: Always include a "photoQuery" field with specific search terms for finding relevant photos (e.g., "Tokyo ramen restaurant" or "Machu Picchu sunrise"). Combine destination + activity type for best results.
 
 ⚠️ LOCATION HINT REQUIREMENT (for map integration):
 Every itinerary item MUST include a "locationHint" field with specific location information.

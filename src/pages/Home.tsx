@@ -5,6 +5,7 @@ import { Chat } from '../components/Chat';
 import { ItineraryView } from '../components/ItineraryView';
 import { MapView } from '../components/MapView';
 import { getConversationEngine } from '../services/conversationEngine';
+import { getTripCoverPhoto } from '../services/photoApi';
 import type { ItineraryItem, QuickReply } from '../types';
 
 export default function Home() {
@@ -39,7 +40,7 @@ export default function Home() {
 
   const [error, setError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [selectedDayIndex, _setSelectedDayIndex] = useState<number | null>(null);
   const [showMap, setShowMap] = useState(true);
   const [activeTab, setActiveTab] = useState<'chat' | 'itinerary' | 'map'>('chat');
 
@@ -157,6 +158,16 @@ export default function Home() {
       if (response.trip) {
         setTrip(response.trip);
         setConversationState('ready');
+
+        // Auto-fetch cover photo (no database write needed)
+        getTripCoverPhoto(response.trip.destination)
+          .then(photo => {
+            if (photo) {
+              // Store photo data directly in trip object
+              updateTrip({ ...response.trip, coverPhotoUrl: photo.urls.regular, coverPhotoAttribution: photo.attribution });
+            }
+          })
+          .catch(error => console.error('Failed to fetch cover photo:', error));
       } else if (response.tripUpdate) {
         updateTrip(response.tripUpdate);
       }

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { SuggestionCard as SuggestionCardType } from '../types';
+import { searchPhotos, type Photo } from '../services/photoApi';
 
 interface SuggestionCardProps {
   suggestion: SuggestionCardType;
@@ -18,6 +19,25 @@ export function SuggestionCard({
     suggestion.defaultDayIndex ?? 0
   );
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
+  // Fetch photos if photoQuery is provided
+  useEffect(() => {
+    const fetchPhotos = async () => {
+      if (!suggestion.photoQuery) return;
+
+      try {
+        const results = await searchPhotos(suggestion.photoQuery, {
+          limit: 3, // Get up to 3 photos
+        });
+        setPhotos(results);
+      } catch (error) {
+        console.error('Failed to fetch photos for suggestion:', error);
+      }
+    };
+
+    fetchPhotos();
+  }, [suggestion.photoQuery]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 my-4 border border-gray-200">
@@ -26,8 +46,44 @@ export function SuggestionCard({
         {suggestion.title}
       </h3>
 
-      {/* Images */}
-      {suggestion.images.length > 0 && (
+      {/* Images from photoQuery */}
+      {photos.length > 0 && (
+        <div className="space-y-2 mb-4">
+          <div className="flex gap-2 overflow-x-auto">
+            {photos.map((photo, idx) => (
+              <div key={photo.id} className="flex-shrink-0">
+                <button
+                  onClick={() => setExpandedImage(photo.urls.regular)}
+                  className="w-32 h-32 rounded-lg overflow-hidden hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label={`View photo ${idx + 1} of ${suggestion.title}`}
+                >
+                  <img
+                    src={photo.urls.small}
+                    alt={suggestion.title}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+                {idx === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Photo by{' '}
+                    <a
+                      href={photo.attribution.photographerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {photo.attribution.photographerName}
+                    </a>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fallback: Images from legacy images array */}
+      {photos.length === 0 && suggestion.images.length > 0 && (
         <div className="flex gap-2 mb-4 overflow-x-auto">
           {suggestion.images.map((image, idx) => (
             <button
