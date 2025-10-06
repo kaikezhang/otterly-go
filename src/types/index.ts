@@ -5,7 +5,11 @@ export interface User {
   email: string;
   name: string;
   picture?: string;
-  subscriptionTier: 'free' | 'premium';
+  subscriptionTier: 'free' | 'pro' | 'team';
+  // Subscription fields (Milestone 4.1)
+  subscriptionStatus?: string | null;
+  subscriptionPeriodEnd?: string | null;
+  tripCount?: number;
   // User preferences (Milestone 2.3)
   customName?: string | null;
   customPicture?: string | null;

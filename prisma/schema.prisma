@@ -21,7 +21,14 @@ model User {
   googleId         String?  @unique @map("google_id") // Google OAuth user ID
   name             String?  // Display name from Google (or custom override)
   picture          String?  // Profile picture URL from Google (or custom override)
-  subscriptionTier String   @default("free") @map("subscription_tier")
+  subscriptionTier String   @default("free") @map("subscription_tier") // 'free' | 'pro' | 'team'
+
+  // Stripe subscription fields (Milestone 4.1)
+  stripeCustomerId      String?   @unique @map("stripe_customer_id") // Stripe customer ID
+  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id") // Stripe subscription ID
+  subscriptionStatus    String?   @map("subscription_status") // 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
+  subscriptionPeriodEnd DateTime? @map("subscription_period_end") // When current period ends
+  tripCount             Int       @default(0) @map("trip_count") // Track usage for free tier limits
 
   // User preferences (Milestone 2.3)
   customName       String?  @map("custom_name") // User-customized name (overrides Google name)

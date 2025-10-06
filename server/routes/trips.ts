@@ -13,6 +13,7 @@ import {
   type BulkOperationRequest,
 } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
+import { checkTripLimit, incrementTripCount, decrementTripCount } from '../middleware/usageLimits.js';
 import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
 
@@ -25,7 +26,7 @@ router.use(requireAuth);
  * POST /api/trips
  * Create a new trip
  */
-router.post('/', validateRequest(createTripSchema), async (req: Request, res: Response) => {
+router.post('/', checkTripLimit, validateRequest(createTripSchema), async (req: Request, res: Response) => {
   try {
     const body = req.body as CreateTripRequest;
 
@@ -55,6 +56,9 @@ router.post('/', validateRequest(createTripSchema), async (req: Request, res: Re
         },
       });
     }
+
+    // Increment trip count for usage tracking
+    await incrementTripCount(req.userId);
 
     res.status(201).json({
       id: trip.id,
@@ -429,6 +433,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
     await prisma.trip.delete({
       where: { id },
     });
+
+    // Decrement trip count for usage tracking
+    await decrementTripCount(trip.userId);
 
     res.status(204).send();
   } catch (error) {
