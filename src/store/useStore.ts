@@ -348,7 +348,7 @@ export const useStore = create<StoreState>()(
         const state = get();
         if (!state.trip || !state.user) return; // Require authenticated user
 
-        set({ isSyncing: true });
+        set({ isSyncing: true, hasUnsavedChanges: true });
 
         try {
           if (state.currentTripId) {
@@ -357,8 +357,13 @@ export const useStore = create<StoreState>()(
           } else {
             // Create new trip (no userId needed - backend uses authenticated user)
             const response = await createTrip(state.trip, state.messages);
-            set({ currentTripId: response.id });
+            // Update both currentTripId and trip.id with the database ID
+            set({
+              currentTripId: response.id,
+              trip: { ...state.trip, id: response.id }
+            });
           }
+          set({ hasUnsavedChanges: false });
         } catch (error) {
           console.error('Failed to save trip to database:', error);
           // Don't throw - continue with local storage

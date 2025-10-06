@@ -12,6 +12,7 @@ import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
 import mapRouter from './routes/map.js';
 import photosRouter from './routes/photos.js';
+import shareRouter from './routes/share.js';
 import { configurePassport } from './config/passport.js';
 
 // Get the directory name of the current module
@@ -66,6 +67,7 @@ app.use('/api/trips', tripsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/photos', photosRouter);
+app.use('/api/share', shareRouter); // Public share links (no auth required)
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

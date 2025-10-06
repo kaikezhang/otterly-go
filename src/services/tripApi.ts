@@ -26,6 +26,20 @@ export interface TripListResponse {
   };
 }
 
+export interface ShareLinkResponse {
+  shareToken: string;
+  shareUrl: string;
+}
+
+export interface SharedTripResponse extends TripResponse {
+  isShared: true;
+  owner: {
+    name: string;
+    picture?: string;
+  };
+  viewCount: number;
+}
+
 /**
  * Create a new trip in the database
  */
@@ -140,4 +154,50 @@ export async function deleteTrip(tripId: string): Promise<void> {
     const error = await response.json().catch(() => ({ error: 'Failed to delete trip' }));
     throw new Error(error.error || 'Failed to delete trip');
   }
+}
+
+/**
+ * Generate or retrieve a shareable link for a trip
+ */
+export async function generateShareLink(tripId: string): Promise<ShareLinkResponse> {
+  const response = await fetch(`${API_URL}/api/trips/${tripId}/share`, {
+    method: 'POST',
+    credentials: 'include', // Include auth cookies
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to generate share link' }));
+    throw new Error(error.error || 'Failed to generate share link');
+  }
+
+  return response.json();
+}
+
+/**
+ * Revoke a share link for a trip
+ */
+export async function revokeShareLink(tripId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/trips/${tripId}/share`, {
+    method: 'DELETE',
+    credentials: 'include', // Include auth cookies
+  });
+
+  if (!response.ok && response.status !== 204) {
+    const error = await response.json().catch(() => ({ error: 'Failed to revoke share link' }));
+    throw new Error(error.error || 'Failed to revoke share link');
+  }
+}
+
+/**
+ * Get a shared trip by its public share token (no auth required)
+ */
+export async function getSharedTrip(shareToken: string): Promise<SharedTripResponse> {
+  const response = await fetch(`${API_URL}/api/share/${shareToken}`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch shared trip' }));
+    throw new Error(error.error || 'Failed to fetch shared trip');
+  }
+
+  return response.json();
 }
