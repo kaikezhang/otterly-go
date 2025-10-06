@@ -48,11 +48,13 @@ export interface Day {
   items: ItineraryItem[];
 }
 
+export type TripStatus = 'draft' | 'planning' | 'upcoming' | 'active' | 'completed' | 'archived';
+
 export interface Trip {
   id: string;
   destination: string;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
+  startDate: string | null; // ISO date string, nullable for draft trips
+  endDate: string | null; // ISO date string, nullable for draft trips
   pace: TravelPace;
   interests: string[];
   mustSee: string[];
@@ -64,6 +66,17 @@ export interface Trip {
     photographerUrl: string;
     sourceUrl: string;
   };
+  // Trip management fields (Milestone 3.5)
+  status?: TripStatus;
+  tags?: string[];
+  displayOrder?: number;
+  lastViewedAt?: string; // ISO date string
+  archivedAt?: string | null; // ISO date string
+  // Metadata
+  userId?: string;
+  title?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Quote {
@@ -116,4 +129,22 @@ export interface AppState {
   messages: ChatMessage[];
   conversationState: ConversationState;
   isLoading: boolean;
+}
+
+// Trip filtering and sorting (Milestone 3.5)
+export interface TripFilters {
+  search?: string;
+  status?: TripStatus | 'all' | 'past';
+  tags?: string[];
+  archived?: boolean;
+  sort?: 'recent' | 'oldest' | 'name' | 'startDate' | 'endDate';
+  order?: 'asc' | 'desc';
+}
+
+export interface TripStats {
+  total: number;
+  byStatus: Record<TripStatus, number>;
+  destinationsCount: number;
+  totalDays: number;
+  activitiesCount: number;
 }

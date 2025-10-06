@@ -6,12 +6,15 @@ import {
   createTripSchema,
   updateTripSchema,
   tripListQuerySchema,
+  bulkOperationSchema,
   type CreateTripRequest,
   type UpdateTripRequest,
   type TripListQuery,
+  type BulkOperationRequest,
 } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
 
 const router = Router();
 
@@ -74,14 +77,76 @@ router.post('/', validateRequest(createTripSchema), async (req: Request, res: Re
 });
 
 /**
+ * GET /api/trips/stats
+ * Get statistics about user's trips (Milestone 3.5)
+ * IMPORTANT: This must come before /:id route
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get all non-archived trips
+    const trips = await prisma.trip.findMany({
+      where: {
+        userId: req.userId,
+        archivedAt: null,
+      },
+    });
+
+    // Calculate statistics
+    const stats = {
+      total: trips.length,
+      byStatus: {
+        draft: trips.filter(t => t.status === 'draft').length,
+        planning: trips.filter(t => t.status === 'planning').length,
+        upcoming: trips.filter(t => t.status === 'upcoming').length,
+        active: trips.filter(t => t.status === 'active').length,
+        completed: trips.filter(t => t.status === 'completed').length,
+        archived: 0, // Exclude archived from this view
+      },
+      destinationsCount: new Set(trips.map(t => t.destination)).size,
+      totalDays: trips.reduce((sum, trip) => {
+        if (trip.startDate && trip.endDate) {
+          const days = Math.ceil(
+            (trip.endDate.getTime() - trip.startDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          return sum + days;
+        }
+        return sum;
+      }, 0),
+      activitiesCount: trips.reduce((sum, trip) => {
+        const tripData = trip.dataJson as any;
+        if (tripData && tripData.days && Array.isArray(tripData.days)) {
+          return sum + tripData.days.reduce((daySum: number, day: any) => {
+            return daySum + (day.items?.length || 0);
+          }, 0);
+        }
+        return sum;
+      }, 0),
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching trip stats:', error);
+    res.status(500).json({
+      error: 'Failed to fetch trip statistics',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * GET /api/trips
- * List trips for a user with pagination
+ * List trips for a user with pagination, filtering, search, and sorting (Milestone 3.5)
  */
 router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Response) => {
   try {
     const query = req.query as unknown as TripListQuery;
     const page = query.page || 1;
-    const limit = Math.min(query.limit || 10, 100); // Max 100 per page
+    const limit = Math.min(query.limit || 20, 100); // Max 100 per page, default 20
     const skip = (page - 1) * limit;
 
     // req.userId is set by requireAuth middleware
@@ -89,15 +154,76 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    // Build where clause for filtering
+    const where: Prisma.TripWhereInput = {
+      userId: req.userId,
+    };
+
+    // Filter by archived status
+    if (query.archived !== undefined) {
+      where.archivedAt = query.archived ? { not: null } : null;
+    } else {
+      // By default, hide archived trips unless explicitly requested
+      where.archivedAt = null;
+    }
+
+    // Filter by trip status
+    if (query.status && query.status !== 'all') {
+      if (query.status === 'past') {
+        // Past trips = completed or archived
+        where.OR = [
+          { status: 'completed' },
+          { status: 'archived' },
+        ];
+      } else {
+        where.status = query.status;
+      }
+    }
+
+    // Filter by tags
+    if (query.tags && query.tags.length > 0) {
+      where.tags = {
+        hasSome: query.tags,
+      };
+    }
+
+    // Search across title and destination
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { destination: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Build orderBy clause for sorting
+    let orderBy: Prisma.TripOrderByWithRelationInput = { createdAt: 'desc' }; // Default sort
+    if (query.sort) {
+      switch (query.sort) {
+        case 'recent':
+          orderBy = { lastViewedAt: query.order || 'desc' };
+          break;
+        case 'oldest':
+          orderBy = { createdAt: query.order || 'asc' };
+          break;
+        case 'name':
+          orderBy = { title: query.order || 'asc' };
+          break;
+        case 'startDate':
+          orderBy = { startDate: query.order || 'desc' };
+          break;
+        case 'endDate':
+          orderBy = { endDate: query.order || 'desc' };
+          break;
+      }
+    }
+
     // Get total count
-    const totalCount = await prisma.trip.count({
-      where: { userId: req.userId },
-    });
+    const totalCount = await prisma.trip.count({ where });
 
     // Get paginated trips
     const trips = await prisma.trip.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy,
       skip,
       take: limit,
       include: {
@@ -116,10 +242,14 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
         userId: trip.userId,
         title: trip.title,
         destination: trip.destination,
-        startDate: trip.startDate.toISOString(),
-        endDate: trip.endDate.toISOString(),
+        startDate: trip.startDate?.toISOString() || null,
+        endDate: trip.endDate?.toISOString() || null,
         tripData: trip.dataJson,
         messages: trip.conversations[0]?.messagesJson || [],
+        status: trip.status,
+        tags: trip.tags,
+        lastViewedAt: trip.lastViewedAt.toISOString(),
+        archivedAt: trip.archivedAt?.toISOString() || null,
         createdAt: trip.createdAt.toISOString(),
         updatedAt: trip.updatedAt.toISOString(),
       })),
@@ -395,6 +525,158 @@ router.delete('/:id/share', async (req: Request, res: Response) => {
     console.error('Error revoking share link:', error);
     res.status(500).json({
       error: 'Failed to revoke share link',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/trips/bulk
+ * Perform bulk operations on multiple trips (Milestone 3.5)
+ * IMPORTANT: This must come before /:id route
+ */
+router.post('/bulk', validateRequest(bulkOperationSchema), async (req: Request, res: Response) => {
+  try {
+    const body = req.body as BulkOperationRequest;
+
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Verify all trips belong to the user
+    const trips = await prisma.trip.findMany({
+      where: {
+        id: { in: body.tripIds },
+        userId: req.userId,
+      },
+    });
+
+    if (trips.length !== body.tripIds.length) {
+      return res.status(403).json({
+        error: 'Not authorized to modify one or more trips',
+      });
+    }
+
+    let result: any = {};
+
+    switch (body.operation) {
+      case 'archive':
+        // Archive trips
+        await prisma.trip.updateMany({
+          where: { id: { in: body.tripIds } },
+          data: {
+            status: 'archived',
+            archivedAt: new Date(),
+          },
+        });
+        result = { archived: body.tripIds.length };
+        break;
+
+      case 'delete':
+        // Delete trips (conversations will cascade)
+        await prisma.trip.deleteMany({
+          where: { id: { in: body.tripIds } },
+        });
+        result = { deleted: body.tripIds.length };
+        break;
+
+      case 'duplicate':
+        // Duplicate trips
+        const duplicatedTrips = [];
+        for (const tripId of body.tripIds) {
+          const original = trips.find(t => t.id === tripId);
+          if (original) {
+            const duplicate = await prisma.trip.create({
+              data: {
+                userId: original.userId,
+                title: `${original.title} (Copy)`,
+                destination: original.destination,
+                startDate: null, // Clear dates on duplicate
+                endDate: null,
+                dataJson: original.dataJson,
+                status: 'draft', // Reset to draft
+                tags: original.tags,
+              },
+            });
+            duplicatedTrips.push(duplicate.id);
+          }
+        }
+        result = { duplicated: duplicatedTrips.length, tripIds: duplicatedTrips };
+        break;
+    }
+
+    res.json({
+      success: true,
+      operation: body.operation,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Error performing bulk operation:', error);
+    res.status(500).json({
+      error: 'Failed to perform bulk operation',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/trips/:id/duplicate
+ * Duplicate a single trip (Milestone 3.5)
+ */
+router.post('/:id/duplicate', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // req.userId is set by requireAuth middleware
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Get original trip
+    const original = await prisma.trip.findUnique({
+      where: { id },
+    });
+
+    if (!original) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (original.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to duplicate this trip' });
+    }
+
+    // Create duplicate
+    const duplicate = await prisma.trip.create({
+      data: {
+        userId: original.userId,
+        title: `${original.title} (Copy)`,
+        destination: original.destination,
+        startDate: null, // Clear dates on duplicate
+        endDate: null,
+        dataJson: original.dataJson,
+        status: 'draft', // Reset to draft
+        tags: original.tags,
+      },
+    });
+
+    res.status(201).json({
+      id: duplicate.id,
+      userId: duplicate.userId,
+      title: duplicate.title,
+      destination: duplicate.destination,
+      startDate: null,
+      endDate: null,
+      tripData: duplicate.dataJson,
+      status: duplicate.status,
+      tags: duplicate.tags,
+      createdAt: duplicate.createdAt.toISOString(),
+      updatedAt: duplicate.updatedAt.toISOString(),
+    });
+  } catch (error) {
+    console.error('Error duplicating trip:', error);
+    res.status(500).json({
+      error: 'Failed to duplicate trip',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

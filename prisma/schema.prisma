@@ -45,8 +45,8 @@ model Trip {
   userId       String   @map("user_id")
   title        String
   destination  String
-  startDate    DateTime @map("start_date")
-  endDate      DateTime @map("end_date")
+  startDate    DateTime? @map("start_date") // Nullable for draft trips
+  endDate      DateTime? @map("end_date") // Nullable for draft trips
   dataJson     Json     @map("data_json") // Stores full trip object from frontend
   coverPhotoId String?  @map("cover_photo_id") // FK to PhotoLibrary for trip cover photo
 
@@ -55,6 +55,13 @@ model Trip {
   sharePassword    String?  @map("share_password") // Hashed password for protected shares (optional)
   shareExpiresAt   DateTime? @map("share_expires_at") // Optional expiration date
   shareViewCount   Int      @default(0) @map("share_view_count") // Track number of views
+
+  // Trip management fields (Milestone 3.5)
+  status        String   @default("draft") @map("status") // 'draft' | 'planning' | 'upcoming' | 'active' | 'completed' | 'archived'
+  tags          String[] @default([]) @map("tags") // User-defined tags for organization
+  displayOrder  Int?     @map("display_order") // Custom sort order for user
+  lastViewedAt  DateTime @default(now()) @map("last_viewed_at") // Last time user viewed this trip
+  archivedAt    DateTime? @map("archived_at") // When trip was archived (null if not archived)
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -66,6 +73,9 @@ model Trip {
   tripPhotos    TripPhoto[]
 
   @@index([userId])
+  @@index([userId, status]) // Fast filtering by user and status
+  @@index([startDate]) // Fast sorting by start date
+  @@index([lastViewedAt]) // Fast sorting by recent views
   @@index([coverPhotoId])
   @@index([publicShareToken])
   @@map("trips")
