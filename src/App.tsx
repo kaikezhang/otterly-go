@@ -8,6 +8,8 @@ import AuthCallback from './pages/AuthCallback';
 import Profile from './pages/Profile';
 import { SharedTrip } from './pages/SharedTrip';
 import AdminDashboard from './pages/AdminDashboard';
+import { NotFound } from './pages/NotFound';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,71 +84,76 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthChecker>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/share/:token" element={<SharedTrip />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthChecker>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/share/:token" element={<SharedTrip />} />
 
-          {/* Redirect root to dashboard */}
-          <Route
-            path="/"
-            element={<Navigate to="/dashboard" replace />}
-          />
+            {/* Redirect root to dashboard */}
+            <Route
+              path="/"
+              element={<Navigate to="/dashboard" replace />}
+            />
 
-          {/* Dashboard - list all trips */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* Dashboard - list all trips */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Create new trip */}
-          <Route
-            path="/trip/new"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+            {/* Create new trip */}
+            <Route
+              path="/trip/new"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* View/edit specific trip */}
-          <Route
-            path="/trip/:id"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+            {/* View/edit specific trip */}
+            <Route
+              path="/trip/:id"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* User profile */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            {/* User profile */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Admin dashboard */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
-          />
-        </Routes>
-      </AuthChecker>
-    </BrowserRouter>
+            {/* Admin dashboard */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+
+            {/* 404 - Catch all unmatched routes */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthChecker>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

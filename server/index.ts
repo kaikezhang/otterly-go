@@ -6,6 +6,7 @@ import passport from 'passport';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pinoHttp from 'pino-http';
 import chatRouter from './routes/chat.js';
 import healthRouter from './routes/health.js';
 import tripsRouter from './routes/trips.js';
@@ -18,6 +19,7 @@ import subscriptionsRouter from './routes/subscriptions.js';
 import webhooksRouter from './routes/webhooks.js';
 import adminRouter from './routes/admin.js';
 import { configurePassport } from './config/passport.js';
+import { logger } from './utils/logger.js';
 
 // Get the directory name of the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -25,26 +27,30 @@ const __dirname = path.dirname(__filename);
 
 // Load .env from project root (one level up from server/)
 const envPath = path.join(__dirname, '..', '.env');
-console.log('📂 Loading .env from:', envPath);
+logger.info({ envPath }, 'Loading environment variables');
 
 const dotenvResult = dotenv.config({
   path: envPath,
   override: true,  // Override any existing env vars
-  debug: true      // Enable debug logging
+  debug: false     // Disable console debug logging (we use structured logging now)
 });
 
 if (dotenvResult.error) {
-  console.error('❌ Error loading .env:', dotenvResult.error);
+  logger.error({ error: dotenvResult.error }, 'Failed to load .env file');
 } else {
-  console.log('✅ Loaded', Object.keys(dotenvResult.parsed || {}).length, 'environment variables');
+  logger.info(
+    { count: Object.keys(dotenvResult.parsed || {}).length },
+    'Environment variables loaded'
+  );
 }
 
-console.log('\n🔧 Environment check:');
-console.log('- GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing');
-console.log('- GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Missing');
-console.log('- JWT_SECRET:', process.env.JWT_SECRET ? '✓ Set' : '✗ Missing');
-console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || '✗ Using default');
-console.log();
+// Log environment configuration status
+logger.info({
+  googleClientId: !!process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+  jwtSecret: !!process.env.JWT_SECRET,
+  frontendUrl: process.env.FRONTEND_URL || 'default',
+}, 'Environment configuration check');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -118,6 +124,22 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(passport.initialize());
 
+// Request logging middleware
+app.use(pinoHttp({
+  logger,
+  autoLogging: {
+    ignore: (req) => req.url === '/health' || req.url?.startsWith('/health/'),
+  },
+  customLogLevel: (_req, res, err) => {
+    if (res.statusCode >= 500 || err) {
+      return 'error';
+    } else if (res.statusCode >= 400) {
+      return 'warn';
+    }
+    return 'info';
+  },
+}));
+
 // Health check routes
 app.use(healthRouter);
 
@@ -133,15 +155,30 @@ app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Error:', err);
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error(
+    {
+      err,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+    },
+    'Request error'
+  );
+
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 API server running on http://localhost:${PORT}`);
-  console.log(`📡 Accepting requests from ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
+  logger.info(
+    {
+      port: PORT,
+      clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+      nodeEnv: process.env.NODE_ENV || 'development',
+    },
+    'API server started'
+  );
 });
