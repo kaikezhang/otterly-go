@@ -20,8 +20,8 @@ export const createTripSchema = z.object({
   userId: z.string().min(1), // Temporary: will be replaced with auth in Milestone 2.1
   title: z.string().min(1).max(200),
   destination: z.string().min(1).max(200),
-  startDate: z.string().datetime(), // ISO 8601 datetime string
-  endDate: z.string().datetime(),
+  startDate: z.string().min(1), // ISO date string (e.g., "2025-11-01" or "2025-11-01T00:00:00Z")
+  endDate: z.string().min(1), // ISO date string
   tripData: z.any(), // Full Trip object from frontend
   messages: z.array(z.any()).optional(), // Conversation messages
 });
@@ -32,8 +32,8 @@ export type CreateTripRequest = z.infer<typeof createTripSchema>;
 export const updateTripSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   destination: z.string().min(1).max(200).optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().min(1).optional(), // ISO date string
+  endDate: z.string().min(1).optional(), // ISO date string
   tripData: z.any().optional(), // Updated Trip object
   messages: z.array(z.any()).optional(), // Updated conversation messages
 });
