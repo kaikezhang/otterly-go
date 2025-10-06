@@ -58,6 +58,38 @@ The app uses **PostgreSQL** with **Prisma ORM** for data persistence:
 - `trips` - Trip itineraries with JSON data (user_id, title, destination, dates, data_json)
 - `conversations` - Chat history for trips (trip_id, messages_json)
 
+### Map Integration Setup (Milestone 3.1)
+
+The app uses **Mapbox GL JS** for interactive map visualization:
+
+1. Sign up for a Mapbox account at https://www.mapbox.com/
+2. Get your access token from the Mapbox dashboard
+3. Add to `.env`:
+   ```
+   MAPBOX_ACCESS_TOKEN=pk.your-token-here
+   VITE_MAPBOX_ACCESS_TOKEN=pk.your-token-here
+   ```
+4. Restart the dev server
+
+**Features**:
+- Auto-geocoding of itinerary items (location name → coordinates)
+- Interactive map with color-coded day markers
+- Route polylines connecting activities chronologically
+- Distance/duration calculations for each day
+- Click markers to see activity details
+- Responsive 3-panel layout (Chat | Itinerary | Map)
+- Mobile: Tab-based navigation
+
+**Map API Endpoints**:
+- `GET /api/map/geocode` - Convert location names to coordinates (cached)
+- `POST /api/map/directions` - Get route polyline and distance/duration
+
+**Frontend Components**:
+- `src/components/MapView.tsx` - Main map component
+- `src/services/mapApi.ts` - API client for geocoding and directions
+
+**Auto-Geocoding**: When a trip is generated, the conversation engine automatically geocodes all activity titles using the Mapbox Geocoding API. Results are cached server-side to minimize API costs.
+
 ## Architecture Overview
 
 ### Data Flow Pattern (Updated in Milestone 1.3)

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Chat } from '../components/Chat';
 import { ItineraryView } from '../components/ItineraryView';
+import { MapView } from '../components/MapView';
 import { getConversationEngine } from '../services/conversationEngine';
 import type { ItineraryItem, QuickReply } from '../types';
 
@@ -38,6 +39,9 @@ export default function Home() {
 
   const [error, setError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [showMap, setShowMap] = useState(true);
+  const [activeTab, setActiveTab] = useState<'chat' | 'itinerary' | 'map'>('chat');
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -403,10 +407,54 @@ export default function Home() {
         </div>
       )}
 
+      {/* Mobile Tab Navigation (only on mobile when trip exists) */}
+      {trip && (
+        <div className="lg:hidden bg-white border-b border-gray-200 flex">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'chat'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            💬 Chat
+          </button>
+          <button
+            onClick={() => setActiveTab('itinerary')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'itinerary'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            📋 Itinerary
+          </button>
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'map'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            🗺️ Map
+          </button>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Desktop: 3-panel layout | Mobile: Tab-based */}
+
         {/* Chat Area */}
-        <div className={`${trip ? 'w-2/3' : 'w-full'} border-r border-gray-200`}>
+        <div className={`${
+          trip
+            ? 'lg:w-1/3 lg:block' // Desktop: always visible, 1/3 width
+            : 'w-full' // No trip: full width
+        } ${
+          trip && activeTab !== 'chat' ? 'hidden' : '' // Mobile: hide when other tabs active
+        } border-r border-gray-200`}>
           <Chat
             messages={messages}
             onSendMessage={handleSendMessage}
@@ -420,7 +468,9 @@ export default function Home() {
 
         {/* Itinerary View */}
         {trip && (
-          <div className="w-1/3 bg-white">
+          <div className={`lg:w-1/3 lg:block ${
+            activeTab !== 'itinerary' ? 'hidden' : 'w-full'
+          } bg-white border-r border-gray-200`}>
             <ItineraryView
               trip={trip}
               isEditMode={isEditMode}
@@ -432,6 +482,43 @@ export default function Home() {
               onMoveItemBetweenDays={moveItemBetweenDays}
             />
           </div>
+        )}
+
+        {/* Map View */}
+        {trip && showMap && (
+          <div className={`lg:w-1/3 lg:block ${
+            activeTab !== 'map' ? 'hidden' : 'w-full'
+          } bg-gray-100 relative`}>
+            <button
+              onClick={() => setShowMap(false)}
+              className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-lg p-2 hover:bg-gray-50 transition-colors"
+              title="Hide map"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <MapView
+              trip={trip}
+              selectedDayIndex={selectedDayIndex}
+            />
+          </div>
+        )}
+
+        {/* Show Map Button (when hidden, desktop only) */}
+        {trip && !showMap && (
+          <button
+            onClick={() => {
+              setShowMap(true);
+              setActiveTab('map');
+            }}
+            className="hidden lg:block fixed bottom-8 right-8 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors z-20"
+            title="Show map"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          </button>
         )}
       </div>
     </div>

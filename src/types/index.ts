@@ -33,6 +33,12 @@ export interface ItineraryItem {
   duration?: string;
   startTime?: string; // Format: "HH:MM" (24-hour)
   endTime?: string; // Format: "HH:MM" (24-hour)
+  locationHint?: string; // LLM-provided location (e.g., "Lima, Peru")
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string; // Full formatted address
+  };
 }
 
 export interface Day {
