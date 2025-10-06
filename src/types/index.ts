@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   picture?: string;
+  role?: 'user' | 'admin';
   subscriptionTier: 'free' | 'pro' | 'team';
   // Subscription fields (Milestone 4.1)
   subscriptionStatus?: string | null;

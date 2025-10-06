@@ -21,6 +21,7 @@ model User {
   googleId         String?  @unique @map("google_id") // Google OAuth user ID
   name             String?  // Display name from Google (or custom override)
   picture          String?  // Profile picture URL from Google (or custom override)
+  role             String   @default("user") @map("role") // 'user' | 'admin'
   subscriptionTier String   @default("free") @map("subscription_tier") // 'free' | 'pro' | 'team'
 
   // Stripe subscription fields (Milestone 4.1)
@@ -42,6 +43,7 @@ model User {
 
   // Relations
   trips            Trip[]
+  apiUsage         ApiUsage[]
 
   @@map("users")
 }
@@ -144,4 +146,26 @@ model TripPhoto {
   @@index([photoId])
   @@index([itemId])
   @@map("trip_photos")
+}
+
+// ApiUsage table - tracks OpenAI API usage per user (Milestone 4.2)
+model ApiUsage {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  tripId          String?  @map("trip_id") // Optional: which trip this usage is for
+  model           String   // e.g., 'gpt-3.5-turbo', 'gpt-4'
+  promptTokens    Int      @map("prompt_tokens")
+  completionTokens Int     @map("completion_tokens")
+  totalTokens     Int      @map("total_tokens")
+  estimatedCost   Float    @map("estimated_cost") // In USD cents (calculated based on model pricing)
+  endpoint        String   // e.g., '/api/chat'
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt]) // Fast queries for user usage over time
+  @@index([createdAt]) // Admin analytics by date
+  @@map("api_usage")
 }

@@ -80,6 +80,13 @@ export function Dashboard() {
     loadData();
   }, [loadData]);
 
+  // Auto-redirect new users with no trips to create their first trip (but not admins)
+  React.useEffect(() => {
+    if (!isLoading && trips.length === 0 && !search && !statusFilter && user?.role !== 'admin') {
+      navigate('/trip/new', { replace: true });
+    }
+  }, [isLoading, trips.length, search, statusFilter, user?.role, navigate]);
+
   // Pull-to-refresh handlers (mobile only)
   React.useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {

@@ -15,6 +15,7 @@ import photosRouter from './routes/photos.js';
 import shareRouter from './routes/share.js';
 import subscriptionsRouter from './routes/subscriptions.js';
 import webhooksRouter from './routes/webhooks.js';
+import adminRouter from './routes/admin.js';
 import { configurePassport } from './config/passport.js';
 
 // Get the directory name of the current module
@@ -75,6 +76,7 @@ app.use('/api/map', mapRouter);
 app.use('/api/photos', photosRouter);
 app.use('/api/share', shareRouter); // Public share links (no auth required)
 app.use('/api/subscriptions', subscriptionsRouter);
+app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Profile from './pages/Profile';
 import { SharedTrip } from './pages/SharedTrip';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,34 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Admin route wrapper (only for admin users)
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useStore((state) => state.user);
+  const isAuthLoading = useStore((state) => state.isAuthLoading);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600 mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check if user has admin role
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -103,6 +132,16 @@ function App() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
+            }
+          />
+
+          {/* Admin dashboard */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
             }
           />
         </Routes>
