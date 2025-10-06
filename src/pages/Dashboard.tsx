@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TripCard } from '../components/TripCard';
+import { SkeletonTripCard } from '../components/SkeletonTripCard';
 import { TripsFilterBar } from '../components/TripsFilterBar';
 import {
   listTripsWithFilters,
@@ -13,6 +14,7 @@ import {
 } from '../services/tripApi';
 import type { TripStatus } from '../types';
 import { useStore } from '../store/useStore';
+import toast, { Toaster } from 'react-hot-toast';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -97,62 +99,169 @@ export function Dashboard() {
   };
 
   const handleDuplicate = async (tripId: string) => {
+    // Show loading toast
+    const loadingToast = toast.loading('Duplicating trip...');
+
     try {
       const newTrip = await duplicateTrip(tripId);
-      await loadData(); // Refresh list
-      navigate(`/trip/${newTrip.id}`);
+
+      toast.dismiss(loadingToast);
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span>Trip duplicated successfully</span>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                navigate(`/trip/${newTrip.id}`);
+              }}
+              className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 underline"
+            >
+              View
+            </button>
+          </div>
+        ),
+        { duration: 4000 }
+      );
+
+      // Reload data to show new trip
+      await loadData();
     } catch (err) {
       console.error('Error duplicating trip:', err);
-      alert('Failed to duplicate trip');
+      toast.dismiss(loadingToast);
+      toast.error('Failed to duplicate trip');
     }
   };
 
   const handleArchive = async (tripId: string) => {
+    // Optimistic update: immediately remove from UI
+    const tripToArchive = trips.find((t) => t.id === tripId);
+    if (!tripToArchive) return;
+
+    setTrips((prev) => prev.filter((t) => t.id !== tripId));
+
+    // Show toast with undo
+    const toastId = toast.success(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <span>Trip archived</span>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              // Restore trip in UI
+              setTrips((prev) => [tripToArchive, ...prev]);
+              toast.success('Archive cancelled');
+            }}
+            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 underline"
+          >
+            Undo
+          </button>
+        </div>
+      ),
+      { duration: 5000 }
+    );
+
     try {
       await bulkOperateTrips('archive', [tripId]);
-      await loadData();
+      // Success - no need to reload, optimistic update already done
     } catch (err) {
       console.error('Error archiving trip:', err);
-      alert('Failed to archive trip');
+      toast.dismiss(toastId);
+      toast.error('Failed to archive trip');
+      // Restore trip in UI on error
+      setTrips((prev) => [tripToArchive, ...prev]);
     }
   };
 
   const handleDelete = async (tripId: string) => {
-    if (!confirm('Are you sure you want to delete this trip?')) return;
+    // Optimistic update: immediately remove from UI
+    const tripToDelete = trips.find((t) => t.id === tripId);
+    if (!tripToDelete) return;
+
+    setTrips((prev) => prev.filter((t) => t.id !== tripId));
+
+    // Show toast with undo
+    const toastId = toast.success(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <span>Trip deleted</span>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              // Restore trip in UI
+              setTrips((prev) => [tripToDelete, ...prev]);
+              toast.success('Delete cancelled');
+            }}
+            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 underline"
+          >
+            Undo
+          </button>
+        </div>
+      ),
+      { duration: 5000 }
+    );
 
     try {
       await bulkOperateTrips('delete', [tripId]);
-      await loadData();
+      // Success - no need to reload, optimistic update already done
     } catch (err) {
       console.error('Error deleting trip:', err);
-      alert('Failed to delete trip');
+      toast.dismiss(toastId);
+      toast.error('Failed to delete trip');
+      // Restore trip in UI on error
+      setTrips((prev) => [tripToDelete, ...prev]);
     }
   };
 
   const handleBulkArchive = async () => {
     if (selectedTrips.size === 0) return;
 
+    const selectedIds = Array.from(selectedTrips);
+    const tripsToArchive = trips.filter((t) => selectedIds.includes(t.id));
+
+    // Optimistic update
+    setTrips((prev) => prev.filter((t) => !selectedIds.includes(t.id)));
+    setSelectedTrips(new Set());
+
+    const count = selectedIds.length;
+    const toastId = toast.success(`${count} ${count === 1 ? 'trip' : 'trips'} archived`, {
+      duration: 4000,
+    });
+
     try {
-      await bulkOperateTrips('archive', Array.from(selectedTrips));
-      setSelectedTrips(new Set());
-      await loadData();
+      await bulkOperateTrips('archive', selectedIds);
     } catch (err) {
       console.error('Error archiving trips:', err);
-      alert('Failed to archive trips');
+      toast.dismiss(toastId);
+      toast.error('Failed to archive trips');
+      // Restore trips on error
+      setTrips((prev) => [...tripsToArchive, ...prev]);
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedTrips.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedTrips.size} trips?`)) return;
+
+    const selectedIds = Array.from(selectedTrips);
+    const tripsToDelete = trips.filter((t) => selectedIds.includes(t.id));
+
+    // Optimistic update
+    setTrips((prev) => prev.filter((t) => !selectedIds.includes(t.id)));
+    setSelectedTrips(new Set());
+
+    const count = selectedIds.length;
+    const toastId = toast.success(`${count} ${count === 1 ? 'trip' : 'trips'} deleted`, {
+      duration: 4000,
+    });
 
     try {
-      await bulkOperateTrips('delete', Array.from(selectedTrips));
-      setSelectedTrips(new Set());
-      await loadData();
+      await bulkOperateTrips('delete', selectedIds);
     } catch (err) {
       console.error('Error deleting trips:', err);
-      alert('Failed to delete trips');
+      toast.dismiss(toastId);
+      toast.error('Failed to delete trips');
+      // Restore trips on error
+      setTrips((prev) => [...tripsToDelete, ...prev]);
     }
   };
 
@@ -202,9 +311,11 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+    <>
+      <Toaster position="top-right" />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
@@ -351,10 +462,18 @@ export function Dashboard() {
           onBulkDelete={selectedTrips.size > 0 ? handleBulkDelete : undefined}
         />
 
-        {/* Loading state */}
+        {/* Loading state with skeleton cards */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-6'
+                : 'space-y-4 mt-6'
+            }
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonTripCard key={i} viewMode={viewMode} />
+            ))}
           </div>
         )}
 
@@ -430,6 +549,7 @@ export function Dashboard() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
