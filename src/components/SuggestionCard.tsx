@@ -20,8 +20,10 @@ export function SuggestionCard({
   );
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [isAdded, setIsAdded] = useState(false);
-  const [addedToDayIndex, setAddedToDayIndex] = useState<number | null>(null);
+
+  // Use persisted flags from suggestion prop
+  const isAdded = suggestion.isAdded ?? false;
+  const addedToDayIndex = suggestion.addedToDayIndex ?? null;
 
   // Fetch photos if photoQuery is provided
   useEffect(() => {
@@ -176,11 +178,7 @@ export function SuggestionCard({
                 ))}
               </select>
               <button
-                onClick={() => {
-                  setIsAdded(true);
-                  setAddedToDayIndex(selectedDayIndex);
-                  onAddToDay(selectedDayIndex);
-                }}
+                onClick={() => onAddToDay(selectedDayIndex)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
               >
                 Add to Day

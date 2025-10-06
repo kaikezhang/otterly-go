@@ -87,6 +87,8 @@ export interface SuggestionCard {
   itemType: ItemType;
   duration?: string;
   photoQuery?: string; // LLM-generated photo search query (Milestone 3.3)
+  isAdded?: boolean; // Track if this suggestion has been added to itinerary
+  addedToDayIndex?: number; // Which day it was added to
 }
 
 export interface QuickReply {

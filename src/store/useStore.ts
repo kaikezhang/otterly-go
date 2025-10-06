@@ -39,6 +39,7 @@ interface StoreState {
   // Trip actions
   setTrip: (trip: Trip | null) => void;
   addMessage: (message: ChatMessage) => void;
+  markSuggestionAdded: (suggestionId: string, dayIndex: number) => void;
   setConversationState: (state: ConversationState) => void;
   setIsLoading: (loading: boolean) => void;
   addItemToDay: (dayIndex: number, item: ItineraryItem) => void;
@@ -131,6 +132,22 @@ export const useStore = create<StoreState>()(
 
       addMessage: (message) =>
         set((state) => ({ messages: [...state.messages, message] })),
+
+      markSuggestionAdded: (suggestionId, dayIndex) =>
+        set((state) => ({
+          messages: state.messages.map((msg) =>
+            msg.suggestionCard?.id === suggestionId
+              ? {
+                  ...msg,
+                  suggestionCard: {
+                    ...msg.suggestionCard,
+                    isAdded: true,
+                    addedToDayIndex: dayIndex,
+                  },
+                }
+              : msg
+          ),
+        })),
 
       setConversationState: (conversationState) => set({ conversationState }),
 
