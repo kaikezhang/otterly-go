@@ -62,6 +62,8 @@ router.get(
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: 'localhost', // Allow cookie to work across localhost:3001 and localhost:5173
+        path: '/',
       });
 
       // Redirect to frontend
