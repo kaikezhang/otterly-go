@@ -99,6 +99,23 @@ export const bulkOperationSchema = z.object({
 
 export type BulkOperationRequest = z.infer<typeof bulkOperationSchema>;
 
+// Schema for user registration
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100),
+  name: z.string().min(1).max(100).optional(),
+});
+
+export type RegisterRequest = z.infer<typeof registerSchema>;
+
+// Schema for user login
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export type LoginRequest = z.infer<typeof loginSchema>;
+
 // Validation middleware factory
 export function validateRequest<T extends z.ZodType>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {

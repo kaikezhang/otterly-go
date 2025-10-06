@@ -46,7 +46,9 @@ interface StoreState {
 
   // Auth actions
   setUser: (user: User | null) => void;
-  login: () => void;
+  login: () => void; // Google OAuth login
+  loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   refreshAuth: () => Promise<void>;
@@ -125,6 +127,56 @@ export const useStore = create<StoreState>()(
       login: () => {
         // Redirect to backend Google OAuth endpoint
         window.location.href = `${API_URL}/api/auth/google`;
+      },
+
+      loginWithEmail: async (email: string, password: string) => {
+        try {
+          const response = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include cookies
+            body: JSON.stringify({ email, password }),
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            set({ user });
+            return { success: true };
+          } else {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Login failed' };
+          }
+        } catch (error) {
+          console.error('Login failed:', error);
+          return { success: false, error: 'Network error. Please try again.' };
+        }
+      },
+
+      register: async (email: string, password: string, name?: string) => {
+        try {
+          const response = await fetch(`${API_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include cookies
+            body: JSON.stringify({ email, password, name }),
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            set({ user });
+            return { success: true };
+          } else {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Registration failed' };
+          }
+        } catch (error) {
+          console.error('Registration failed:', error);
+          return { success: false, error: 'Network error. Please try again.' };
+        }
       },
 
       logout: async () => {

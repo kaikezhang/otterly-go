@@ -1,7 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import type { User } from '@prisma/client';
+import { validateRequest, registerSchema, loginSchema } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -76,6 +78,130 @@ router.get(
     }
   }
 );
+
+/**
+ * POST /api/auth/register
+ * Register a new user with email/password
+ */
+router.post('/register', validateRequest(registerSchema), async (req: Request, res: Response) => {
+  try {
+    const { email, password, name } = req.body;
+
+    // Import prisma (lazy to ensure db.ts is loaded)
+    const { prisma } = await import('../db.js');
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        name: name || null,
+        subscriptionTier: 'free',
+      },
+    });
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    // Set JWT as httpOnly cookie
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: 'localhost',
+      path: '/',
+    });
+
+    // Return user data
+    res.status(201).json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      subscriptionTier: user.subscriptionTier,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+/**
+ * POST /api/auth/login
+ * Login with email/password
+ */
+router.post('/login', validateRequest(loginSchema), async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    // Import prisma
+    const { prisma } = await import('../db.js');
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check if user has a password (might be Google-only user)
+    if (!user.passwordHash) {
+      return res.status(401).json({
+        error: 'This account uses Google sign-in. Please sign in with Google.'
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Generate JWT token
+    const token = generateToken(user);
+
+    // Set JWT as httpOnly cookie
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: 'localhost',
+      path: '/',
+    });
+
+    // Return user data
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      subscriptionTier: user.subscriptionTier,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Error logging in:', error);
+    res.status(500).json({ error: 'Failed to log in' });
+  }
+});
 
 /**
  * GET /api/auth/me
