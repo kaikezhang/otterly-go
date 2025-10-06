@@ -5,9 +5,10 @@ import type { User } from '@prisma/client';
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// Lazy getters to ensure .env is loaded before accessing
+const getJwtSecret = () => process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '7d';
+const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:5173';
 
 /**
  * Helper function to generate JWT token
@@ -21,7 +22,7 @@ function generateToken(user: User): string {
     subscriptionTier: user.subscriptionTier,
   };
 
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as SignOptions);
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiresIn() } as SignOptions);
 }
 
 /**
@@ -43,14 +44,14 @@ router.get(
   '/google/callback',
   passport.authenticate('google', {
     session: false, // We're using JWT, not sessions
-    failureRedirect: `${FRONTEND_URL}/login?error=auth_failed`,
+    failureRedirect: `${getFrontendUrl()}/login?error=auth_failed`,
   }),
   (req: Request, res: Response) => {
     try {
       const user = req.user as User;
 
       if (!user) {
-        return res.redirect(`${FRONTEND_URL}/login?error=no_user`);
+        return res.redirect(`${getFrontendUrl()}/login?error=no_user`);
       }
 
       // Generate JWT token
@@ -67,10 +68,10 @@ router.get(
       });
 
       // Redirect to frontend
-      res.redirect(`${FRONTEND_URL}/auth/callback?success=true`);
+      res.redirect(`${getFrontendUrl()}/auth/callback?success=true`);
     } catch (error) {
       console.error('Error in Google callback:', error);
-      res.redirect(`${FRONTEND_URL}/login?error=callback_failed`);
+      res.redirect(`${getFrontendUrl()}/login?error=callback_failed`);
     }
   }
 );
@@ -87,7 +88,7 @@ router.get('/me', (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     res.json({
       id: decoded.id,

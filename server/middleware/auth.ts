@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+// Function to get JWT_SECRET (loaded lazily to ensure .env is loaded first)
+const getJwtSecret = () => process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 
 // Extend Express Request to include user info
 declare global {
@@ -31,9 +32,9 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
     console.log('[AUTH] Token found, verifying...');
     console.log('[AUTH] Token preview:', token.substring(0, 20) + '...');
-    console.log('[AUTH] JWT_SECRET preview:', JWT_SECRET.substring(0, 10) + '...');
+    console.log('[AUTH] JWT_SECRET preview:', getJwtSecret().substring(0, 10) + '...');
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     console.log('[AUTH] Token verified successfully for user:', decoded.id);
 
@@ -65,7 +66,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
     const token = req.cookies.auth_token;
 
     if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const decoded = jwt.verify(token, getJwtSecret()) as any;
       req.userId = decoded.id;
       req.userEmail = decoded.email;
     }
