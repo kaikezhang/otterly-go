@@ -406,9 +406,21 @@ router.post(
         model,
         messages,
         temperature: 0.7,
+        response_format: { type: "json_object" }, // Enforce JSON responses
       });
 
       const assistantMessage = response.choices[0]?.message?.content || '';
+
+      // Debug: Log raw LLM response to check if it's generating all days
+      console.log('[DEBUG] Raw OpenAI response:', assistantMessage.substring(0, 500));
+      try {
+        const parsed = JSON.parse(assistantMessage);
+        if (parsed.type === 'itinerary' && parsed.trip?.days) {
+          console.log(`[DEBUG] LLM generated ${parsed.trip.days.length} days (expected based on dates)`);
+        }
+      } catch (e) {
+        // Ignore parse errors, just for debugging
+      }
 
       // Track API usage in database (Milestone 4.2)
       if (response.usage) {
