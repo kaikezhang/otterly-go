@@ -302,7 +302,7 @@ export function ItineraryView({
             return (
               <div
                 key={dayIndex}
-                className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
+                className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden day-container"
               >
                 {/* Day Header */}
                 <div className="flex items-stretch">
@@ -438,9 +438,17 @@ function SortableItineraryItem({
 }: SortableItineraryItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !isEditMode });
+
+  // Force animation to re-trigger when isChanged changes
+  useEffect(() => {
+    if (isChanged) {
+      setAnimationKey(prev => prev + 1);
+    }
+  }, [isChanged]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -459,7 +467,8 @@ function SortableItineraryItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`px-4 py-3 hover:bg-gray-50 transition-colors relative ${
+      key={`${item.id}-${animationKey}`}
+      className={`px-4 py-3 hover:bg-gray-50 transition-colors relative animate-slide-in ${
         !isFirst ? 'border-t border-gray-100' : ''
       } ${isChanged ? 'animate-highlight-glow' : ''}`}
       onMouseEnter={() => setShowActions(true)}
