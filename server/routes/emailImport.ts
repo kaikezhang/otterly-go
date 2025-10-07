@@ -472,11 +472,11 @@ router.get('/gmail/callback', async (req: Request, res: Response) => {
 
     // Redirect to frontend with success message
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/settings?gmail_connected=true&email=${encodeURIComponent(result.email)}`);
+    return res.redirect(`${frontendUrl}/email-import?gmail_connected=true&email=${encodeURIComponent(result.email)}`);
   } catch (error) {
     console.error('Gmail callback error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/settings?gmail_error=true`);
+    return res.redirect(`${frontendUrl}/email-import?gmail_error=true`);
   }
 });
 
@@ -661,11 +661,11 @@ router.get('/outlook/callback', async (req: Request, res: Response) => {
 
     // Redirect to frontend with success message
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/settings?outlook_connected=true&email=${encodeURIComponent(result.email)}`);
+    return res.redirect(`${frontendUrl}/email-import?outlook_connected=true&email=${encodeURIComponent(result.email)}`);
   } catch (error) {
     console.error('Outlook callback error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/settings?outlook_error=true`);
+    return res.redirect(`${frontendUrl}/email-import?outlook_error=true`);
   }
 });
 
