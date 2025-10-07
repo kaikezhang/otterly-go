@@ -61,7 +61,7 @@ export function scheduleTripReminders() {
               day: 'numeric',
             }),
             daysUntilTrip: 7,
-            viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+            viewTripUrl: `${frontendUrl}/trip/${trip.id}`,
             unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
           });
 
@@ -149,7 +149,7 @@ export function scheduleWeatherAlerts() {
               weatherCondition: condition,
               temperature: `${temp}°C`,
               description: description.charAt(0).toUpperCase() + description.slice(1),
-              viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+              viewTripUrl: `${frontendUrl}/trip/${trip.id}`,
               unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
             });
 
@@ -234,7 +234,7 @@ export function scheduleWeeklyDigest() {
               month: 'long',
               day: 'numeric',
             }),
-            url: `${frontendUrl}/trips/${trip.id}`,
+            url: `${frontendUrl}/trip/${trip.id}`,
           }));
 
           // Sample travel suggestions (in production, this could be personalized based on user's past trips)

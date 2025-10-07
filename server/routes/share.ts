@@ -86,7 +86,7 @@ router.get('/:token', async (req: Request, res: Response) => {
               tripTitle: trip.title,
               viewerCount: newCount,
               shareUrl: `${frontendUrl}/share/${token}`,
-              viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+              viewTripUrl: `${frontendUrl}/trip/${trip.id}`,
               unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
             });
 

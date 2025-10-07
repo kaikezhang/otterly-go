@@ -98,7 +98,7 @@ router.post('/', checkTripLimit, validateRequest(createTripSchema), async (req: 
               day: 'numeric'
             }),
             shareUrl: `${frontendUrl}/share/${shareToken}`,
-            viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+            viewTripUrl: `${frontendUrl}/trip/${trip.id}`,
             unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
           });
 

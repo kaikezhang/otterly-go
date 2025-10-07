@@ -14,6 +14,15 @@ export default function AuthCallback() {
       if (success === 'true') {
         // Check authentication status
         await checkAuth();
+
+        // Check if there's a saved return URL from sessionStorage
+        const savedReturnUrl = sessionStorage.getItem('returnUrl');
+        if (savedReturnUrl) {
+          sessionStorage.removeItem('returnUrl');
+          navigate(savedReturnUrl, { replace: true });
+          return;
+        }
+
         // Redirect based on user role
         // Note: We need to wait for the next render to get the user from store
         setTimeout(() => {
@@ -21,7 +30,7 @@ export default function AuthCallback() {
           if (currentUser?.role === 'admin') {
             navigate('/admin', { replace: true });
           } else {
-            navigate('/', { replace: true });
+            navigate('/dashboard', { replace: true });
           }
         }, 100);
       } else {

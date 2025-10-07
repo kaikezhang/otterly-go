@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { prisma } from '../prisma';
+import { prisma } from '../db.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
