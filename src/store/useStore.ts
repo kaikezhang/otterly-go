@@ -44,6 +44,10 @@ interface StoreState {
   historyIndex: number; // Current position in history (-1 means no history)
   hasUnsavedChanges: boolean;
 
+  // Itinerary change tracking (for highlighting new/modified items)
+  changedItemIds: Set<string>; // IDs of items that changed since last view
+  lastViewedItineraryTime: number | null; // Timestamp when user last viewed itinerary
+
   // Auth actions
   setUser: (user: User | null) => void;
   login: () => void; // Google OAuth login
@@ -90,6 +94,11 @@ interface StoreState {
   archiveTrip: (id: string) => Promise<void>;
   duplicateTrip: (id: string) => Promise<Trip>;
   invalidateTripsCache: () => void;
+
+  // Itinerary change tracking actions
+  markItineraryViewed: () => void;
+  markItemsAsChanged: (itemIds: string[]) => void;
+  clearChangedItems: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -120,6 +129,10 @@ export const useStore = create<StoreState>()(
       history: [],
       historyIndex: -1,
       hasUnsavedChanges: false,
+
+      // Itinerary change tracking
+      changedItemIds: new Set(),
+      lastViewedItineraryTime: null,
 
       // Auth actions
       setUser: (user) => set({ user }),
@@ -238,7 +251,15 @@ export const useStore = create<StoreState>()(
       },
 
       // Trip actions
-      setTrip: (trip) => set({ trip }),
+      setTrip: (trip) => {
+        if (trip) {
+          // When setting a new trip, mark all items as changed
+          const allItemIds = trip.days.flatMap(day => day.items.map(item => item.id));
+          set({ trip, changedItemIds: new Set(allItemIds) });
+        } else {
+          set({ trip, changedItemIds: new Set() });
+        }
+      },
 
       addMessage: (message) =>
         set((state) => ({ messages: [...state.messages, message] })),
@@ -303,10 +324,41 @@ export const useStore = create<StoreState>()(
         }),
 
       updateTrip: (updates) =>
-        set((state) => ({
-          trip: state.trip ? { ...state.trip, ...updates } : null,
-          hasUnsavedChanges: true,
-        })),
+        set((state) => {
+          if (!state.trip) return state;
+
+          const newTrip = { ...state.trip, ...updates };
+
+          // Detect changed items when days are updated
+          let newChangedItemIds = new Set(state.changedItemIds);
+
+          if (updates.days) {
+            // Collect all item IDs from the updated trip
+            const newItemIds = new Set(newTrip.days.flatMap(day => day.items.map(item => item.id)));
+            const oldItemIds = new Set(state.trip.days.flatMap(day => day.items.map(item => item.id)));
+
+            // Find new or modified items
+            newItemIds.forEach(id => {
+              if (!oldItemIds.has(id)) {
+                // New item
+                newChangedItemIds.add(id);
+              } else {
+                // Check if item was modified (compare by reference or content)
+                const oldItem = state.trip!.days.flatMap(d => d.items).find(item => item.id === id);
+                const newItem = newTrip.days.flatMap(d => d.items).find(item => item.id === id);
+                if (oldItem && newItem && JSON.stringify(oldItem) !== JSON.stringify(newItem)) {
+                  newChangedItemIds.add(id);
+                }
+              }
+            });
+          }
+
+          return {
+            trip: newTrip,
+            hasUnsavedChanges: true,
+            changedItemIds: newChangedItemIds,
+          };
+        }),
 
       // Edit mode actions
       toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
@@ -660,6 +712,26 @@ export const useStore = create<StoreState>()(
 
       invalidateTripsCache: () => {
         set({ tripsLoaded: false });
+      },
+
+      // Itinerary change tracking actions
+      markItineraryViewed: () => {
+        set({
+          changedItemIds: new Set(),
+          lastViewedItineraryTime: Date.now(),
+        });
+      },
+
+      markItemsAsChanged: (itemIds: string[]) => {
+        set((state) => {
+          const newChangedItemIds = new Set(state.changedItemIds);
+          itemIds.forEach(id => newChangedItemIds.add(id));
+          return { changedItemIds: newChangedItemIds };
+        });
+      },
+
+      clearChangedItems: () => {
+        set({ changedItemIds: new Set() });
       },
     }),
     {

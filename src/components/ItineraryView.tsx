@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   DndContext,
@@ -36,6 +36,8 @@ interface ItineraryViewProps {
   isSyncing?: boolean;
   currentTripId?: string | null;
   hideShareButton?: boolean;
+  changedItemIds?: Set<string>;
+  onItineraryViewed?: () => void;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -66,6 +68,7 @@ interface DayItemsListProps {
   onRemoveItem: (dayIndex: number, itemId: string) => void;
   onRequestReplace: (dayIndex: number, itemId: string) => void;
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
+  changedItemIds?: Set<string>;
 }
 
 function DayItemsList({
@@ -75,6 +78,7 @@ function DayItemsList({
   onRemoveItem,
   onRequestReplace,
   onUpdateItem,
+  changedItemIds,
 }: DayItemsListProps) {
   const itemIds = day.items.map((item) => item.id);
 
@@ -92,6 +96,7 @@ function DayItemsList({
           dayIndex={dayIndex}
           isEditMode={isEditMode}
           isFirst={itemIndex === 0}
+          isChanged={changedItemIds?.has(item.id) || false}
           onRemove={() => onRemoveItem(dayIndex, item.id)}
           onReplace={() => onRequestReplace(dayIndex, item.id)}
           onUpdate={
@@ -118,11 +123,25 @@ export function ItineraryView({
   isSyncing = false,
   currentTripId = null,
   hideShareButton = false,
+  changedItemIds,
+  onItineraryViewed,
 }: ItineraryViewProps) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
     new Set(trip.days.map((_, i) => i))
   );
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Mark itinerary as viewed when component mounts or becomes visible
+  useEffect(() => {
+    if (changedItemIds && changedItemIds.size > 0 && onItineraryViewed) {
+      // Wait for animation to complete before clearing highlights
+      const timer = setTimeout(() => {
+        onItineraryViewed();
+      }, 3000); // 3 seconds for animation to show
+
+      return () => clearTimeout(timer);
+    }
+  }, [onItineraryViewed]); // Only run once when component mounts
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -356,6 +375,7 @@ export function ItineraryView({
                         onRemoveItem={onRemoveItem}
                         onRequestReplace={onRequestReplace}
                         onUpdateItem={onUpdateItem}
+                        changedItemIds={changedItemIds}
                       />
                     )}
 
@@ -400,6 +420,7 @@ interface SortableItineraryItemProps {
   dayIndex: number;
   isEditMode: boolean;
   isFirst: boolean;
+  isChanged: boolean;
   onRemove: () => void;
   onReplace: () => void;
   onUpdate?: (updates: Partial<ItineraryItem>) => void;
@@ -410,6 +431,7 @@ function SortableItineraryItem({
   dayIndex: _dayIndex,
   isEditMode,
   isFirst,
+  isChanged,
   onRemove,
   onReplace,
   onUpdate,
@@ -439,7 +461,7 @@ function SortableItineraryItem({
       style={style}
       className={`px-4 py-3 hover:bg-gray-50 transition-colors relative ${
         !isFirst ? 'border-t border-gray-100' : ''
-      }`}
+      } ${isChanged ? 'animate-highlight-glow' : ''}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >

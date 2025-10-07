@@ -121,6 +121,7 @@ export interface ChatMessage {
   suggestionCard?: SuggestionCard;
   quickReplies?: QuickReply[];
   timestamp: number;
+  hasItineraryChanges?: boolean; // Track if this message contains itinerary changes
 }
 
 export type ConversationState =

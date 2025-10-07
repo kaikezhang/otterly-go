@@ -29,6 +29,7 @@ export default function Home() {
     hasUnsavedChanges,
     hasHydrated,
     currentTripId,
+    changedItemIds,
     setTrip,
     addMessage,
     markSuggestionAdded,
@@ -52,6 +53,7 @@ export default function Home() {
     archiveTrip,
     duplicateTrip: duplicateTripAction,
     deleteTrip,
+    markItineraryViewed,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -209,12 +211,16 @@ export default function Home() {
       }
 
       // Create assistant message
+      // Check if this response contains itinerary changes
+      const hasItineraryChanges = !!(response.trip || response.tripUpdate);
+
       const assistantMsg = {
         id: crypto.randomUUID(),
         role: 'assistant' as const,
         content: response.message,
         suggestionCard: response.suggestion,
         quickReplies: response.quickReplies,
+        hasItineraryChanges,
         timestamp: Date.now(),
       };
       addMessage(assistantMsg);
@@ -325,6 +331,12 @@ export default function Home() {
   const handleQuickReplyClick = (reply: QuickReply) => {
     // Send the quick reply text as a message
     handleSendMessage(reply.text);
+  };
+
+  const handleViewItinerary = () => {
+    // On mobile, switch to itinerary tab
+    setActiveTab('itinerary');
+    // On desktop, the itinerary is already visible, no action needed
   };
 
   const handleLogout = async () => {
@@ -677,6 +689,7 @@ export default function Home() {
             onAddSuggestionToDay={handleAddSuggestionToDay}
             onSkipSuggestion={handleSkipSuggestion}
             onQuickReplyClick={handleQuickReplyClick}
+            onViewItinerary={trip ? handleViewItinerary : undefined}
             isLoading={isLoading}
             maxDays={trip?.days.length || 0}
           />
@@ -703,6 +716,8 @@ export default function Home() {
               onDuplicateDay={duplicateDay}
               isSyncing={isSyncing}
               currentTripId={currentTripId}
+              changedItemIds={changedItemIds}
+              onItineraryViewed={markItineraryViewed}
             />
           </div>
         )}

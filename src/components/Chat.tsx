@@ -9,6 +9,7 @@ interface ChatProps {
   onAddSuggestionToDay: (suggestionId: string, dayIndex: number) => void;
   onSkipSuggestion: (suggestionId: string) => void;
   onQuickReplyClick: (reply: QuickReply) => void;
+  onViewItinerary?: () => void;
   isLoading: boolean;
   maxDays: number;
 }
@@ -19,6 +20,7 @@ export function Chat({
   onAddSuggestionToDay,
   onSkipSuggestion,
   onQuickReplyClick,
+  onViewItinerary,
   isLoading,
   maxDays,
 }: ChatProps) {
@@ -67,6 +69,19 @@ export function Chat({
               } rounded-lg px-4 py-3 shadow`}
             >
               <div className="whitespace-pre-wrap">{message.content}</div>
+
+              {/* Render View Changes button if message has itinerary changes */}
+              {message.role === 'assistant' && message.hasItineraryChanges && onViewItinerary && (
+                <button
+                  onClick={onViewItinerary}
+                  className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  View Changes
+                </button>
+              )}
 
               {/* Render suggestion card if present */}
               {message.suggestionCard && (
