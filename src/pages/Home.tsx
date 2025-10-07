@@ -213,6 +213,7 @@ export default function Home() {
       // Create assistant message
       // Check if this response contains itinerary changes
       const hasItineraryChanges = !!(response.trip || response.tripUpdate);
+      const isNewItinerary = !!response.trip; // True for new itinerary, false for updates
 
       const assistantMsg = {
         id: crypto.randomUUID(),
@@ -221,6 +222,7 @@ export default function Home() {
         suggestionCard: response.suggestion,
         quickReplies: response.quickReplies,
         hasItineraryChanges,
+        isNewItinerary,
         timestamp: Date.now(),
       };
       addMessage(assistantMsg);

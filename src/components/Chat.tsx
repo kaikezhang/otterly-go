@@ -70,17 +70,19 @@ export function Chat({
             >
               <div className="whitespace-pre-wrap">{message.content}</div>
 
-              {/* Render View Changes button if message has itinerary changes */}
+              {/* Render View Itinerary/Changes button if message has itinerary changes */}
               {message.role === 'assistant' && message.hasItineraryChanges && onViewItinerary && (
-                <button
-                  onClick={onViewItinerary}
-                  className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-md"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  View Changes
-                </button>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={onViewItinerary}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-md"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    {message.isNewItinerary ? 'View Itinerary' : 'View Changes'}
+                  </button>
+                </div>
               )}
 
               {/* Render suggestion card if present */}
