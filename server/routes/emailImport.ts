@@ -29,7 +29,7 @@ import {
   autoInsertBooking,
   detectConflicts,
 } from '../services/autoInsert.js';
-import pdfParse from 'pdf-parse';
+import * as pdfParse from 'pdf-parse';
 
 const router = express.Router();
 
