@@ -252,9 +252,60 @@ export const useStore = create<StoreState>()(
 
       // Trip actions
       setTrip: (trip) => {
-        // When setting a new trip, don't mark items as changed
-        // (changes will be tracked via updateTrip)
-        set({ trip, changedItemIds: new Set() });
+        if (!trip) {
+          set({ trip: null, changedItemIds: new Set() });
+          return;
+        }
+
+        const state = get();
+        const oldTrip = state.trip;
+
+        // If there's an existing trip, detect changes
+        if (oldTrip) {
+          const newChangedItemIds = new Set<string>();
+
+          // Build maps for efficient lookup
+          const oldItemsMap = new Map<string, ItineraryItem>();
+          oldTrip.days.forEach(day => {
+            day.items.forEach(item => {
+              oldItemsMap.set(item.id, item);
+            });
+          });
+
+          const newItemsMap = new Map<string, ItineraryItem>();
+          trip.days.forEach(day => {
+            day.items.forEach(item => {
+              newItemsMap.set(item.id, item);
+            });
+          });
+
+          // Find new or modified items
+          newItemsMap.forEach((newItem, id) => {
+            const oldItem = oldItemsMap.get(id);
+            if (!oldItem) {
+              // New item
+              newChangedItemIds.add(id);
+            } else {
+              // Check if item was modified by comparing key fields
+              if (
+                oldItem.title !== newItem.title ||
+                oldItem.description !== newItem.description ||
+                oldItem.type !== newItem.type ||
+                oldItem.duration !== newItem.duration ||
+                oldItem.startTime !== newItem.startTime ||
+                oldItem.endTime !== newItem.endTime ||
+                oldItem.notes !== newItem.notes
+              ) {
+                newChangedItemIds.add(id);
+              }
+            }
+          });
+
+          set({ trip, changedItemIds: newChangedItemIds });
+        } else {
+          // First time setting a trip, no changes to highlight
+          set({ trip, changedItemIds: new Set() });
+        }
       },
 
       addMessage: (message) =>
