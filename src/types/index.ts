@@ -106,6 +106,7 @@ export interface SuggestionCard {
   title: string;
   images: string[]; // URLs to images
   summary: string; // 2-3 sentence description
+  detailedDescription?: string; // Longer, more appealing description (1-2 paragraphs)
   quotes: Quote[]; // 1-2 quotes
   sourceLinks: SourceLink[]; // 1-3 source links
   defaultDayIndex?: number; // Suggested day to add to (0-based)

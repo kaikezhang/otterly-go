@@ -545,7 +545,7 @@ router.post(
       }
 
       // MULTI-PLATFORM CONTENT INTEGRATION (Xiaohongshu, Reddit, etc.)
-      // If user is asking for suggestions, also fetch content from social platforms
+      // Extract specific activities from social media posts
       let finalMessage = assistantMessage;
       const socialContentEnabled = process.env.ENABLE_SOCIAL_CONTENT === 'true' || process.env.ENABLE_XIAOHONGSHU === 'true';
 
@@ -560,65 +560,139 @@ router.post(
 
       if (shouldFetchSocialContent) {
         try {
-          console.log('[Social Content] Detected suggestion request, fetching multi-platform content');
+          console.log('[Social Content] Detected suggestion request, extracting activities from multi-platform content');
 
           // Extract destination and activity type from the suggestion or trip
           const destination = currentTrip.destination || 'travel';
           const suggestion = parsed?.suggestion;
-          const activityType = suggestion?.title || message; // Use suggestion title or user message
+          const rawRequest = suggestion?.title || message; // Use suggestion title or user message
           const itemType = suggestion?.itemType || 'experience';
           const defaultDayIndex = suggestion?.defaultDayIndex ?? 0;
 
-          // Fetch content from all platforms (Xiaohongshu, Reddit, etc.)
-          const socialContent = await aggregateContent({
-            query: `${destination} ${activityType}`,
-            destination,
-            activityType,
+          // Extract specific location from user request (e.g., "Cusco" from "activities in Cusco")
+          // Common patterns: "in [City]", "at [Place]", "[City] activities", etc.
+          let locationMatch = rawRequest.match(/(?:in|at|near|around)\s+([A-Z][a-zA-Z\s]+?)(?:\s|,|$)/i) ||
+                               rawRequest.match(/^([A-Z][a-zA-Z\s]+?)\s+(?:activities|things|places)/i);
+
+          let specificLocation = locationMatch?.[1]?.trim();
+
+          // If no location in request, try to get it from the day's location or items
+          if (!specificLocation && currentTrip?.days?.[defaultDayIndex]) {
+            const day = currentTrip.days[defaultDayIndex];
+
+            // First check if day has a location field
+            if (day.location) {
+              specificLocation = day.location;
+              console.log(`[Social Content] Using day location: ${specificLocation}`);
+            } else if (day.items && day.items.length > 0) {
+              // Otherwise, try to extract from first item's locationHint
+              const firstItemWithLocation = day.items.find((item: any) => item.locationHint);
+              if (firstItemWithLocation?.locationHint) {
+                // Extract city from "City, Country" format
+                const cityMatch = firstItemWithLocation.locationHint.match(/^([^,]+)/);
+                specificLocation = cityMatch?.[1]?.trim();
+                console.log(`[Social Content] Extracted location from item: ${specificLocation}`);
+              }
+            }
+          }
+
+          const searchLocation = specificLocation || destination;
+
+          console.log(`[Social Content] Searching for activities in: ${searchLocation} (specific: ${specificLocation || 'none detected'})`);
+
+          // Get existing activity titles to avoid duplicates
+          const existingActivities = currentTrip?.days
+            ?.flatMap((day: any) => day.items.map((item: any) => item.title.toLowerCase()))
+            || [];
+
+          // Fetch posts from all platforms (Xiaohongshu, Reddit, etc.)
+          const socialPosts = await aggregateContent({
+            query: `${searchLocation} travel activities`,
+            destination: searchLocation,
+            activityType: rawRequest,
             language: 'all', // Get content in all languages
-            limit: 5, // Get up to 5 suggestions total
+            limit: 10, // Get up to 10 posts (will extract 10-20 activities)
           });
 
-          if (socialContent.length > 0) {
-            console.log(`[Social Content] Found ${socialContent.length} suggestions from multiple platforms`);
+          if (socialPosts.length > 0) {
+            console.log(`[Social Content] Found ${socialPosts.length} posts, extracting activities...`);
 
-            // Convert aggregated content to suggestion cards
-            const socialSuggestions = socialContent.map((content) => ({
-              id: `${content.platform}-${content.platformPostId}`,
-              title: content.title,
-              images: content.images,
-              summary: content.summary || content.content.substring(0, 200),
-              quotes: [],
-              sourceLinks: [{ url: content.postUrl, label: `View on ${content.platform}` }],
-              itemType,
-              defaultDayIndex,
-              duration: 'half day',
-              photoQuery: content.title,
-              source: content.platform,
-              platformMeta: {
-                authorName: content.authorName,
-                authorAvatar: content.authorAvatar,
-                likes: content.likes,
-                comments: content.comments,
-                shares: content.shares,
-                platform: content.platform,
-                contentLang: content.contentLang,
-                engagementScore: content.engagementScore,
-              },
-            }));
+            // Extract and group activities from posts
+            const { extractAndGroupActivities } = await import('../services/content/activityExtractor.js');
+            const activities = await extractAndGroupActivities(
+              socialPosts,
+              searchLocation,
+              specificLocation,
+              existingActivities,
+              destination // Pass main destination to filter out wrong countries
+            );
 
-            // Return multiple suggestions from various platforms
-            const enhancedResponse = {
-              type: 'suggestions',
-              content: (parsed?.content || assistantMessage) + '\n\nHere are also recommendations from travelers on Xiaohongshu and Reddit:',
-              suggestions: suggestion
-                ? [suggestion, ...socialSuggestions] // Include original LLM suggestion if it exists
-                : socialSuggestions // Otherwise just show social suggestions
-            };
+            if (activities.length > 0) {
+              console.log(`[Social Content] Extracted ${activities.length} unique activities`);
 
-            finalMessage = JSON.stringify(enhancedResponse);
-            console.log(`[Social Content] Enhanced response with ${socialSuggestions.length} suggestions from multiple platforms`);
+              // Convert activities to suggestion cards
+              const activitySuggestions = activities.map((activity) => {
+                // Get the most popular source post for thumbnail
+                const topPost = activity.sourcePosts.sort((a, b) => b.likes - a.likes)[0];
+
+                // Determine if this is truly multi-platform (multiple different platforms)
+                const uniquePlatforms = new Set(activity.sourcePosts.map(p => p.platform));
+                const isMultiPlatform = uniquePlatforms.size > 1;
+
+                return {
+                  id: activity.id,
+                  title: activity.name,
+                  images: [], // No images from posts, will use photoQuery to fetch
+                  summary: activity.description,
+                  detailedDescription: activity.detailedDescription, // Longer, more appealing description
+                  quotes: activity.tips.map(tip => ({
+                    zh: '', // No Chinese content for activities
+                    en: tip
+                  })),
+                  sourceLinks: activity.sourcePosts.map(post => ({
+                    url: post.postUrl,
+                    label: `${post.platform} - ${post.authorName} (❤️ ${post.likes})`
+                  })),
+                  itemType,
+                  defaultDayIndex,
+                  duration: activity.duration || 'half day',
+                  photoQuery: activity.photoKeywords, // Use intelligent keywords for photo search
+                  source: isMultiPlatform ? 'multi-platform' : topPost.platform,
+                  platformMeta: {
+                    authorName: topPost.authorName,
+                    authorAvatar: topPost.authorAvatar,
+                    likes: activity.sourcePosts.reduce((sum, p) => sum + p.likes, 0),
+                    comments: activity.sourcePosts.reduce((sum, p) => sum + p.comments, 0),
+                    shares: 0,
+                    platform: activity.sourcePosts.length > 1
+                      ? `${activity.sourcePosts.length} sources`
+                      : topPost.platform,
+                    contentLang: 'en',
+                    engagementScore: 0,
+                    location: activity.location,
+                    bestTime: activity.bestTime,
+                  },
+                };
+              });
+
+              // Return multiple activity suggestions
+              const enhancedResponse = {
+                type: 'suggestions',
+                content: (parsed?.content || assistantMessage) +
+                  `\n\nI found ${activities.length} activities recommended by travelers:`,
+                suggestions: suggestion
+                  ? [suggestion, ...activitySuggestions] // Include original LLM suggestion if it exists
+                  : activitySuggestions, // Otherwise just show activity suggestions
+                quickReplies: parsed?.quickReplies // Preserve quick reply buttons from LLM
+              };
+
+              finalMessage = JSON.stringify(enhancedResponse);
+              console.log(`[Social Content] Enhanced response with ${activitySuggestions.length} activity suggestions`);
+            } else {
+              console.log('[Social Content] No activities extracted from posts');
+            }
           } else {
-            console.log('[Social Content] No content found, returning original suggestion');
+            console.log('[Social Content] No posts found, returning original suggestion');
           }
         } catch (error) {
           console.error('[Social Content] Integration error:', error);
