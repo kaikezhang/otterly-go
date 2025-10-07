@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   DndContext,
@@ -36,6 +36,8 @@ interface ItineraryViewProps {
   isSyncing?: boolean;
   currentTripId?: string | null;
   hideShareButton?: boolean;
+  changedItemIds?: Set<string>;
+  animationTrigger?: number;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -66,6 +68,8 @@ interface DayItemsListProps {
   onRemoveItem: (dayIndex: number, itemId: string) => void;
   onRequestReplace: (dayIndex: number, itemId: string) => void;
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
+  changedItemIds?: Set<string>;
+  animationTrigger?: number;
 }
 
 function DayItemsList({
@@ -75,6 +79,8 @@ function DayItemsList({
   onRemoveItem,
   onRequestReplace,
   onUpdateItem,
+  changedItemIds,
+  animationTrigger,
 }: DayItemsListProps) {
   const itemIds = day.items.map((item) => item.id);
 
@@ -92,6 +98,8 @@ function DayItemsList({
           dayIndex={dayIndex}
           isEditMode={isEditMode}
           isFirst={itemIndex === 0}
+          isChanged={changedItemIds?.has(item.id) || false}
+          animationTrigger={animationTrigger}
           onRemove={() => onRemoveItem(dayIndex, item.id)}
           onReplace={() => onRequestReplace(dayIndex, item.id)}
           onUpdate={
@@ -118,6 +126,8 @@ export function ItineraryView({
   isSyncing = false,
   currentTripId = null,
   hideShareButton = false,
+  changedItemIds,
+  animationTrigger,
 }: ItineraryViewProps) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
     new Set(trip.days.map((_, i) => i))
@@ -283,7 +293,7 @@ export function ItineraryView({
             return (
               <div
                 key={dayIndex}
-                className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden"
+                className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden day-container"
               >
                 {/* Day Header */}
                 <div className="flex items-stretch">
@@ -356,6 +366,8 @@ export function ItineraryView({
                         onRemoveItem={onRemoveItem}
                         onRequestReplace={onRequestReplace}
                         onUpdateItem={onUpdateItem}
+                        changedItemIds={changedItemIds}
+                        animationTrigger={animationTrigger}
                       />
                     )}
 
@@ -400,6 +412,8 @@ interface SortableItineraryItemProps {
   dayIndex: number;
   isEditMode: boolean;
   isFirst: boolean;
+  isChanged: boolean;
+  animationTrigger?: number;
   onRemove: () => void;
   onReplace: () => void;
   onUpdate?: (updates: Partial<ItineraryItem>) => void;
@@ -410,15 +424,25 @@ function SortableItineraryItem({
   dayIndex: _dayIndex,
   isEditMode,
   isFirst,
+  isChanged,
+  animationTrigger,
   onRemove,
   onReplace,
   onUpdate,
 }: SortableItineraryItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !isEditMode });
+
+  // Force animation to re-trigger when animationTrigger changes AND item is in changedItemIds
+  useEffect(() => {
+    if (isChanged && animationTrigger !== undefined) {
+      setAnimationKey(animationTrigger);
+    }
+  }, [isChanged, animationTrigger]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -437,9 +461,10 @@ function SortableItineraryItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`px-4 py-3 hover:bg-gray-50 transition-colors relative ${
+      key={`${item.id}-${animationKey}`}
+      className={`px-4 py-3 hover:bg-gray-50 transition-colors relative animate-slide-in ${
         !isFirst ? 'border-t border-gray-100' : ''
-      }`}
+      } ${isChanged ? 'animate-highlight-glow' : ''}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >

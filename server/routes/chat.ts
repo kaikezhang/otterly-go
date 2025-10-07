@@ -400,6 +400,17 @@ Step 5 - Starting point (as local guide):
   ]
 }
 
+Step 5.1 - Ending point:
+{
+  "type": "message",
+  "content": "Would you like to end this trip in the same city?",
+  "quickReplies": [
+    { "text": "Yes", "action": "confirm" },
+    { "text": "No", "action": "confirm" },
+    { "text": "Other city", "action": "custom" }
+  ]
+}
+
 Step 6 - Route suggestions (as local guide with reasoning):
 {
   "type": "message",
