@@ -287,7 +287,8 @@ router.get('/bookings', requireAuth, async (req: Request, res: Response) => {
     return res.json({ bookings });
   } catch (error) {
     console.error('Get bookings error:', error);
-    return res.status(500).json({ error: 'Failed to fetch bookings' });
+    // Return empty array instead of 500 when DB is down, so UI doesn't break
+    return res.json({ bookings: [], error: 'Database temporarily unavailable' });
   }
 });
 
@@ -531,71 +532,100 @@ router.post('/gmail/scan', requireAuth, async (req: Request, res: Response) => {
     // Scan Gmail inbox
     const emails = await scanGmailInbox(userId);
 
-    // Parse each email and save to database
-    const parsedBookings = [];
+    if (emails.length === 0) {
+      return res.json({
+        success: true,
+        scannedCount: 0,
+        parsedCount: 0,
+        bookings: [],
+      });
+    }
 
-    for (const email of emails) {
-      // Check if already processed (by message ID)
-      const existing = await prisma.parsedBooking.findFirst({
+    // Batch check for existing bookings by message ID
+    let existingMessageIds: string[] = [];
+    try {
+      const existing = await prisma.parsedBooking.findMany({
         where: {
           userId,
-          sourceMessageId: email.messageId,
+          sourceMessageId: { in: emails.map(e => e.messageId) },
         },
+        select: { sourceMessageId: true },
       });
+      existingMessageIds = existing.map(e => e.sourceMessageId!);
+    } catch (dbError) {
+      console.error('Failed to check existing bookings:', dbError);
+    }
 
-      if (existing) {
-        console.log(`Email ${email.messageId} already processed, skipping`);
-        continue;
-      }
+    // Filter and parse emails
+    const bookingsToCreate: any[] = [];
 
-      // Quick filter
-      if (!isLikelyBookingEmail(email.subject, email.from)) {
-        continue;
-      }
-
+    for (const email of emails) {
       try {
-        // Parse email content (returns array of bookings)
-        const bookingsFromEmail = await parseEmailContent(email.content, email.subject, email.from);
-
-        if (bookingsFromEmail.length === 0) {
-          console.log(`No valid bookings found in email ${email.messageId}, skipping`);
+        // Skip if already processed
+        if (existingMessageIds.includes(email.messageId)) {
           continue;
         }
 
-        // Save all bookings from this email to database
-        for (const parsed of bookingsFromEmail) {
-          const booking = await prisma.parsedBooking.create({
-            data: {
-              userId,
-              bookingType: parsed.bookingType,
-              title: parsed.title,
-              description: parsed.description,
-              confirmationNumber: parsed.confirmationNumber,
-              bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
-              startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
-              endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
-              location: parsed.location,
-              rawEmailContent: email.content,
-              emailSubject: email.subject,
-              senderEmail: email.from,
-              parsedDataJson: parsed.extractedData,
-              status: 'pending',
-              confidence: parsed.confidence,
-              source: 'gmail',
-              sourceMessageId: email.messageId,
-            },
-          });
+        // Quick filter
+        if (!isLikelyBookingEmail(email.subject, email.from)) {
+          continue;
+        }
 
-          parsedBookings.push({
-            id: booking.id,
-            bookingType: booking.bookingType,
-            title: booking.title,
-            startDateTime: booking.startDateTime,
-            confidence: booking.confidence,
+        // Parse email content with OpenAI
+        const bookingsFromEmail = await parseEmailContent(email.content, email.subject, email.from);
+
+        if (bookingsFromEmail.length === 0) {
+          continue;
+        }
+
+        // Prepare bookings for batch insert
+        for (const parsed of bookingsFromEmail) {
+          bookingsToCreate.push({
+            userId,
+            bookingType: parsed.bookingType,
+            title: parsed.title,
+            description: parsed.description,
+            confirmationNumber: parsed.confirmationNumber,
+            bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
+            startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
+            endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
+            location: parsed.location,
+            rawEmailContent: email.content,
+            emailSubject: email.subject,
+            senderEmail: email.from,
+            parsedDataJson: parsed.extractedData,
+            status: 'pending',
+            confidence: parsed.confidence,
+            source: 'gmail',
+            sourceMessageId: email.messageId,
           });
         }
       } catch (parseError) {
-        console.error(`Failed to parse email ${email.messageId}:`, parseError);
+        console.error('Failed to parse email:', parseError);
+      }
+    }
+
+    // Batch insert all bookings in a single transaction
+    const parsedBookings: any[] = [];
+
+    if (bookingsToCreate.length > 0) {
+      try {
+        const createdBookings = await prisma.$transaction(
+          bookingsToCreate.map(data =>
+            prisma.parsedBooking.create({ data })
+          )
+        );
+
+        parsedBookings.push(...createdBookings.map(booking => ({
+          id: booking.id,
+          bookingType: booking.bookingType,
+          title: booking.title,
+          startDateTime: booking.startDateTime,
+          confidence: booking.confidence,
+        })));
+      } catch (batchError) {
+        console.error('Batch insert failed:', batchError);
+        throw new Error(`Database batch insert failed: ${(batchError as Error).message}`);
       }
     }
 
@@ -606,8 +636,11 @@ router.post('/gmail/scan', requireAuth, async (req: Request, res: Response) => {
       bookings: parsedBookings,
     });
   } catch (error) {
-    console.error('Gmail scan error:', error);
-    return res.status(500).json({ error: 'Failed to scan Gmail inbox' });
+    console.error('Gmail inbox scan failed:', error);
+    return res.status(500).json({
+      error: 'Failed to scan Gmail inbox',
+      details: (error as Error).message
+    });
   }
 });
 

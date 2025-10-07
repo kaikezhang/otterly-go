@@ -150,14 +150,18 @@ export async function getAuthenticatedGmailClient(userId: string) {
   // Auto-refresh token if expired
   oauth2Client.on('tokens', async (tokens) => {
     if (tokens.access_token) {
-      await prisma.emailConnection.update({
-        where: { id: connection.id },
-        data: {
-          accessToken: encryptToken(tokens.access_token),
-          tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          updatedAt: new Date(),
-        },
-      });
+      try {
+        await prisma.emailConnection.update({
+          where: { id: connection.id },
+          data: {
+            accessToken: encryptToken(tokens.access_token),
+            tokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            updatedAt: new Date(),
+          },
+        });
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+      }
     }
   });
 
@@ -168,7 +172,7 @@ export async function getAuthenticatedGmailClient(userId: string) {
 /**
  * Scan Gmail inbox for booking emails
  */
-export async function scanGmailInbox(userId: string, maxResults: number = 20) {
+export async function scanGmailInbox(userId: string, maxResults: number = 1) {
   try {
     const gmail = await getAuthenticatedGmailClient(userId);
 
@@ -252,19 +256,23 @@ export async function scanGmailInbox(userId: string, maxResults: number = 20) {
     }
 
     // Update last synced timestamp
-    await prisma.emailConnection.updateMany({
-      where: {
-        userId,
-        provider: 'gmail',
-      },
-      data: {
-        lastSyncedAt: new Date(),
-      },
-    });
+    try {
+      await prisma.emailConnection.updateMany({
+        where: {
+          userId,
+          provider: 'gmail',
+        },
+        data: {
+          lastSyncedAt: new Date(),
+        },
+      });
+    } catch (updateError) {
+      console.error('Failed to update lastSyncedAt:', updateError);
+    }
 
     return bookingEmails;
   } catch (error) {
-    console.error('Gmail scan error:', error);
+    console.error('Gmail inbox scan failed:', error);
     throw error;
   }
 }
