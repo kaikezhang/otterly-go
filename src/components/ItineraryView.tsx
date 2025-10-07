@@ -131,7 +131,7 @@ export function ItineraryView({
   );
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Mark itinerary as viewed when component mounts or becomes visible
+  // Mark itinerary as viewed when component mounts or when changedItemIds changes
   useEffect(() => {
     if (changedItemIds && changedItemIds.size > 0 && onItineraryViewed) {
       // Wait for animation to complete before clearing highlights
@@ -141,7 +141,7 @@ export function ItineraryView({
 
       return () => clearTimeout(timer);
     }
-  }, [onItineraryViewed]); // Only run once when component mounts
+  }, [changedItemIds, onItineraryViewed]); // Re-run when changedItemIds changes
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

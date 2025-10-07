@@ -330,23 +330,41 @@ export const useStore = create<StoreState>()(
           const newTrip = { ...state.trip, ...updates };
 
           // Detect changed items when days are updated
-          let newChangedItemIds = new Set(state.changedItemIds);
+          const newChangedItemIds = new Set<string>();
 
           if (updates.days) {
-            // Collect all item IDs from the updated trip
-            const newItemIds = new Set(newTrip.days.flatMap(day => day.items.map(item => item.id)));
-            const oldItemIds = new Set(state.trip.days.flatMap(day => day.items.map(item => item.id)));
+            // Build maps for efficient lookup
+            const oldItemsMap = new Map<string, ItineraryItem>();
+            state.trip.days.forEach(day => {
+              day.items.forEach(item => {
+                oldItemsMap.set(item.id, item);
+              });
+            });
+
+            const newItemsMap = new Map<string, ItineraryItem>();
+            newTrip.days.forEach(day => {
+              day.items.forEach(item => {
+                newItemsMap.set(item.id, item);
+              });
+            });
 
             // Find new or modified items
-            newItemIds.forEach(id => {
-              if (!oldItemIds.has(id)) {
+            newItemsMap.forEach((newItem, id) => {
+              const oldItem = oldItemsMap.get(id);
+              if (!oldItem) {
                 // New item
                 newChangedItemIds.add(id);
               } else {
-                // Check if item was modified (compare by reference or content)
-                const oldItem = state.trip!.days.flatMap(d => d.items).find(item => item.id === id);
-                const newItem = newTrip.days.flatMap(d => d.items).find(item => item.id === id);
-                if (oldItem && newItem && JSON.stringify(oldItem) !== JSON.stringify(newItem)) {
+                // Check if item was modified by comparing key fields
+                if (
+                  oldItem.title !== newItem.title ||
+                  oldItem.description !== newItem.description ||
+                  oldItem.type !== newItem.type ||
+                  oldItem.duration !== newItem.duration ||
+                  oldItem.startTime !== newItem.startTime ||
+                  oldItem.endTime !== newItem.endTime ||
+                  oldItem.notes !== newItem.notes
+                ) {
                   newChangedItemIds.add(id);
                 }
               }
