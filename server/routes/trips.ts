@@ -16,6 +16,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { checkTripLimit, incrementTripCount, decrementTripCount } from '../middleware/usageLimits.js';
 import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
+import { sendEmail, canSendEmail, getEmailPreferences } from '../services/emailService.js';
+import { tripConfirmationEmail } from '../services/emailTemplates.js';
 
 const router = Router();
 
@@ -59,6 +61,62 @@ router.post('/', checkTripLimit, validateRequest(createTripSchema), async (req: 
 
     // Increment trip count for usage tracking
     await incrementTripCount(req.userId);
+
+    // Send trip confirmation email (async, don't wait)
+    const sendTripConfirmationEmail = async () => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: req.userId },
+        });
+
+        if (!user) return;
+
+        const canSend = await canSendEmail(user.id, 'trip_confirmation');
+        if (canSend) {
+          const preferences = await getEmailPreferences(user.id);
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+          // Generate share token for the trip
+          const shareToken = randomUUID();
+          await prisma.trip.update({
+            where: { id: trip.id },
+            data: { publicShareToken: shareToken },
+          });
+
+          const html = tripConfirmationEmail({
+            userName: user.name || 'there',
+            tripTitle: trip.title,
+            tripDestination: trip.destination,
+            tripStartDate: trip.startDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            tripEndDate: trip.endDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            shareUrl: `${frontendUrl}/share/${shareToken}`,
+            viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+            unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+          });
+
+          await sendEmail({
+            to: user.email,
+            subject: `Your trip to ${trip.destination} is ready! 🎒`,
+            html,
+            userId: user.id,
+            tripId: trip.id,
+            emailType: 'trip_confirmation',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send trip confirmation email:', error);
+        // Don't fail the trip creation if email fails
+      }
+    };
+    sendTripConfirmationEmail();
 
     res.status(201).json({
       id: trip.id,

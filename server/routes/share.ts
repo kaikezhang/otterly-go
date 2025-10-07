@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
+import { sendEmail, canSendEmail, getEmailPreferences } from '../services/emailService.js';
+import { sharedTripViewEmail } from '../services/emailTemplates.js';
 
 const router = Router();
 
@@ -55,10 +57,55 @@ router.get('/:token', async (req: Request, res: Response) => {
     }
 
     // Increment view count
-    await prisma.trip.update({
+    const updatedTrip = await prisma.trip.update({
       where: { id: trip.id },
       data: { shareViewCount: { increment: 1 } },
     });
+
+    // Send notification email to trip owner (async, don't wait)
+    // Only send on milestones: 1st view, 5th view, 10th view, 25th view, etc.
+    const newCount = updatedTrip.shareViewCount;
+    const shouldNotify = newCount === 1 || newCount === 5 || newCount === 10 || newCount === 25 || newCount % 50 === 0;
+
+    if (shouldNotify) {
+      const sendViewNotification = async () => {
+        try {
+          const owner = await prisma.user.findUnique({
+            where: { id: trip.userId },
+          });
+
+          if (!owner) return;
+
+          const canSend = await canSendEmail(owner.id, 'shared_trip');
+          if (canSend) {
+            const preferences = await getEmailPreferences(owner.id);
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+            const html = sharedTripViewEmail({
+              userName: owner.name || 'there',
+              tripTitle: trip.title,
+              viewerCount: newCount,
+              shareUrl: `${frontendUrl}/share/${token}`,
+              viewTripUrl: `${frontendUrl}/trips/${trip.id}`,
+              unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+            });
+
+            await sendEmail({
+              to: owner.email,
+              subject: `Someone viewed your shared trip! 👀`,
+              html,
+              userId: owner.id,
+              tripId: trip.id,
+              emailType: 'shared_trip',
+            });
+          }
+        } catch (error) {
+          console.error('Failed to send shared trip notification:', error);
+          // Don't fail the request if email fails
+        }
+      };
+      sendViewNotification();
+    }
 
     // Return trip data without sensitive user info
     res.json({

@@ -1,6 +1,8 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { prisma } from '../db.js';
+import { sendEmail, canSendEmail, getEmailPreferences } from '../services/emailService.js';
+import { welcomeEmail } from '../services/emailTemplates.js';
 
 // Configure Google OAuth Strategy
 export function configurePassport() {
@@ -63,6 +65,33 @@ export function configurePassport() {
                   subscriptionTier: 'free',
                 },
               });
+
+              // Send welcome email (async, don't wait)
+              const sendWelcomeEmail = async () => {
+                try {
+                  const canSend = await canSendEmail(user!.id, 'welcome');
+                  if (canSend) {
+                    const preferences = await getEmailPreferences(user!.id);
+                    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+                    const html = welcomeEmail({
+                      userName: user!.name || 'there',
+                      loginUrl: `${frontendUrl}/dashboard`,
+                      unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+                    });
+                    await sendEmail({
+                      to: user!.email,
+                      subject: 'Welcome to OtterlyGo! 🎉',
+                      html,
+                      userId: user!.id,
+                      emailType: 'welcome',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to send welcome email:', error);
+                  // Don't fail the registration if email fails
+                }
+              };
+              sendWelcomeEmail();
             }
           } else {
             // Update user info from Google (in case it changed)
