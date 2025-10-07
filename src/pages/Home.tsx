@@ -304,6 +304,8 @@ export default function Home() {
 
   const handleRequestSuggestion = (dayIndex: number) => {
     const message = `Can you suggest an activity for Day ${dayIndex + 1}?`;
+    // Switch to chat tab on mobile for better UX
+    setActiveTab('chat');
     handleSendMessage(message);
   };
 
@@ -315,6 +317,8 @@ export default function Home() {
     const message = `Can you suggest a replacement for "${item.title}" on Day ${
       dayIndex + 1
     }?`;
+    // Switch to chat tab on mobile for better UX
+    setActiveTab('chat');
     handleSendMessage(message);
   };
 
