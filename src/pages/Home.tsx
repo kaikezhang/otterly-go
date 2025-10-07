@@ -12,7 +12,8 @@ import UsageWarning, { type UsageWarningData } from '../components/UsageWarning'
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
 import { getTrip } from '../services/tripApi';
-import type { ItineraryItem, QuickReply } from '../types';
+import { getActivityRecommendations } from '../services/activityApi';
+import type { ItineraryItem, QuickReply, SuggestionCard } from '../types';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -340,10 +341,84 @@ export default function Home() {
   };
 
   const handleRequestSuggestion = (dayIndex: number) => {
-    const message = `Can you suggest an activity for Day ${dayIndex + 1}?`;
-    // Switch to chat tab on mobile for better UX
-    setActiveTab('chat');
-    handleSendMessage(message);
+    // Use the new activity recommendations API for richer suggestions
+    handleRequestActivityRecommendations(dayIndex, 5);
+  };
+
+  /**
+   * Request activity recommendations using the dedicated activity API
+   * This provides richer, card-based suggestions from multiple sources
+   */
+  const handleRequestActivityRecommendations = async (dayIndex?: number, limit = 5) => {
+    if (!trip) return;
+
+    setIsLoading(true);
+    setError(null);
+    setActiveTab('chat'); // Switch to chat tab
+
+    try {
+      // Add loading message
+      const loadingMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: dayIndex !== undefined
+          ? `Looking for great activities for Day ${dayIndex + 1}...`
+          : 'Looking for activity recommendations...',
+        timestamp: Date.now(),
+      };
+      addMessage(loadingMsg);
+
+      // Get activity recommendations
+      const recommendations = await getActivityRecommendations({
+        trip,
+        dayIndex,
+        limit,
+        mode: 'basic', // Use basic mode for faster results
+      });
+
+      if (recommendations.length === 0) {
+        // No recommendations found
+        const noResultsMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: 'Sorry, I couldn\'t find any activity recommendations at the moment. Try asking me about specific types of activities!',
+          timestamp: Date.now(),
+        };
+        addMessage(noResultsMsg);
+      } else {
+        // Add introductory message
+        const introMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: `I found ${recommendations.length} activities recommended by travelers. Check them out below:`,
+          timestamp: Date.now(),
+        };
+        addMessage(introMsg);
+
+        // Add each recommendation as a separate message with suggestion card
+        recommendations.forEach((rec) => {
+          const suggestionMsg = {
+            id: crypto.randomUUID(),
+            role: 'assistant' as const,
+            content: '', // No additional content, just the card
+            suggestionCard: rec,
+            timestamp: Date.now(),
+          };
+          addMessage(suggestionMsg);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to get activity recommendations:', error);
+      const errorMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: 'Sorry, I encountered an error while fetching recommendations. Please try again.',
+        timestamp: Date.now(),
+      };
+      addMessage(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRequestReplace = (dayIndex: number, itemId: string) => {

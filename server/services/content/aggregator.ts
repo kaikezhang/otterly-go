@@ -7,6 +7,7 @@
 import type { ContentProvider, TravelContent, SearchOptions, Platform } from './base.js';
 import { XiaohongshuProvider } from './providers/xiaohongshu.js';
 import { RedditProvider } from './providers/reddit.js';
+import { AIAgentProvider } from './providers/aiAgent.js';
 import { prisma } from '../../db.js';
 import OpenAI from 'openai';
 
@@ -24,6 +25,10 @@ function getEnabledProviders(): ContentProvider[] {
     providers.push(new RedditProvider());
     console.log('[Aggregator] Reddit provider enabled');
   }
+
+  // AI Agent is always enabled as a fallback/supplement
+  providers.push(new AIAgentProvider());
+  console.log('[Aggregator] AI Agent provider enabled');
 
   // Future platforms
   // if (process.env.ENABLE_PLATFORM_TIKTOK === 'true') {

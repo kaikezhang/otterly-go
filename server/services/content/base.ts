@@ -3,7 +3,7 @@
  * Supports Xiaohongshu, Reddit, TikTok, Instagram, YouTube, etc.
  */
 
-export type Platform = 'xiaohongshu' | 'reddit' | 'tiktok' | 'instagram' | 'youtube';
+export type Platform = 'xiaohongshu' | 'reddit' | 'tiktok' | 'instagram' | 'youtube' | 'ai-agent';
 export type Language = 'en' | 'zh' | 'ja' | 'ko' | 'es' | 'fr' | 'de';
 
 /**

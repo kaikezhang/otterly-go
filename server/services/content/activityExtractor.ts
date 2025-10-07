@@ -49,15 +49,32 @@ export interface Activity {
     comments: number;
     contentLang: string;
   }>;
+  isAIGenerated?: boolean; // True if all sources are from AI agent
 }
 
 /**
- * Extract 1-2 specific activities from a social media post
+ * Extract 1-2 specific activities from a social media post or AI-generated content
  */
 export async function extractActivitiesFromPost(
   content: TravelContent,
   destination: string
 ): Promise<ExtractedActivity[]> {
+  // Handle AI-generated content directly (no extraction needed)
+  if (content.platform === 'ai-agent') {
+    const aiMeta = content.platformMeta as any;
+    return [{
+      activityName: content.title,
+      activityType: 'experience',
+      description: content.summary,
+      detailedDescription: aiMeta?.detailedDescription,
+      photoKeywords: aiMeta?.photoKeywords || `${content.title} ${destination}`,
+      location: content.location,
+      estimatedDuration: aiMeta?.duration,
+      bestTimeToVisit: aiMeta?.bestTime,
+      tips: aiMeta?.tips?.join('; '),
+    }];
+  }
+
   try {
     const prompt = `You are a travel activity extractor. Extract 1-2 SPECIFIC, ACTIONABLE activities from this ${content.platform} post about ${destination}.
 
@@ -198,11 +215,25 @@ export function groupActivities(
         }],
       };
 
+      // Add detailedDescription if present
+      if (activity.detailedDescription) {
+        newActivity.detailedDescription = activity.detailedDescription;
+      }
+
       activityGroups.set(normalizedName, newActivity);
     }
   }
 
-  return Array.from(activityGroups.values());
+  // Mark activities as AI-generated if all sources are from AI agent
+  const finalActivities = Array.from(activityGroups.values()).map((activity) => {
+    const allFromAI = activity.sourcePosts.every(post => post.platform === 'ai-agent');
+    return {
+      ...activity,
+      isAIGenerated: allFromAI,
+    };
+  });
+
+  return finalActivities;
 }
 
 /**

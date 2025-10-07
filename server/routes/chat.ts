@@ -403,7 +403,7 @@ Step 5 - Starting point (as local guide):
   ]
 }
 
-Step 5.1 - Ending point:
+Step 6 - Ending point:
 {
   "type": "message",
   "content": "Would you like to end this trip in the same city?",
@@ -414,7 +414,7 @@ Step 5.1 - Ending point:
   ]
 }
 
-Step 6 - Route suggestions (as local guide with reasoning):
+Step 7 - Route suggestions (as local guide with reasoning):
 {
   "type": "message",
   "content": "Great! Starting in Lima with 9 days gives you time to acclimatize. I'd recommend:\n\nRoute A: Lima (2d) → Cusco (2d) → Sacred Valley → Machu Picchu → back\nRoute B: Lima (1d) → Paracas/Nazca → Cusco (acclimatize) → Machu Picchu\n\nRoute A is better for first-timers. Which appeals to you?",
@@ -426,7 +426,7 @@ Step 6 - Route suggestions (as local guide with reasoning):
   ]
 }
 
-Step 7 - Generate skeleton itinerary
+Step 8 - Generate skeleton itinerary
 (Use type="itinerary" with trip object - no quickReplies needed for this type)
 ⚠️ CRITICAL: Generate dates in the FUTURE based on current date (${new Date().toISOString().split('T')[0]})
 

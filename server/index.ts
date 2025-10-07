@@ -22,6 +22,7 @@ import emailRouter from './routes/email.js';
 import emailImportRouter from './routes/emailImport.js';
 import xiaohongshuRouter from './routes/xiaohongshu.js';
 import contentRouter from './routes/content.js';
+import activitiesRouter from './routes/activities.js';
 import { configurePassport } from './config/passport.js';
 import { logger } from './utils/logger.js';
 import { initializeEmailJobs } from './jobs/emailJobs.js';
@@ -166,6 +167,7 @@ app.use('/api/email', emailRouter); // Email preferences and unsubscribe
 app.use('/api/email-import', emailImportRouter); // Email import and parsing (Milestone 5.1)
 app.use('/api/xiaohongshu', xiaohongshuRouter); // Xiaohongshu integration for travel inspiration (DEPRECATED - use /api/content)
 app.use('/api/content', contentRouter); // Unified content aggregation (Xiaohongshu, Reddit, etc.)
+app.use('/api/activities', activitiesRouter); // Activity recommendations based on itinerary
 app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware
