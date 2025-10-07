@@ -10,6 +10,7 @@ function PlatformBadge({ platform }: { platform: string }) {
     tiktok: { bg: 'bg-black', label: 'TikTok' },
     instagram: { bg: 'bg-pink-500', label: 'Instagram' },
     youtube: { bg: 'bg-red-600', label: 'YouTube' },
+    'ai-generated': { bg: 'bg-gradient-to-r from-purple-500 to-blue-500', label: '🤖 AI Generated' },
   };
 
   const badge = badges[platform] || { bg: 'bg-gray-500', label: platform };
@@ -29,6 +30,7 @@ function getPlatformBgClass(platform: string): string {
     tiktok: 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-md p-3 mb-4',
     instagram: 'bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-md p-3 mb-4',
     youtube: 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-md p-3 mb-4',
+    'ai-generated': 'bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-md p-3 mb-4',
   };
 
   return classes[platform] || 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md p-3 mb-4';

@@ -115,8 +115,20 @@ export interface SuggestionCard {
   photoQuery?: string; // LLM-generated photo search query (Milestone 3.3)
   isAdded?: boolean; // Track if this suggestion has been added to itinerary
   addedToDayIndex?: number; // Which day it was added to
-  source?: 'xiaohongshu' | 'generated'; // Source of the suggestion
-  xiaohongshuMeta?: XiaohongshuMeta; // Metadata if sourced from Xiaohongshu
+  source?: 'xiaohongshu' | 'reddit' | 'multi-platform' | 'ai-generated' | 'generated'; // Source of the suggestion
+  xiaohongshuMeta?: XiaohongshuMeta; // Metadata if sourced from Xiaohongshu (deprecated)
+  platformMeta?: {
+    authorName: string;
+    authorAvatar?: string;
+    likes: number;
+    comments: number;
+    shares: number;
+    platform: string;
+    contentLang: string;
+    engagementScore: number;
+    location?: string;
+    bestTime?: string;
+  }; // Unified platform metadata
 }
 
 export interface QuickReply {
