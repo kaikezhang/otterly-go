@@ -79,46 +79,46 @@ router.post('/manual-upload', requireAuth, async (req: Request, res: Response) =
       });
     }
 
-    // Parse email content using GPT
-    const parsed = await parseEmailContent(
+    // Parse email content using GPT (returns array of bookings)
+    const parsedBookings = await parseEmailContent(
       emailContent,
       emailSubject,
       senderEmail
     );
 
-    if (!parsed) {
+    if (parsedBookings.length === 0) {
       return res.status(200).json({
         message: 'Could not extract booking information with sufficient confidence',
         isBooking: false,
       });
     }
 
-    // Save parsed booking to database
-    const booking = await prisma.parsedBooking.create({
-      data: {
-        userId,
-        tripId,
-        bookingType: parsed.bookingType,
-        title: parsed.title,
-        description: parsed.description,
-        confirmationNumber: parsed.confirmationNumber,
-        bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
-        startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
-        endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
-        location: parsed.location,
-        rawEmailContent: emailContent,
-        emailSubject,
-        senderEmail,
-        parsedDataJson: parsed.extractedData,
-        status: 'pending',
-        confidence: parsed.confidence,
-        source: 'manual_upload',
-      },
-    });
+    // Save all parsed bookings to database
+    const createdBookings = [];
+    for (const parsed of parsedBookings) {
+      const booking = await prisma.parsedBooking.create({
+        data: {
+          userId,
+          tripId,
+          bookingType: parsed.bookingType,
+          title: parsed.title,
+          description: parsed.description,
+          confirmationNumber: parsed.confirmationNumber,
+          bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
+          startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
+          endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
+          location: parsed.location,
+          rawEmailContent: emailContent,
+          emailSubject,
+          senderEmail,
+          parsedDataJson: parsed.extractedData,
+          status: 'pending',
+          confidence: parsed.confidence,
+          source: 'manual_upload',
+        },
+      });
 
-    return res.status(200).json({
-      success: true,
-      booking: {
+      createdBookings.push({
         id: booking.id,
         bookingType: booking.bookingType,
         title: booking.title,
@@ -129,7 +129,13 @@ router.post('/manual-upload', requireAuth, async (req: Request, res: Response) =
         location: booking.location,
         confidence: booking.confidence,
         extractedData: booking.parsedDataJson,
-      },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      bookings: createdBookings,
+      count: createdBookings.length,
     });
   } catch (error) {
     console.error('Manual upload error:', error);
@@ -157,8 +163,9 @@ router.post(
       // Extract text from PDF
       let emailContent: string;
       if (req.file.mimetype === 'application/pdf') {
-        // Dynamic import for CommonJS module
-        const pdfParse = (await import('pdf-parse')).default;
+        // Dynamic import for CommonJS module - use PDFParse named export
+        const pdfModule: any = await import('pdf-parse');
+        const pdfParse = pdfModule.default || pdfModule.pdf || pdfModule.PDFParse || pdfModule;
         const pdfData = await pdfParse(req.file.buffer);
         emailContent = pdfData.text;
       } else {
@@ -177,46 +184,46 @@ router.post(
         });
       }
 
-      // Parse content using GPT
-      const parsed = await parseEmailContent(
+      // Parse content using GPT (returns array of bookings)
+      const parsedBookings = await parseEmailContent(
         emailContent,
         emailSubject,
         senderEmail
       );
 
-      if (!parsed) {
+      if (parsedBookings.length === 0) {
         return res.status(200).json({
           message: 'Could not extract booking information with sufficient confidence',
           isBooking: false,
         });
       }
 
-      // Save parsed booking
-      const booking = await prisma.parsedBooking.create({
-        data: {
-          userId,
-          tripId,
-          bookingType: parsed.bookingType,
-          title: parsed.title,
-          description: parsed.description,
-          confirmationNumber: parsed.confirmationNumber,
-          bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
-          startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
-          endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
-          location: parsed.location,
-          rawEmailContent: emailContent,
-          emailSubject,
-          senderEmail,
-          parsedDataJson: parsed.extractedData,
-          status: 'pending',
-          confidence: parsed.confidence,
-          source: 'manual_upload',
-        },
-      });
+      // Save all parsed bookings to database
+      const createdBookings = [];
+      for (const parsed of parsedBookings) {
+        const booking = await prisma.parsedBooking.create({
+          data: {
+            userId,
+            tripId,
+            bookingType: parsed.bookingType,
+            title: parsed.title,
+            description: parsed.description,
+            confirmationNumber: parsed.confirmationNumber,
+            bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
+            startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
+            endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
+            location: parsed.location,
+            rawEmailContent: emailContent,
+            emailSubject,
+            senderEmail,
+            parsedDataJson: parsed.extractedData,
+            status: 'pending',
+            confidence: parsed.confidence,
+            source: 'manual_upload',
+          },
+        });
 
-      return res.status(200).json({
-        success: true,
-        booking: {
+        createdBookings.push({
           id: booking.id,
           bookingType: booking.bookingType,
           title: booking.title,
@@ -227,7 +234,13 @@ router.post(
           location: booking.location,
           confidence: booking.confidence,
           extractedData: booking.parsedDataJson,
-        },
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        bookings: createdBookings,
+        count: createdBookings.length,
       });
     } catch (error) {
       console.error('PDF upload error:', error);
@@ -254,6 +267,7 @@ router.get('/bookings', requireAuth, async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        tripId: true,
         bookingType: true,
         title: true,
         description: true,
@@ -526,44 +540,46 @@ router.post('/gmail/scan', requireAuth, async (req: Request, res: Response) => {
       }
 
       try {
-        // Parse email content
-        const parsed = await parseEmailContent(email.content, email.subject, email.from);
+        // Parse email content (returns array of bookings)
+        const bookingsFromEmail = await parseEmailContent(email.content, email.subject, email.from);
 
-        if (!parsed || parsed.confidence < 0.5) {
-          console.log(`Low confidence for email ${email.messageId}, skipping`);
+        if (bookingsFromEmail.length === 0) {
+          console.log(`No valid bookings found in email ${email.messageId}, skipping`);
           continue;
         }
 
-        // Save to database
-        const booking = await prisma.parsedBooking.create({
-          data: {
-            userId,
-            bookingType: parsed.bookingType,
-            title: parsed.title,
-            description: parsed.description,
-            confirmationNumber: parsed.confirmationNumber,
-            bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
-            startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
-            endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
-            location: parsed.location,
-            rawEmailContent: email.content,
-            emailSubject: email.subject,
-            senderEmail: email.from,
-            parsedDataJson: parsed.extractedData,
-            status: 'pending',
-            confidence: parsed.confidence,
-            source: 'gmail',
-            sourceMessageId: email.messageId,
-          },
-        });
+        // Save all bookings from this email to database
+        for (const parsed of bookingsFromEmail) {
+          const booking = await prisma.parsedBooking.create({
+            data: {
+              userId,
+              bookingType: parsed.bookingType,
+              title: parsed.title,
+              description: parsed.description,
+              confirmationNumber: parsed.confirmationNumber,
+              bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
+              startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
+              endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
+              location: parsed.location,
+              rawEmailContent: email.content,
+              emailSubject: email.subject,
+              senderEmail: email.from,
+              parsedDataJson: parsed.extractedData,
+              status: 'pending',
+              confidence: parsed.confidence,
+              source: 'gmail',
+              sourceMessageId: email.messageId,
+            },
+          });
 
-        parsedBookings.push({
-          id: booking.id,
-          bookingType: booking.bookingType,
-          title: booking.title,
-          startDateTime: booking.startDateTime,
-          confidence: booking.confidence,
-        });
+          parsedBookings.push({
+            id: booking.id,
+            bookingType: booking.bookingType,
+            title: booking.title,
+            startDateTime: booking.startDateTime,
+            confidence: booking.confidence,
+          });
+        }
       } catch (parseError) {
         console.error(`Failed to parse email ${email.messageId}:`, parseError);
       }
@@ -713,44 +729,46 @@ router.post('/outlook/scan', requireAuth, async (req: Request, res: Response) =>
       }
 
       try {
-        // Parse email content
-        const parsed = await parseEmailContent(email.content, email.subject, email.from);
+        // Parse email content (returns array of bookings)
+        const bookingsFromEmail = await parseEmailContent(email.content, email.subject, email.from);
 
-        if (!parsed || parsed.confidence < 0.5) {
-          console.log(`Low confidence for email ${email.messageId}, skipping`);
+        if (bookingsFromEmail.length === 0) {
+          console.log(`No valid bookings found in email ${email.messageId}, skipping`);
           continue;
         }
 
-        // Save to database
-        const booking = await prisma.parsedBooking.create({
-          data: {
-            userId,
-            bookingType: parsed.bookingType,
-            title: parsed.title,
-            description: parsed.description,
-            confirmationNumber: parsed.confirmationNumber,
-            bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
-            startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
-            endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
-            location: parsed.location,
-            rawEmailContent: email.content,
-            emailSubject: email.subject,
-            senderEmail: email.from,
-            parsedDataJson: parsed.extractedData,
-            status: 'pending',
-            confidence: parsed.confidence,
-            source: 'outlook',
-            sourceMessageId: email.messageId,
-          },
-        });
+        // Save all bookings from this email to database
+        for (const parsed of bookingsFromEmail) {
+          const booking = await prisma.parsedBooking.create({
+            data: {
+              userId,
+              bookingType: parsed.bookingType,
+              title: parsed.title,
+              description: parsed.description,
+              confirmationNumber: parsed.confirmationNumber,
+              bookingDate: parsed.bookingDate ? new Date(parsed.bookingDate) : null,
+              startDateTime: parsed.startDateTime ? new Date(parsed.startDateTime) : null,
+              endDateTime: parsed.endDateTime ? new Date(parsed.endDateTime) : null,
+              location: parsed.location,
+              rawEmailContent: email.content,
+              emailSubject: email.subject,
+              senderEmail: email.from,
+              parsedDataJson: parsed.extractedData,
+              status: 'pending',
+              confidence: parsed.confidence,
+              source: 'outlook',
+              sourceMessageId: email.messageId,
+            },
+          });
 
-        parsedBookings.push({
-          id: booking.id,
-          bookingType: booking.bookingType,
-          title: booking.title,
-          startDateTime: booking.startDateTime,
-          confidence: booking.confidence,
-        });
+          parsedBookings.push({
+            id: booking.id,
+            bookingType: booking.bookingType,
+            title: booking.title,
+            startDateTime: booking.startDateTime,
+            confidence: booking.confidence,
+          });
+        }
       } catch (parseError) {
         console.error(`Failed to parse email ${email.messageId}:`, parseError);
       }

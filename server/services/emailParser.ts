@@ -74,21 +74,30 @@ export interface ActivityData {
 
 const PARSING_SYSTEM_PROMPT = `You are an expert at extracting structured booking information from travel confirmation emails.
 
-Analyze the email content and extract booking details. Return a JSON object with this structure:
+Analyze the email content and extract ALL bookings found. Many emails contain multiple bookings:
+- Round trip flights have 2+ flight segments
+- Hotel bookings may include multiple properties
+- Package deals may include flights + hotels + activities
+
+Return a JSON object with this structure:
 
 {
-  "bookingType": "flight" | "hotel" | "car_rental" | "restaurant" | "activity",
-  "title": "Brief title (e.g., 'United Airlines UA123' or 'Hilton Tokyo')",
-  "description": "Additional details",
-  "confirmationNumber": "Booking reference code",
-  "bookingDate": "ISO date when booking was made",
-  "startDateTime": "ISO datetime for departure/check-in/reservation",
-  "endDateTime": "ISO datetime for arrival/check-out (null for restaurants)",
-  "location": "City, venue address, or location",
-  "confidence": 0-1 score of parsing confidence,
-  "extractedData": {
-    // Type-specific fields based on bookingType
-  }
+  "bookings": [
+    {
+      "bookingType": "flight" | "hotel" | "car_rental" | "restaurant" | "activity",
+      "title": "Brief title (e.g., 'United Airlines UA123' or 'Hilton Tokyo')",
+      "description": "Additional details",
+      "confirmationNumber": "Booking reference code (same for related bookings)",
+      "bookingDate": "ISO date when booking was made",
+      "startDateTime": "ISO datetime for departure/check-in/reservation",
+      "endDateTime": "ISO datetime for arrival/check-out (null for restaurants)",
+      "location": "City, venue address, or location",
+      "confidence": 0-1 score of parsing confidence,
+      "extractedData": {
+        // Type-specific fields based on bookingType
+      }
+    }
+  ]
 }
 
 ## Type-Specific Fields
@@ -149,24 +158,29 @@ Analyze the email content and extract booking details. Return a JSON object with
 }
 
 ## Important Rules:
-1. Use ISO 8601 format for all dates/times (e.g., "2025-10-15T14:30:00Z")
-2. If year is missing, infer from context or use current year
-3. Confidence should be 0.9+ for clear confirmations, 0.5-0.8 for ambiguous, <0.5 for unclear
-4. If email is not a booking confirmation, return confidence: 0
-5. Extract all available information, use null for missing fields
-6. For flights, convert airport names to IATA codes when possible
-7. Normalize hotel/restaurant names (proper capitalization)
+1. Extract ALL bookings from the email - don't stop at the first one!
+2. For round trip flights, create separate booking entries for outbound and return flights
+3. For multi-leg/connecting flights, create separate entries for each segment
+4. Use ISO 8601 format for all dates/times (e.g., "2025-10-15T14:30:00Z")
+5. If year is missing, infer from context or use current year
+6. Confidence should be 0.9+ for clear confirmations, 0.5-0.8 for ambiguous, <0.5 for unclear
+7. If email is not a booking confirmation, return empty bookings array
+8. Extract all available information, use null for missing fields
+9. For flights, convert airport names to IATA codes when possible
+10. Normalize hotel/restaurant names (proper capitalization)
+11. Use the SAME confirmationNumber for all bookings from the same email/reservation
 
 Return ONLY valid JSON, no explanations.`;
 
 /**
  * Parse email content to extract booking information
+ * Returns array of bookings (emails can contain multiple bookings like round trips)
  */
 export async function parseEmailContent(
   emailContent: string,
   emailSubject: string,
   senderEmail: string
-): Promise<ParsedBookingData | null> {
+): Promise<ParsedBookingData[]> {
   try {
     const userPrompt = `Subject: ${emailSubject}
 From: ${senderEmail}
@@ -189,15 +203,18 @@ ${emailContent}`;
       throw new Error('No response from OpenAI');
     }
 
-    const parsed: ParsedBookingData = JSON.parse(responseContent);
+    const parsed: { bookings: ParsedBookingData[] } = JSON.parse(responseContent);
 
-    // Validate confidence threshold
-    if (parsed.confidence < 0.3) {
-      console.log(`Low confidence parsing (${parsed.confidence}), rejecting`);
-      return null;
-    }
+    // Filter out low-confidence bookings
+    const validBookings = parsed.bookings.filter((booking) => {
+      if (booking.confidence < 0.3) {
+        console.log(`Low confidence booking (${booking.confidence}), rejecting: ${booking.title}`);
+        return false;
+      }
+      return true;
+    });
 
-    return parsed;
+    return validBookings;
   } catch (error) {
     console.error('Email parsing error:', error);
     throw error;

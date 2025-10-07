@@ -32,6 +32,7 @@ interface ParsedBooking {
   source: string;
   parsedDataJson: any;
   createdAt: string;
+  tripId?: string;
 }
 
 export default function EmailImport() {
@@ -183,8 +184,14 @@ export default function EmailImport() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setUploadSuccess(`Successfully parsed: ${data.booking.title}`);
+        if (data.success && data.bookings) {
+          const count = data.count || data.bookings.length;
+          if (count === 1) {
+            setUploadSuccess(`Successfully parsed: ${data.bookings[0].title}`);
+          } else {
+            const titles = data.bookings.map((b: any) => b.title).join(', ');
+            setUploadSuccess(`Successfully parsed ${count} bookings: ${titles}`);
+          }
           fetchBookings();
         } else {
           setUploadError(data.message || 'Could not extract booking information');
@@ -405,16 +412,20 @@ export default function EmailImport() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${getBookingTypeColor(booking.bookingType)}`}
                       >
                         {booking.bookingType.replace('_', ' ').toUpperCase()}
                       </span>
-                      {booking.status === 'added_to_trip' && (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                          Added
-                        </span>
+                      {booking.status === 'added_to_trip' && booking.tripId && (
+                        <a
+                          href={`/trip/${booking.tripId}`}
+                          className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" />
+                          Added to {trips.find((t) => t.id === booking.tripId)?.title || 'Trip'}
+                        </a>
                       )}
                       {booking.conflictDetected && (
                         <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
