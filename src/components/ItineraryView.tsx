@@ -18,21 +18,23 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Trip, ItineraryItem } from '../types';
+import type { Trip, ItineraryItem, BudgetCategory } from '../types';
 import { EditableText } from './EditableText';
 import { TimeRangePicker } from './TimePicker';
 import { ShareButton } from './ShareButton';
+import { CompactBudgetTracker } from './CompactBudgetTracker';
 
 interface ItineraryViewProps {
   trip: Trip;
   isEditMode: boolean;
   onRemoveItem: (dayIndex: number, itemId: string) => void;
   onRequestSuggestion: (dayIndex: number) => void;
-  onRequestReplace: (dayIndex: number, itemId: string) => void;
+  onShowDetails: (dayIndex: number, itemId: string) => void;
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   onReorderItems?: (dayIndex: number, startIndex: number, endIndex: number) => void;
   onMoveItemBetweenDays?: (fromDayIndex: number, toDayIndex: number, itemId: string, toIndex: number) => void;
   onDuplicateDay?: (dayIndex: number) => void;
+  onOpenBudgetSettings?: () => void;
   isSyncing?: boolean;
   currentTripId?: string | null;
   hideShareButton?: boolean;
@@ -66,10 +68,11 @@ interface DayItemsListProps {
   dayIndex: number;
   isEditMode: boolean;
   onRemoveItem: (dayIndex: number, itemId: string) => void;
-  onRequestReplace: (dayIndex: number, itemId: string) => void;
+  onShowDetails: (dayIndex: number, itemId: string) => void;
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   changedItemIds?: Set<string>;
   animationTrigger?: number;
+  budgetCurrency?: string;
 }
 
 function DayItemsList({
@@ -77,10 +80,11 @@ function DayItemsList({
   dayIndex,
   isEditMode,
   onRemoveItem,
-  onRequestReplace,
+  onShowDetails,
   onUpdateItem,
   changedItemIds,
   animationTrigger,
+  budgetCurrency,
 }: DayItemsListProps) {
   const itemIds = day.items.map((item) => item.id);
 
@@ -101,12 +105,13 @@ function DayItemsList({
           isChanged={changedItemIds?.has(item.id) || false}
           animationTrigger={animationTrigger}
           onRemove={() => onRemoveItem(dayIndex, item.id)}
-          onReplace={() => onRequestReplace(dayIndex, item.id)}
+          onShowDetails={() => onShowDetails(dayIndex, item.id)}
           onUpdate={
             onUpdateItem
               ? (updates) => onUpdateItem(dayIndex, item.id, updates)
               : undefined
           }
+          budgetCurrency={budgetCurrency}
         />
       ))}
     </SortableContext>
@@ -118,11 +123,12 @@ export function ItineraryView({
   isEditMode,
   onRemoveItem,
   onRequestSuggestion,
-  onRequestReplace,
+  onShowDetails,
   onUpdateItem,
   onReorderItems,
   onMoveItemBetweenDays,
   onDuplicateDay,
+  onOpenBudgetSettings,
   isSyncing = false,
   currentTripId = null,
   hideShareButton = false,
@@ -277,6 +283,14 @@ export function ItineraryView({
             </div>
           )}
         </div>
+
+        {/* Compact Budget Tracker - Full Width */}
+        {onOpenBudgetSettings && (
+          <CompactBudgetTracker
+            trip={trip}
+            onOpenSettings={onOpenBudgetSettings}
+          />
+        )}
       </div>
 
       {/* Days */}
@@ -364,10 +378,11 @@ export function ItineraryView({
                         dayIndex={dayIndex}
                         isEditMode={isEditMode}
                         onRemoveItem={onRemoveItem}
-                        onRequestReplace={onRequestReplace}
+                        onShowDetails={onShowDetails}
                         onUpdateItem={onUpdateItem}
                         changedItemIds={changedItemIds}
                         animationTrigger={animationTrigger}
+                        budgetCurrency={trip.budget?.currency}
                       />
                     )}
 
@@ -415,8 +430,9 @@ interface SortableItineraryItemProps {
   isChanged: boolean;
   animationTrigger?: number;
   onRemove: () => void;
-  onReplace: () => void;
+  onShowDetails: () => void;
   onUpdate?: (updates: Partial<ItineraryItem>) => void;
+  budgetCurrency?: string;
 }
 
 function SortableItineraryItem({
@@ -427,8 +443,9 @@ function SortableItineraryItem({
   isChanged,
   animationTrigger,
   onRemove,
-  onReplace,
+  onShowDetails,
   onUpdate,
+  budgetCurrency,
 }: SortableItineraryItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -560,6 +577,91 @@ function SortableItineraryItem({
           {item.duration && !isEditMode && (
             <p className="text-sm text-gray-700 font-medium">🕐 {item.duration}</p>
           )}
+
+          {/* Cost (Phase 1: MVP, Phase 2: Categories) */}
+          {budgetCurrency && (
+            <div className="flex items-center gap-2">
+              {isEditMode && onUpdate ? (
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-sm text-gray-500">💰</span>
+                  <input
+                    type="number"
+                    value={item.cost ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const newCost = value ? parseFloat(value) : undefined;
+
+                      // Auto-categorize based on item type if no category is set (Phase 2)
+                      if (newCost && !item.costCategory) {
+                        let autoCategory: BudgetCategory | undefined;
+                        switch (item.type) {
+                          case 'transport':
+                            autoCategory = 'transport';
+                            break;
+                          case 'food':
+                            autoCategory = 'food';
+                            break;
+                          case 'sight':
+                          case 'museum':
+                          case 'hike':
+                          case 'experience':
+                            autoCategory = 'activities';
+                            break;
+                          default:
+                            autoCategory = undefined; // Let user choose
+                        }
+                        onUpdate({ cost: newCost, ...(autoCategory && { costCategory: autoCategory }) });
+                      } else {
+                        onUpdate({ cost: newCost });
+                      }
+                    }}
+                    placeholder="Add cost"
+                    min="0"
+                    step="10"
+                    className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <span className="text-sm text-gray-500">{budgetCurrency}</span>
+                  {/* Category Selector (Phase 2) */}
+                  {item.cost !== undefined && item.cost > 0 && (
+                    <select
+                      value={item.costCategory || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onUpdate({ costCategory: value as BudgetCategory || undefined });
+                      }}
+                      className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    >
+                      <option value="">Select category</option>
+                      <option value="flights">✈️ Flights</option>
+                      <option value="hotels">🏨 Hotels</option>
+                      <option value="food">🍽️ Food</option>
+                      <option value="activities">🎟️ Activities</option>
+                      <option value="transport">🚗 Transport</option>
+                      <option value="misc">💼 Misc</option>
+                    </select>
+                  )}
+                </div>
+              ) : (
+                item.cost !== undefined && item.cost > 0 && (
+                  <p className="text-sm text-green-700 font-medium">
+                    💰 {item.cost.toLocaleString()} {budgetCurrency}
+                    {item.costCategory && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({
+                          item.costCategory === 'flights' ? '✈️ Flights' :
+                          item.costCategory === 'hotels' ? '🏨 Hotels' :
+                          item.costCategory === 'food' ? '🍽️ Food' :
+                          item.costCategory === 'activities' ? '🎟️ Activities' :
+                          item.costCategory === 'transport' ? '🚗 Transport' :
+                          '💼 Misc'
+                        })
+                      </span>
+                    )}
+                  </p>
+                )
+              )}
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -567,11 +669,11 @@ function SortableItineraryItem({
           <div className="flex gap-2">
             {!isEditMode && (
               <button
-                onClick={onReplace}
-                className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                title="Replace this item"
+                onClick={onShowDetails}
+                className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 font-medium"
+                title="Show detailed information about this activity"
               >
-                Replace
+                💡 Details
               </button>
             )}
             <button

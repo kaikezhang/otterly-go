@@ -45,6 +45,8 @@ export interface ItineraryItem {
     address?: string; // Full formatted address
   };
   photoId?: string; // Optional photo from library
+  cost?: number; // Cost in the trip's budget currency (Phase 1: MVP)
+  costCategory?: BudgetCategory; // Category for budget tracking (Phase 2)
 }
 
 export interface Day {
@@ -54,6 +56,8 @@ export interface Day {
 }
 
 export type TripStatus = 'draft' | 'planning' | 'upcoming' | 'active' | 'completed' | 'archived';
+
+export type BudgetCategory = 'flights' | 'hotels' | 'food' | 'activities' | 'transport' | 'misc';
 
 export interface Trip {
   id: string;
@@ -77,6 +81,12 @@ export interface Trip {
   displayOrder?: number;
   lastViewedAt?: string; // ISO date string
   archivedAt?: string | null; // ISO date string
+  // Budget fields (Phase 1: MVP, Phase 2: Categories)
+  budget?: {
+    total: number;
+    currency: string; // ISO code (USD, EUR, JPY, etc.)
+    categories?: Record<BudgetCategory, number>; // Phase 2: Budget allocation by category
+  };
   // Metadata
   userId?: string;
   title?: string;

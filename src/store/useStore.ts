@@ -99,6 +99,10 @@ interface StoreState {
   markItineraryViewed: () => void;
   markItemsAsChanged: (itemIds: string[]) => void;
   clearChangedItems: () => void;
+
+  // Budget actions (Phase 1: MVP, Phase 2: Categories)
+  setBudget: (total: number, currency: string, categories?: Record<string, number>) => void;
+  updateItemCost: (dayIndex: number, itemId: string, cost: number | undefined, category?: string) => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -798,6 +802,41 @@ export const useStore = create<StoreState>()(
       clearChangedItems: () => {
         set({ changedItemIds: new Set() });
       },
+
+      // Budget actions (Phase 1: MVP, Phase 2: Categories)
+      setBudget: (total: number, currency: string, categories?: Record<string, number>) =>
+        set((state) => {
+          if (!state.trip) return state;
+          return {
+            trip: {
+              ...state.trip,
+              budget: { total, currency, ...(categories && { categories }) },
+            },
+            hasUnsavedChanges: true,
+          };
+        }),
+
+      updateItemCost: (dayIndex: number, itemId: string, cost: number | undefined, category?: string) =>
+        set((state) => {
+          if (!state.trip) return state;
+
+          const newTrip = { ...state.trip };
+          newTrip.days = [...newTrip.days];
+          const day = newTrip.days[dayIndex];
+          const itemIndex = day.items.findIndex((item) => item.id === itemId);
+
+          if (itemIndex === -1) return state;
+
+          const newItems = [...day.items];
+          newItems[itemIndex] = {
+            ...newItems[itemIndex],
+            cost,
+            ...(category && { costCategory: category as any })
+          };
+          newTrip.days[dayIndex] = { ...day, items: newItems };
+
+          return { trip: newTrip, hasUnsavedChanges: true };
+        }),
     }),
     {
       name: 'otterly-go-storage',

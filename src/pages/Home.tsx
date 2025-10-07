@@ -9,6 +9,7 @@ import { TripHeader } from '../components/TripHeader';
 import { TripSettingsModal } from '../components/TripSettingsModal';
 import { ShareButton } from '../components/ShareButton';
 import UsageWarning, { type UsageWarningData } from '../components/UsageWarning';
+import { BudgetSetupModal } from '../components/BudgetSetupModal';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
 import { getTrip } from '../services/tripApi';
@@ -55,6 +56,7 @@ export default function Home() {
     duplicateTrip: duplicateTripAction,
     deleteTrip,
     markItineraryViewed,
+    setBudget,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export default function Home() {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [animationTrigger, setAnimationTrigger] = useState(0);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -421,17 +424,45 @@ export default function Home() {
     }
   };
 
-  const handleRequestReplace = (dayIndex: number, itemId: string) => {
+  const handleShowDetails = async (dayIndex: number, itemId: string) => {
     if (!trip) return;
     const item = trip.days[dayIndex].items.find((i) => i.id === itemId);
     if (!item) return;
 
-    const message = `Can you suggest a replacement for "${item.title}" on Day ${
-      dayIndex + 1
-    }?`;
     // Switch to chat tab on mobile for better UX
     setActiveTab('chat');
-    handleSendMessage(message);
+
+    // Show loading message
+    setIsLoading(true);
+
+    try {
+      // Import the getActivityDetails function
+      const { getActivityDetails } = await import('../services/activityApi');
+
+      // Fetch detailed information about the activity
+      const suggestionCard = await getActivityDetails(trip, item);
+
+      // Add the suggestion card to the chat
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant' as const,
+        content: `Here's detailed information about "${item.title}":`,
+        suggestionCard,
+        timestamp: Date.now(),
+      };
+      addMessage(assistantMsg);
+    } catch (error) {
+      console.error('Failed to fetch activity details:', error);
+      const errorMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant' as const,
+        content: 'Sorry, I encountered an error while fetching details for this activity. Please try again.',
+        timestamp: Date.now(),
+      };
+      addMessage(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleQuickReplyClick = (reply: QuickReply) => {
@@ -810,13 +841,13 @@ export default function Home() {
               : 'lg:w-1/2' // Desktop without map: 1/2 width
           } ${
             activeTab !== 'itinerary' ? 'hidden' : 'w-full'
-          } bg-white border-r border-gray-200 transition-all duration-300 ease-in-out lg:block`}>
+          } bg-white border-r border-gray-200 transition-all duration-300 ease-in-out lg:block overflow-y-auto`}>
             <ItineraryView
               trip={trip}
               isEditMode={isEditMode}
               onRemoveItem={handleRemoveItem}
               onRequestSuggestion={handleRequestSuggestion}
-              onRequestReplace={handleRequestReplace}
+              onShowDetails={handleShowDetails}
               onUpdateItem={updateItemInDay}
               onReorderItems={reorderItemsInDay}
               onMoveItemBetweenDays={moveItemBetweenDays}
@@ -825,6 +856,7 @@ export default function Home() {
               currentTripId={currentTripId}
               changedItemIds={changedItemIds}
               animationTrigger={animationTrigger}
+              onOpenBudgetSettings={() => setShowBudgetModal(true)}
             />
           </div>
         )}
@@ -875,6 +907,16 @@ export default function Home() {
           onUpdate={updateTrip}
         />
       )}
+
+      {/* Budget Setup Modal */}
+      <BudgetSetupModal
+        isOpen={showBudgetModal}
+        onClose={() => setShowBudgetModal(false)}
+        onSave={(total, currency, categories) => {
+          setBudget(total, currency, categories);
+          setShowBudgetModal(false);
+        }}
+      />
 
       {/* Share Modal - ShareButton manages its own modal state */}
       {trip && currentTripId && showShareModal && (
