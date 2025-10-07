@@ -37,7 +37,7 @@ interface ItineraryViewProps {
   currentTripId?: string | null;
   hideShareButton?: boolean;
   changedItemIds?: Set<string>;
-  onItineraryViewed?: () => void;
+  animationTrigger?: number;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -69,6 +69,7 @@ interface DayItemsListProps {
   onRequestReplace: (dayIndex: number, itemId: string) => void;
   onUpdateItem?: (dayIndex: number, itemId: string, updates: Partial<ItineraryItem>) => void;
   changedItemIds?: Set<string>;
+  animationTrigger?: number;
 }
 
 function DayItemsList({
@@ -79,6 +80,7 @@ function DayItemsList({
   onRequestReplace,
   onUpdateItem,
   changedItemIds,
+  animationTrigger,
 }: DayItemsListProps) {
   const itemIds = day.items.map((item) => item.id);
 
@@ -97,6 +99,7 @@ function DayItemsList({
           isEditMode={isEditMode}
           isFirst={itemIndex === 0}
           isChanged={changedItemIds?.has(item.id) || false}
+          animationTrigger={animationTrigger}
           onRemove={() => onRemoveItem(dayIndex, item.id)}
           onReplace={() => onRequestReplace(dayIndex, item.id)}
           onUpdate={
@@ -124,24 +127,12 @@ export function ItineraryView({
   currentTripId = null,
   hideShareButton = false,
   changedItemIds,
-  onItineraryViewed,
+  animationTrigger,
 }: ItineraryViewProps) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
     new Set(trip.days.map((_, i) => i))
   );
   const [activeId, setActiveId] = useState<string | null>(null);
-
-  // Mark itinerary as viewed when component mounts or when changedItemIds changes
-  useEffect(() => {
-    if (changedItemIds && changedItemIds.size > 0 && onItineraryViewed) {
-      // Wait for animation to complete before clearing highlights
-      const timer = setTimeout(() => {
-        onItineraryViewed();
-      }, 3000); // 3 seconds for animation to show
-
-      return () => clearTimeout(timer);
-    }
-  }, [changedItemIds, onItineraryViewed]); // Re-run when changedItemIds changes
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -376,6 +367,7 @@ export function ItineraryView({
                         onRequestReplace={onRequestReplace}
                         onUpdateItem={onUpdateItem}
                         changedItemIds={changedItemIds}
+                        animationTrigger={animationTrigger}
                       />
                     )}
 
@@ -421,6 +413,7 @@ interface SortableItineraryItemProps {
   isEditMode: boolean;
   isFirst: boolean;
   isChanged: boolean;
+  animationTrigger?: number;
   onRemove: () => void;
   onReplace: () => void;
   onUpdate?: (updates: Partial<ItineraryItem>) => void;
@@ -432,6 +425,7 @@ function SortableItineraryItem({
   isEditMode,
   isFirst,
   isChanged,
+  animationTrigger,
   onRemove,
   onReplace,
   onUpdate,
@@ -443,12 +437,12 @@ function SortableItineraryItem({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: !isEditMode });
 
-  // Force animation to re-trigger when isChanged changes
+  // Force animation to re-trigger when animationTrigger changes AND item is in changedItemIds
   useEffect(() => {
-    if (isChanged) {
-      setAnimationKey(prev => prev + 1);
+    if (isChanged && animationTrigger !== undefined) {
+      setAnimationKey(animationTrigger);
     }
-  }, [isChanged]);
+  }, [isChanged, animationTrigger]);
 
   const style = {
     transform: CSS.Transform.toString(transform),

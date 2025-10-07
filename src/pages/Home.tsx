@@ -68,6 +68,7 @@ export default function Home() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [animationTrigger, setAnimationTrigger] = useState(0);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -338,7 +339,8 @@ export default function Home() {
   const handleViewItinerary = () => {
     // On mobile, switch to itinerary tab
     setActiveTab('itinerary');
-    // On desktop, the itinerary is already visible, no action needed
+    // Trigger animations on changed items
+    setAnimationTrigger(prev => prev + 1);
   };
 
   const handleLogout = async () => {
@@ -719,7 +721,7 @@ export default function Home() {
               isSyncing={isSyncing}
               currentTripId={currentTripId}
               changedItemIds={changedItemIds}
-              onItineraryViewed={markItineraryViewed}
+              animationTrigger={animationTrigger}
             />
           </div>
         )}
