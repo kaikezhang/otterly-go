@@ -29,7 +29,7 @@ import {
   autoInsertBooking,
   detectConflicts,
 } from '../services/autoInsert.js';
-import * as pdfParse from 'pdf-parse';
+// pdf-parse will be imported dynamically due to CommonJS compatibility
 
 const router = express.Router();
 
@@ -157,6 +157,8 @@ router.post(
       // Extract text from PDF
       let emailContent: string;
       if (req.file.mimetype === 'application/pdf') {
+        // Dynamic import for CommonJS module
+        const pdfParse = (await import('pdf-parse')).default;
         const pdfData = await pdfParse(req.file.buffer);
         emailContent = pdfData.text;
       } else {
