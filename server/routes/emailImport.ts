@@ -69,7 +69,7 @@ router.post('/manual-upload', requireAuth, async (req: Request, res: Response) =
     }
 
     const { emailSubject, senderEmail, emailContent, tripId } = validation.data;
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     // Quick filter: Check if likely a booking email
     if (!isLikelyBookingEmail(emailSubject, senderEmail)) {
@@ -152,7 +152,7 @@ router.post(
       }
 
       const { tripId } = req.body;
-      const userId = req.user!.id;
+      const userId = req.userId!;
 
       // Extract text from PDF
       let emailContent: string;
@@ -240,7 +240,7 @@ router.post(
  */
 router.get('/bookings', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
     const { status, tripId } = req.query;
 
     const where: any = { userId };
@@ -282,7 +282,7 @@ router.get('/bookings', requireAuth, async (req: Request, res: Response) => {
 router.patch('/bookings/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.userId!;
     const { status, tripId } = req.body;
 
     // Verify ownership
@@ -317,7 +317,7 @@ router.patch('/bookings/:id', requireAuth, async (req: Request, res: Response) =
 router.delete('/bookings/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     // Verify ownership
     const booking = await prisma.parsedBooking.findFirst({
@@ -347,7 +347,7 @@ router.post('/bookings/:id/add-to-trip', requireAuth, async (req: Request, res: 
   try {
     const { id } = req.params;
     const { tripId } = req.body;
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     if (!tripId) {
       return res.status(400).json({ error: 'tripId is required' });
@@ -388,7 +388,7 @@ router.post('/bookings/:id/add-to-trip', requireAuth, async (req: Request, res: 
 router.post('/bookings/:id/auto-insert', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     // Verify ownership
     const booking = await prisma.parsedBooking.findFirst({
@@ -416,7 +416,7 @@ router.post('/bookings/:id/auto-insert', requireAuth, async (req: Request, res: 
  */
 router.get('/gmail/auth', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
     const authUrl = getGmailAuthUrl(userId);
 
     return res.json({ authUrl });
@@ -456,7 +456,7 @@ router.get('/gmail/callback', async (req: Request, res: Response) => {
  */
 router.get('/gmail/status', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     const connection = await prisma.emailConnection.findFirst({
       where: {
@@ -496,7 +496,7 @@ router.get('/gmail/status', requireAuth, async (req: Request, res: Response) => 
  */
 router.post('/gmail/scan', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     // Scan Gmail inbox
     const emails = await scanGmailInbox(userId);
@@ -585,7 +585,7 @@ router.post('/gmail/scan', requireAuth, async (req: Request, res: Response) => {
  */
 router.post('/gmail/disconnect', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
     await disconnectGmail(userId);
 
     return res.json({ success: true });
@@ -603,7 +603,7 @@ router.post('/gmail/disconnect', requireAuth, async (req: Request, res: Response
  */
 router.get('/outlook/auth', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
     const authUrl = await getOutlookAuthUrl(userId);
 
     return res.json({ authUrl });
@@ -643,7 +643,7 @@ router.get('/outlook/callback', async (req: Request, res: Response) => {
  */
 router.get('/outlook/status', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     const connection = await prisma.emailConnection.findFirst({
       where: {
@@ -683,7 +683,7 @@ router.get('/outlook/status', requireAuth, async (req: Request, res: Response) =
  */
 router.post('/outlook/scan', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     // Scan Outlook inbox
     const emails = await scanOutlookInbox(userId);
@@ -772,7 +772,7 @@ router.post('/outlook/scan', requireAuth, async (req: Request, res: Response) =>
  */
 router.post('/outlook/disconnect', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
     await disconnectOutlook(userId);
 
     return res.json({ success: true });
