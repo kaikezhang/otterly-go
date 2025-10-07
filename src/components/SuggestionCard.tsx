@@ -2,6 +2,52 @@ import { useState, useEffect } from 'react';
 import type { SuggestionCard as SuggestionCardType } from '../types';
 import { searchPhotos, type Photo } from '../services/photoApi';
 
+// Platform badge component
+function PlatformBadge({ platform }: { platform: string }) {
+  const badges: Record<string, { bg: string; label: string }> = {
+    xiaohongshu: { bg: 'bg-red-500', label: '小红书' },
+    reddit: { bg: 'bg-orange-500', label: 'Reddit' },
+    tiktok: { bg: 'bg-black', label: 'TikTok' },
+    instagram: { bg: 'bg-pink-500', label: 'Instagram' },
+    youtube: { bg: 'bg-red-600', label: 'YouTube' },
+  };
+
+  const badge = badges[platform] || { bg: 'bg-gray-500', label: platform };
+
+  return (
+    <div className={`${badge.bg} text-white px-3 py-1 rounded-full text-xs font-bold`}>
+      {badge.label}
+    </div>
+  );
+}
+
+// Get platform-specific background class
+function getPlatformBgClass(platform: string): string {
+  const classes: Record<string, string> = {
+    xiaohongshu: 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-md p-3 mb-4',
+    reddit: 'bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-md p-3 mb-4',
+    tiktok: 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-md p-3 mb-4',
+    instagram: 'bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-md p-3 mb-4',
+    youtube: 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-md p-3 mb-4',
+  };
+
+  return classes[platform] || 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md p-3 mb-4';
+}
+
+// Get language label
+function getLanguageLabel(lang: string): string {
+  const labels: Record<string, string> = {
+    zh: '🇨🇳 Chinese',
+    ja: '🇯🇵 Japanese',
+    ko: '🇰🇷 Korean',
+    es: '🇪🇸 Spanish',
+    fr: '🇫🇷 French',
+    de: '🇩🇪 German',
+  };
+
+  return labels[lang] || lang;
+}
+
 interface SuggestionCardProps {
   suggestion: SuggestionCardType;
   onAddToDay: (dayIndex: number) => void;
@@ -20,6 +66,7 @@ export function SuggestionCard({
   );
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [showDetailedDescription, setShowDetailedDescription] = useState(false);
 
   // Use persisted flags from suggestion prop
   const isAdded = suggestion.isAdded ?? false;
@@ -50,11 +97,65 @@ export function SuggestionCard({
         {suggestion.title}
       </h3>
 
-      {/* Xiaohongshu Attribution */}
-      {suggestion.source === 'xiaohongshu' && suggestion.xiaohongshuMeta && (
+      {/* Platform Attribution (Xiaohongshu, Reddit, etc.) */}
+      {suggestion.source && suggestion.platformMeta && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {/* Show platform badge (Reddit, Xiaohongshu, etc.) or multi-platform badge */}
+              {suggestion.source === 'multi-platform' ? (
+                <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                  {suggestion.platformMeta.platform || 'Multi-platform'}
+                </div>
+              ) : (
+                <PlatformBadge platform={suggestion.source} />
+              )}
+
+              {/* Language indicator for non-English content */}
+              {suggestion.platformMeta.contentLang && suggestion.platformMeta.contentLang !== 'en' && (
+                <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded-full border border-gray-200">
+                  {getLanguageLabel(suggestion.platformMeta.contentLang)}
+                </span>
+              )}
+            </div>
+
+            {/* Aggregated engagement metrics */}
+            <div className="flex gap-3 text-xs text-gray-600">
+              <span className="flex items-center gap-1">
+                <span>👍</span>
+                <span className="font-medium">{suggestion.platformMeta.likes?.toLocaleString() || 0}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span>💬</span>
+                <span className="font-medium">{suggestion.platformMeta.comments?.toLocaleString() || 0}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Additional metadata (location, best time) */}
+          {(suggestion.platformMeta.location || suggestion.platformMeta.bestTime) && (
+            <div className="flex gap-3 mt-2 text-xs text-gray-600">
+              {suggestion.platformMeta.location && (
+                <span className="flex items-center gap-1">
+                  <span>📍</span>
+                  <span>{suggestion.platformMeta.location}</span>
+                </span>
+              )}
+              {suggestion.platformMeta.bestTime && (
+                <span className="flex items-center gap-1">
+                  <span>⏰</span>
+                  <span>Best time: {suggestion.platformMeta.bestTime}</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Legacy Xiaohongshu Attribution (for backward compatibility) */}
+      {suggestion.source === 'xiaohongshu' && suggestion.xiaohongshuMeta && !suggestion.platformMeta && (
         <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-md p-3 mb-4">
           <div className="flex items-center gap-3">
-            {/* Xiaohongshu Badge */}
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center">
                 <span className="text-white text-xs font-bold">小红书</span>
@@ -65,7 +166,6 @@ export function SuggestionCard({
             </div>
           </div>
 
-          {/* Author Info */}
           <div className="flex items-center gap-3 mt-2">
             {suggestion.xiaohongshuMeta.authorAvatar && (
               <img
@@ -146,6 +246,39 @@ export function SuggestionCard({
       {/* Summary */}
       <p className="text-gray-700 mb-4 leading-relaxed">{suggestion.summary}</p>
 
+      {/* Detailed Description (expandable) */}
+      {suggestion.detailedDescription && (
+        <div className="mb-4">
+          {showDetailedDescription && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
+              <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+                {suggestion.detailedDescription}
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => setShowDetailedDescription(!showDetailedDescription)}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+          >
+            {showDetailedDescription ? (
+              <>
+                <span>Show less</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </>
+            ) : (
+              <>
+                <span>Show more</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Quotes */}
       {suggestion.quotes.length > 0 && (
         <div className="bg-gray-50 rounded-md p-4 mb-4 space-y-3">
@@ -158,20 +291,47 @@ export function SuggestionCard({
         </div>
       )}
 
-      {/* Source Links */}
+      {/* Source Links - Compact view */}
       {suggestion.sourceLinks.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {suggestion.sourceLinks.map((link, idx) => (
-            <a
-              key={idx}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:text-blue-800 underline"
-            >
-              {link.label}
-            </a>
-          ))}
+        <div className="mb-4">
+          <details className="group">
+            <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800 flex items-center gap-2 py-2">
+              <span className="text-blue-600">📚</span>
+              <span className="font-medium">
+                Based on {suggestion.sourceLinks.length} {suggestion.sourceLinks.length === 1 ? 'post' : 'posts'}
+              </span>
+              <svg
+                className="w-4 h-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="mt-2 pl-6 space-y-1">
+              {suggestion.sourceLinks.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-2 group/link"
+                >
+                  <span className="text-gray-400 group-hover/link:text-blue-600">→</span>
+                  <span className="flex-1 truncate">{link.label}</span>
+                  <svg
+                    className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </details>
         </div>
       )}
 

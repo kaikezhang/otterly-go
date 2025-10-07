@@ -118,6 +118,7 @@ class ConversationEngine {
             return {
               message: parsed.content,
               suggestions: parsed.suggestions.map((s: any) => this.enrichSuggestion(s)),
+              quickReplies: parsed.quickReplies, // Preserve quick reply buttons
               usageWarning,
             };
 

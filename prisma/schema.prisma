@@ -326,7 +326,8 @@ model ParsedBooking {
   @@map("parsed_bookings")
 }
 
-// XiaohongshuCache table - caches Xiaohongshu notes for travel inspiration
+// XiaohongshuCache table - DEPRECATED: Use SocialContentCache instead
+// Kept for backward compatibility and migration
 model XiaohongshuCache {
   id                String   @id @default(cuid())
   noteId            String   @unique @map("note_id") // Original Xiaohongshu note ID
@@ -364,4 +365,60 @@ model XiaohongshuCache {
   @@index([usageCount]) // Track popular notes
   @@index([createdAt]) // Order by recency
   @@map("xiaohongshu_cache")
+}
+
+// SocialContentCache table - Unified cache for all social platforms (Xiaohongshu, Reddit, TikTok, etc.)
+model SocialContentCache {
+  id                String   @id @default(cuid())
+
+  // Platform identification
+  platform          String                 // 'xiaohongshu' | 'reddit' | 'tiktok' | 'instagram' | etc.
+  platformPostId    String   @map("platform_post_id") // Original post ID from platform
+
+  // Core content (language-agnostic)
+  query             String                 // Search term
+  title             String
+  content           String   @db.Text      // Original content
+  contentLang       String   @default("en") @map("content_lang") // 'zh' | 'en' | 'ja' | etc.
+  summary           String   @db.Text      // LLM-generated English summary
+
+  // Media
+  images            String[]
+  videoUrl          String?  @map("video_url")
+  tags              String[]
+
+  // Author
+  authorName        String   @map("author_name")
+  authorId          String   @map("author_id")
+  authorAvatar      String?  @map("author_avatar")
+
+  // Engagement (normalized across platforms)
+  engagementScore   Int      @default(0) @map("engagement_score") // Normalized score (0-1000)
+  likes             Int      @default(0)  // Or upvotes
+  comments          Int      @default(0)
+  shares            Int      @default(0)  // Or awards on Reddit
+
+  // Metadata
+  postUrl           String   @map("post_url")
+  location          String?
+  publishedAt       DateTime? @map("published_at")
+
+  // Extras (platform-specific data as JSON)
+  platformMeta      Json?    @map("platform_meta") // Flexible for platform-specific fields
+
+  // Usage tracking
+  usageCount        Int      @default(0) @map("usage_count")
+  qualityScore      Float?   @map("quality_score") // LLM-assessed quality (0-1)
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([platform, platformPostId])  // Prevent duplicates
+  @@index([platform])
+  @@index([query])
+  @@index([location])
+  @@index([engagementScore])
+  @@index([usageCount])
+  @@index([contentLang])                // Filter by language
+  @@map("social_content_cache")
 }

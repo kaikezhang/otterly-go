@@ -21,6 +21,7 @@ import adminRouter from './routes/admin.js';
 import emailRouter from './routes/email.js';
 import emailImportRouter from './routes/emailImport.js';
 import xiaohongshuRouter from './routes/xiaohongshu.js';
+import contentRouter from './routes/content.js';
 import { configurePassport } from './config/passport.js';
 import { logger } from './utils/logger.js';
 import { initializeEmailJobs } from './jobs/emailJobs.js';
@@ -88,7 +89,10 @@ app.use(helmet({
         "https://*.mapbox.com",
         "https://lh3.googleusercontent.com", // Google profile photos
         "https://*.xiaohongshu.com", // Xiaohongshu note images
-        "https://ci.xiaohongshu.com" // Xiaohongshu CDN images
+        "https://ci.xiaohongshu.com", // Xiaohongshu CDN images
+        "https://*.reddit.com", // Reddit images
+        "https://*.redd.it", // Reddit CDN images
+        "https://ui-avatars.com" // Generated avatars
       ],
       fontSrc: [
         "'self'",
@@ -160,7 +164,8 @@ app.use('/api/share', shareRouter); // Public share links (no auth required)
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/email', emailRouter); // Email preferences and unsubscribe
 app.use('/api/email-import', emailImportRouter); // Email import and parsing (Milestone 5.1)
-app.use('/api/xiaohongshu', xiaohongshuRouter); // Xiaohongshu integration for travel inspiration
+app.use('/api/xiaohongshu', xiaohongshuRouter); // Xiaohongshu integration for travel inspiration (DEPRECATED - use /api/content)
+app.use('/api/content', contentRouter); // Unified content aggregation (Xiaohongshu, Reddit, etc.)
 app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware
