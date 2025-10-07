@@ -8,6 +8,7 @@ import { prisma } from '../db.js';
 import { getModelForTier } from '../services/stripe.js';
 import { calculateCost } from '../utils/costCalculation.js';
 import { checkApiUsageLimits, addUsageWarning } from '../middleware/usageLimits.js';
+import { getRelevantNotes, noteToSuggestionCard } from '../services/xiaohongshu.js';
 
 const router = express.Router();
 
@@ -20,6 +21,40 @@ function getOpenAIClient() {
     });
   }
   return openai;
+}
+
+/**
+ * Translate English destination and activity to Chinese for Xiaohongshu search
+ */
+async function translateToChineseQuery(
+  destination: string,
+  activityType: string
+): Promise<string> {
+  try {
+    const response = await getOpenAIClient().chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a translator. Translate destination and activity names from English to Chinese (Simplified). Return ONLY the Chinese translation, no explanations. Format: "[destination] [activity]"',
+        },
+        {
+          role: 'user',
+          content: `Destination: ${destination}\nActivity: ${activityType}`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 50,
+    });
+
+    const translation = response.choices[0]?.message?.content?.trim() || `${destination} ${activityType}`;
+    console.log(`[Xiaohongshu] Translated "${destination} ${activityType}" → "${translation}"`);
+    return translation;
+  } catch (error) {
+    console.error('[Xiaohongshu] Translation error:', error);
+    // Fallback to English query
+    return `${destination} ${activityType}`;
+  }
 }
 
 const SYSTEM_PROMPT = `You are OtterlyGo, a warm and knowledgeable local guide who helps travelers plan amazing trips! You know the destinations inside-out and love sharing insider tips and route recommendations.
@@ -531,13 +566,66 @@ router.post(
 
       // Debug: Log raw LLM response to check if it's generating all days
       console.log('[DEBUG] Raw OpenAI response:', assistantMessage.substring(0, 500));
+      let parsed: any;
       try {
-        const parsed = JSON.parse(assistantMessage);
+        parsed = JSON.parse(assistantMessage);
         if (parsed.type === 'itinerary' && parsed.trip?.days) {
           console.log(`[DEBUG] LLM generated ${parsed.trip.days.length} days (expected based on dates)`);
         }
       } catch (e) {
         // Ignore parse errors, just for debugging
+      }
+
+      // XIAOHONGSHU INTEGRATION (Feature Flag)
+      // If user is asking for suggestions, also fetch Xiaohongshu content
+      let finalMessage = assistantMessage;
+      const xiaohongshuEnabled = process.env.ENABLE_XIAOHONGSHU === 'true';
+
+      if (xiaohongshuEnabled && parsed && parsed.type === 'suggestion' && currentTrip) {
+        try {
+          console.log('[Xiaohongshu] Detected suggestion request, fetching Xiaohongshu content');
+
+          // Extract destination and activity type from the suggestion or trip
+          const destination = currentTrip.destination || 'travel';
+          const suggestion = parsed.suggestion;
+          const activityType = suggestion?.title || message; // Use suggestion title or user message
+          const itemType = suggestion?.itemType || 'experience';
+          const defaultDayIndex = suggestion?.defaultDayIndex;
+
+          // Translate to Chinese for better Xiaohongshu search
+          const chineseQuery = await translateToChineseQuery(destination, activityType);
+
+          // Fetch Xiaohongshu notes (limit to 3)
+          const notes = await getRelevantNotes(chineseQuery.split(' ')[0], chineseQuery.split(' ').slice(1).join(' '), 3);
+
+          if (notes.length > 0) {
+            console.log(`[Xiaohongshu] Found ${notes.length} relevant notes`);
+
+            // Convert notes to suggestion cards
+            const xiaohongshuSuggestions = await Promise.all(
+              notes.map((note) => noteToSuggestionCard(note, itemType, defaultDayIndex))
+            );
+
+            // Return multiple suggestions instead of single suggestion
+            // Change response type to "suggestions" (plural) with array
+            const enhancedResponse = {
+              type: 'suggestions',
+              content: parsed.content + '\n\nHere are some recommendations from Xiaohongshu:',
+              suggestions: [
+                suggestion, // Include original LLM suggestion
+                ...xiaohongshuSuggestions // Add Xiaohongshu suggestions
+              ]
+            };
+
+            finalMessage = JSON.stringify(enhancedResponse);
+            console.log(`[Xiaohongshu] Enhanced response with ${xiaohongshuSuggestions.length} Xiaohongshu suggestions`);
+          } else {
+            console.log('[Xiaohongshu] No notes found, returning original suggestion');
+          }
+        } catch (error) {
+          console.error('[Xiaohongshu] Integration error:', error);
+          // If Xiaohongshu fails, just return the original LLM suggestion
+        }
       }
 
       // Track API usage in database (Milestone 4.2)
@@ -569,7 +657,7 @@ router.post(
 
       // Build response with usage warnings if applicable
       const responseData = {
-        message: assistantMessage,
+        message: finalMessage, // Use finalMessage which may include Xiaohongshu enhancements
         usage: response.usage, // Include token usage for monitoring
       };
 

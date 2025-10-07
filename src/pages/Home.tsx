@@ -216,17 +216,45 @@ export default function Home() {
       const hasItineraryChanges = !!(response.trip || response.tripUpdate);
       const isNewItinerary = !!response.trip; // True for new itinerary, false for updates
 
-      const assistantMsg = {
-        id: crypto.randomUUID(),
-        role: 'assistant' as const,
-        content: response.message,
-        suggestionCard: response.suggestion,
-        quickReplies: response.quickReplies,
-        hasItineraryChanges,
-        isNewItinerary,
-        timestamp: Date.now(),
-      };
-      addMessage(assistantMsg);
+      // Handle multiple suggestions (Xiaohongshu integration)
+      if (response.suggestions && response.suggestions.length > 0) {
+        // Add introductory message
+        const introMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: response.message,
+          quickReplies: response.quickReplies,
+          hasItineraryChanges,
+          isNewItinerary,
+          timestamp: Date.now(),
+        };
+        addMessage(introMsg);
+
+        // Add each suggestion as a separate message
+        response.suggestions.forEach((suggestion) => {
+          const suggestionMsg = {
+            id: crypto.randomUUID(),
+            role: 'assistant' as const,
+            content: '', // No text content, just the suggestion card
+            suggestionCard: suggestion,
+            timestamp: Date.now(),
+          };
+          addMessage(suggestionMsg);
+        });
+      } else {
+        // Single suggestion or regular message
+        const assistantMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: response.message,
+          suggestionCard: response.suggestion,
+          quickReplies: response.quickReplies,
+          hasItineraryChanges,
+          isNewItinerary,
+          timestamp: Date.now(),
+        };
+        addMessage(assistantMsg);
+      }
 
       // Handle trip creation/update
       if (response.trip) {

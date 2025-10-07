@@ -325,3 +325,43 @@ model ParsedBooking {
   @@index([startDateTime])
   @@map("parsed_bookings")
 }
+
+// XiaohongshuCache table - caches Xiaohongshu notes for travel inspiration
+model XiaohongshuCache {
+  id                String   @id @default(cuid())
+  noteId            String   @unique @map("note_id") // Original Xiaohongshu note ID
+  query             String   // Search term used to find this note (e.g., "Tokyo food", "Peru hiking")
+  title             String   // Note title
+  content           String   @db.Text // Note content (text)
+  contentZh         String?  @db.Text @map("content_zh") // Original Chinese content
+  summary           String   @db.Text // LLM-generated English summary (2-3 sentences)
+  images            String[] // Array of image URLs
+  tags              String[] // Hashtags from the note
+
+  // Author information
+  authorName        String   @map("author_name")
+  authorId          String   @map("author_id")
+  authorAvatar      String?  @map("author_avatar")
+
+  // Engagement metrics
+  likes             Int      @default(0)
+  comments          Int      @default(0)
+  shares            Int      @default(0)
+
+  // Note metadata
+  noteUrl           String   @map("note_url") // Link to original note
+  publishedAt       DateTime? @map("published_at")
+  location          String?  // Location tag from note
+
+  // Usage tracking
+  usageCount        Int      @default(0) @map("usage_count") // How many times this note was used in suggestions
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([query]) // Fast search by query
+  @@index([location]) // Fast search by location
+  @@index([usageCount]) // Track popular notes
+  @@index([createdAt]) // Order by recency
+  @@map("xiaohongshu_cache")
+}

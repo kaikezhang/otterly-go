@@ -50,6 +50,43 @@ export function SuggestionCard({
         {suggestion.title}
       </h3>
 
+      {/* Xiaohongshu Attribution */}
+      {suggestion.source === 'xiaohongshu' && suggestion.xiaohongshuMeta && (
+        <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-md p-3 mb-4">
+          <div className="flex items-center gap-3">
+            {/* Xiaohongshu Badge */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center">
+                <span className="text-white text-xs font-bold">小红书</span>
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                Featured on Xiaohongshu
+              </span>
+            </div>
+          </div>
+
+          {/* Author Info */}
+          <div className="flex items-center gap-3 mt-2">
+            {suggestion.xiaohongshuMeta.authorAvatar && (
+              <img
+                src={suggestion.xiaohongshuMeta.authorAvatar}
+                alt={suggestion.xiaohongshuMeta.authorName}
+                className="w-8 h-8 rounded-full"
+              />
+            )}
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 font-medium">
+                {suggestion.xiaohongshuMeta.authorName}
+              </p>
+              <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                <span>❤️ {suggestion.xiaohongshuMeta.likes.toLocaleString()} likes</span>
+                <span>💬 {suggestion.xiaohongshuMeta.comments.toLocaleString()} comments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Images from photoQuery */}
       {photos.length > 0 && (
         <div className="space-y-2 mb-4">
