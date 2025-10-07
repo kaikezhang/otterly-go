@@ -25,14 +25,61 @@ interface DirectionsResponse {
   error?: string;
 }
 
+// Map common country names to ISO 3166-1 alpha-2 codes
+const COUNTRY_CODE_MAP: Record<string, string> = {
+  'china': 'cn',
+  'united states': 'us',
+  'usa': 'us',
+  'japan': 'jp',
+  'south korea': 'kr',
+  'france': 'fr',
+  'italy': 'it',
+  'spain': 'es',
+  'germany': 'de',
+  'united kingdom': 'gb',
+  'uk': 'gb',
+  'canada': 'ca',
+  'australia': 'au',
+  'mexico': 'mx',
+  'brazil': 'br',
+  'india': 'in',
+  'thailand': 'th',
+  'vietnam': 'vn',
+  'singapore': 'sg',
+  'malaysia': 'my',
+  'indonesia': 'id',
+  'philippines': 'ph',
+  'new zealand': 'nz',
+  'switzerland': 'ch',
+  'netherlands': 'nl',
+  'portugal': 'pt',
+  'greece': 'gr',
+  'turkey': 'tr',
+  'egypt': 'eg',
+  'south africa': 'za',
+  'argentina': 'ar',
+  'chile': 'cl',
+  'peru': 'pe',
+  'colombia': 'co',
+};
+
+/**
+ * Get ISO country code from country name
+ */
+function getCountryCode(country: string): string | undefined {
+  return COUNTRY_CODE_MAP[country.toLowerCase()];
+}
+
 /**
  * Geocode a location query to coordinates
  * @param query - Location name or address
  * @param proximity - Optional proximity bias for results
+ * @param country - Optional country name to restrict results
  */
 export async function geocodeLocation(
   query: string,
-  proximity?: { lng: number; lat: number }
+  proximity?: { lng: number; lat: number },
+  country?: string
 ): Promise<GeocodeResult> {
   const params = new URLSearchParams({
     query,
@@ -40,6 +87,13 @@ export async function geocodeLocation(
 
   if (proximity) {
     params.append('proximity', JSON.stringify(proximity));
+  }
+
+  if (country) {
+    const countryCode = getCountryCode(country);
+    if (countryCode) {
+      params.append('country', countryCode);
+    }
   }
 
   const response = await fetch(`${API_URL}/api/map/geocode?${params.toString()}`);

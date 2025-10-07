@@ -552,7 +552,7 @@ export default function Home() {
                 setShowMap(!showMap);
                 if (!showMap) setActiveTab('map');
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
+              className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
                 showMap
                   ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -704,14 +704,14 @@ export default function Home() {
         )}
 
         {/* Map View */}
-        {trip && showMap && (
+        {trip && (showMap || activeTab === 'map') && (
           <div className={`lg:w-1/3 ${
             activeTab !== 'map' ? 'hidden' : 'w-full'
           } bg-gray-100 transition-all duration-300 ease-in-out lg:block`}>
             <MapView
               trip={trip}
               selectedDayIndex={selectedDayIndex}
-              isVisible={showMap}
+              isVisible={showMap || activeTab === 'map'}
             />
           </div>
         )}
