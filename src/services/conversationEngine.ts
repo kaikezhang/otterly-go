@@ -152,7 +152,7 @@ class ConversationEngine {
 
     // Try to geocode destination first for proximity bias
     try {
-      const destLocation = await geocodeLocation(destination);
+      const destLocation = await geocodeLocation(destination, undefined, destination);
       proximityBias = { lng: destLocation.lng, lat: destLocation.lat };
     } catch (error) {
       console.warn(`Could not geocode destination "${destination}":`, error);
@@ -161,6 +161,20 @@ class ConversationEngine {
     // Enrich days and items with geocoding
     const enrichedDays = await Promise.all(
       trip.days.map(async (day: any) => {
+        // Try to geocode day location for better proximity bias
+        let dayProximityBias = proximityBias;
+        if (day.location) {
+          try {
+            const dayLocationQuery = day.location.includes(destination)
+              ? day.location
+              : `${day.location}, ${destination}`;
+            const dayLocation = await geocodeLocation(dayLocationQuery, proximityBias, destination);
+            dayProximityBias = { lng: dayLocation.lng, lat: dayLocation.lat };
+          } catch (error) {
+            console.warn(`Could not geocode day location "${day.location}":`, error);
+          }
+        }
+
         const enrichedItems = await Promise.all(
           day.items.map(async (item: any) => {
             const enrichedItem = {
@@ -186,17 +200,24 @@ class ConversationEngine {
                   const desc = item.description.toLowerCase();
                   const locationMatch = desc.match(/(?:in|at|near|visit|explore)\s+([A-Z][a-zA-Z\s]+(?:,\s*[A-Z][a-zA-Z\s]+)?)/i);
                   if (locationMatch) {
-                    query = `${locationMatch[1]}, ${destination}`;
+                    // Use day.location if available, otherwise use destination
+                    const contextLocation = day.location || destination;
+                    query = `${locationMatch[1]}, ${contextLocation}`;
                   } else {
-                    query = `${item.title}, ${destination}`;
+                    // Use day.location if available for better context
+                    const contextLocation = day.location || destination;
+                    query = `${item.title}, ${contextLocation}`;
                   }
                 }
-                // Priority 3: Fallback to title + destination
+                // Priority 3: Fallback to title + day location (or destination)
                 else {
-                  query = `${item.title}, ${destination}`;
+                  const contextLocation = day.location || destination;
+                  query = `${item.title}, ${contextLocation}`;
                 }
 
-                const location = await geocodeLocation(query, proximityBias);
+                // Use day's proximity bias if available, otherwise use trip destination bias
+                // Pass destination country for better filtering
+                const location = await geocodeLocation(query, dayProximityBias, destination);
                 enrichedItem.location = location;
                 console.log(`Geocoded "${item.title}" → ${location.address}`);
               } catch (error) {

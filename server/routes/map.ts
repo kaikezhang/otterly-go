@@ -19,6 +19,7 @@ const geocodeRequestSchema = z.object({
       lat: z.number(),
     })
     .optional(),
+  country: z.string().length(2).optional(), // ISO 3166-1 alpha-2 country code
 });
 
 const directionsRequestSchema = z.object({
@@ -38,15 +39,16 @@ const directionsRequestSchema = z.object({
 router.get('/geocode', async (req, res) => {
   try {
     // Validate query parameters
-    const { query, proximity } = geocodeRequestSchema.parse({
+    const { query, proximity, country } = geocodeRequestSchema.parse({
       query: req.query.query,
       proximity: req.query.proximity
         ? JSON.parse(req.query.proximity as string)
         : undefined,
+      country: req.query.country,
     });
 
     // Check cache first
-    const cacheKey = `${query}${proximity ? `-${proximity.lng},${proximity.lat}` : ''}`;
+    const cacheKey = `${query}${proximity ? `-${proximity.lng},${proximity.lat}` : ''}${country ? `-${country}` : ''}`;
     if (geocodeCache.has(cacheKey)) {
       const cached = geocodeCache.get(cacheKey)!;
       return res.json({
@@ -71,6 +73,11 @@ router.get('/geocode', async (req, res) => {
     // Add proximity bias if provided
     if (proximity) {
       url += `&proximity=${proximity.lng},${proximity.lat}`;
+    }
+
+    // Add country restriction if provided (ISO 3166-1 alpha-2)
+    if (country) {
+      url += `&country=${country.toLowerCase()}`;
     }
 
     // Call Mapbox Geocoding API
