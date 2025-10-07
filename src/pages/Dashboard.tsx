@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TripCard } from '../components/TripCard';
 import { SkeletonTripCard } from '../components/SkeletonTripCard';
 import { TripsFilterBar } from '../components/TripsFilterBar';
@@ -19,6 +19,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const clearAll = useStore((state) => state.clearAll);
   const user = useStore((state) => state.user);
   const logout = useStore((state) => state.logout);
@@ -79,6 +80,14 @@ export function Dashboard() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Reload trips when navigating back to dashboard
+  React.useEffect(() => {
+    if (location.state?.from) {
+      // User navigated back from another page, refresh the data
+      loadData();
+    }
+  }, [location.key, loadData]);
 
   // Auto-redirect new users with no trips to create their first trip (but not admins)
   React.useEffect(() => {
