@@ -252,13 +252,9 @@ export const useStore = create<StoreState>()(
 
       // Trip actions
       setTrip: (trip) => {
-        if (trip) {
-          // When setting a new trip, mark all items as changed
-          const allItemIds = trip.days.flatMap(day => day.items.map(item => item.id));
-          set({ trip, changedItemIds: new Set(allItemIds) });
-        } else {
-          set({ trip, changedItemIds: new Set() });
-        }
+        // When setting a new trip, don't mark items as changed
+        // (changes will be tracked via updateTrip)
+        set({ trip, changedItemIds: new Set() });
       },
 
       addMessage: (message) =>
