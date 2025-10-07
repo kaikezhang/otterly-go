@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Mail, Upload, Check, X, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Mail, Upload, Check, X, AlertCircle, RefreshCw, Plus, Edit2, Save } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -57,6 +57,10 @@ export default function EmailImport() {
 
   // Trips for dropdown
   const [trips, setTrips] = useState<Array<{ id: string; title: string }>>([]);
+
+  // Edit mode
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<ParsedBooking>>({});
 
   useEffect(() => {
     if (user) {
@@ -241,6 +245,70 @@ export default function EmailImport() {
     }
   };
 
+  const addGroupToTrip = async (bookingIds: string[], tripId: string) => {
+    try {
+      // Add all bookings in parallel
+      await Promise.all(
+        bookingIds.map((id) =>
+          fetch(`${API_URL}/api/email-import/bookings/${id}/add-to-trip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ tripId }),
+          })
+        )
+      );
+      fetchBookings(); // Reload to update status
+    } catch (error) {
+      console.error('Failed to add bookings to trip:', error);
+    }
+  };
+
+  const startEdit = (booking: ParsedBooking) => {
+    setEditingBookingId(booking.id);
+    setEditForm({
+      title: booking.title,
+      description: booking.description,
+      location: booking.location,
+      startDateTime: booking.startDateTime,
+      endDateTime: booking.endDateTime,
+    });
+  };
+
+  const saveEdit = async (bookingId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/email-import/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(editForm),
+      });
+
+      if (response.ok) {
+        setEditingBookingId(null);
+        setEditForm({});
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error('Failed to save booking edit:', error);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingBookingId(null);
+    setEditForm({});
+  };
+
+  // Group bookings by confirmation number
+  const groupedBookings = bookings.reduce((groups, booking) => {
+    const key = booking.confirmationNumber || booking.id;
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(booking);
+    return groups;
+  }, {} as Record<string, ParsedBooking[]>);
+
   const getBookingTypeColor = (type: string) => {
     const colors: Record<string, string> = {
       flight: 'bg-blue-100 text-blue-800',
@@ -404,90 +472,203 @@ export default function EmailImport() {
         ) : bookings.length === 0 ? (
           <p className="text-gray-600">No bookings found. Connect an email account or upload a booking email to get started.</p>
         ) : (
-          <div className="space-y-4">
-            {bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getBookingTypeColor(booking.bookingType)}`}
-                      >
-                        {booking.bookingType.replace('_', ' ').toUpperCase()}
-                      </span>
-                      {booking.status === 'added_to_trip' && booking.tripId && (
-                        <a
-                          href={`/trip/${booking.tripId}`}
-                          className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1"
+          <div className="space-y-6">
+            {Object.entries(groupedBookings).map(([confirmationKey, groupBookings]) => {
+              const isGroup = groupBookings.length > 1;
+              const allAdded = groupBookings.every((b) => b.status === 'added_to_trip');
+              const confirmationNumber = groupBookings[0].confirmationNumber;
+
+              return (
+                <div key={confirmationKey} className="border border-gray-300 rounded-lg overflow-hidden">
+                  {/* Group Header (only show if multiple bookings) */}
+                  {isGroup && (
+                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">
+                          {confirmationNumber ? `Confirmation: ${confirmationNumber}` : 'Related Bookings'}
+                        </h3>
+                        <span className="text-sm text-gray-600">({groupBookings.length} items)</span>
+                      </div>
+                      {!allAdded && trips.length > 0 && (
+                        <select
+                          onChange={(e) => addGroupToTrip(groupBookings.map((b) => b.id), e.target.value)}
+                          className="text-sm border border-gray-300 rounded px-3 py-1.5 bg-white hover:bg-gray-50"
+                          defaultValue=""
                         >
-                          <Check className="w-3 h-3" />
-                          Added to {trips.find((t) => t.id === booking.tripId)?.title || 'Trip'}
-                        </a>
-                      )}
-                      {booking.conflictDetected && (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Conflict
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="font-semibold text-lg">{booking.title}</h3>
-                    {booking.description && (
-                      <p className="text-sm text-gray-600 mt-1">{booking.description}</p>
-                    )}
-
-                    <div className="mt-2 text-sm text-gray-600 space-y-1">
-                      {booking.confirmationNumber && (
-                        <p>Confirmation: {booking.confirmationNumber}</p>
-                      )}
-                      {booking.startDateTime && (
-                        <p>
-                          {new Date(booking.startDateTime).toLocaleString()}
-                          {booking.endDateTime &&
-                            ` - ${new Date(booking.endDateTime).toLocaleString()}`}
-                        </p>
-                      )}
-                      {booking.location && <p>Location: {booking.location}</p>}
-                    </div>
-
-                    <p className="text-xs text-gray-500 mt-2">
-                      Confidence: {(booking.confidence * 100).toFixed(0)}% • Source:{' '}
-                      {booking.source}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-2 ml-4">
-                    {booking.status !== 'added_to_trip' && trips.length > 0 && (
-                      <select
-                        onChange={(e) => addBookingToTrip(booking.id, e.target.value)}
-                        className="text-sm border border-gray-300 rounded px-2 py-1"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>
-                          Add to trip...
-                        </option>
-                        {trips.map((trip) => (
-                          <option key={trip.id} value={trip.id}>
-                            {trip.title}
+                          <option value="" disabled>
+                            Add All to Trip...
                           </option>
-                        ))}
-                      </select>
-                    )}
+                          {trips.map((trip) => (
+                            <option key={trip.id} value={trip.id}>
+                              {trip.title}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
 
-                    <button
-                      onClick={() => deleteBooking(booking.id)}
-                      className="text-red-600 hover:text-red-700 text-sm"
-                    >
-                      Delete
-                    </button>
+                  {/* Individual Bookings */}
+                  <div className={isGroup ? 'divide-y divide-gray-200' : ''}>
+                    {groupBookings.map((booking) => {
+                      const isEditing = editingBookingId === booking.id;
+
+                      return (
+                        <div
+                          key={booking.id}
+                          className="p-4 hover:bg-gray-50 transition"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium ${getBookingTypeColor(booking.bookingType)}`}
+                                >
+                                  {booking.bookingType.replace('_', ' ').toUpperCase()}
+                                </span>
+                                {booking.status === 'added_to_trip' && booking.tripId && (
+                                  <a
+                                    href={`/trip/${booking.tripId}`}
+                                    className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    Added to {trips.find((t) => t.id === booking.tripId)?.title || 'Trip'}
+                                  </a>
+                                )}
+                                {booking.conflictDetected && (
+                                  <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Conflict
+                                  </span>
+                                )}
+                              </div>
+
+                              {isEditing ? (
+                                <div className="space-y-2 mt-2">
+                                  <input
+                                    type="text"
+                                    value={editForm.title || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                    className="w-full text-lg font-semibold border border-gray-300 rounded px-2 py-1"
+                                    placeholder="Title"
+                                  />
+                                  <textarea
+                                    value={editForm.description || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                    className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                                    placeholder="Description"
+                                    rows={2}
+                                  />
+                                  <input
+                                    type="text"
+                                    value={editForm.location || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                                    className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                                    placeholder="Location"
+                                  />
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="datetime-local"
+                                      value={editForm.startDateTime ? new Date(editForm.startDateTime).toISOString().slice(0, 16) : ''}
+                                      onChange={(e) => setEditForm({ ...editForm, startDateTime: e.target.value })}
+                                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                                    />
+                                    <input
+                                      type="datetime-local"
+                                      value={editForm.endDateTime ? new Date(editForm.endDateTime).toISOString().slice(0, 16) : ''}
+                                      onChange={(e) => setEditForm({ ...editForm, endDateTime: e.target.value })}
+                                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <h3 className="font-semibold text-lg">{booking.title}</h3>
+                                  {booking.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{booking.description}</p>
+                                  )}
+
+                                  <div className="mt-2 text-sm text-gray-600 space-y-1">
+                                    {!isGroup && booking.confirmationNumber && (
+                                      <p>Confirmation: {booking.confirmationNumber}</p>
+                                    )}
+                                    {booking.startDateTime && (
+                                      <p>
+                                        {new Date(booking.startDateTime).toLocaleString()}
+                                        {booking.endDateTime &&
+                                          ` - ${new Date(booking.endDateTime).toLocaleString()}`}
+                                      </p>
+                                    )}
+                                    {booking.location && <p>Location: {booking.location}</p>}
+                                  </div>
+
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    Confidence: {(booking.confidence * 100).toFixed(0)}% • Source:{' '}
+                                    {booking.source}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-2 ml-4">
+                              {isEditing ? (
+                                <>
+                                  <button
+                                    onClick={() => saveEdit(booking.id)}
+                                    className="text-green-600 hover:text-green-700 text-sm flex items-center gap-1"
+                                  >
+                                    <Save className="w-4 h-4" />
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEdit}
+                                    className="text-gray-600 hover:text-gray-700 text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {!isGroup && booking.status !== 'added_to_trip' && trips.length > 0 && (
+                                    <select
+                                      onChange={(e) => addBookingToTrip(booking.id, e.target.value)}
+                                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                                      defaultValue=""
+                                    >
+                                      <option value="" disabled>
+                                        Add to trip...
+                                      </option>
+                                      {trips.map((trip) => (
+                                        <option key={trip.id} value={trip.id}>
+                                          {trip.title}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  <button
+                                    onClick={() => startEdit(booking)}
+                                    className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => deleteBooking(booking.id)}
+                                    className="text-red-600 hover:text-red-700 text-sm"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

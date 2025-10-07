@@ -293,13 +293,21 @@ router.get('/bookings', requireAuth, async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/email-import/bookings/:id
- * Update booking status (e.g., mark as reviewed, added to trip, ignored)
+ * Update booking fields (status, tripId, title, description, dates, etc.)
  */
 router.patch('/bookings/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.userId!;
-    const { status, tripId } = req.body;
+    const {
+      status,
+      tripId,
+      title,
+      description,
+      location,
+      startDateTime,
+      endDateTime
+    } = req.body;
 
     // Verify ownership
     const booking = await prisma.parsedBooking.findFirst({
@@ -310,13 +318,19 @@ router.patch('/bookings/:id', requireAuth, async (req: Request, res: Response) =
       return res.status(404).json({ error: 'Booking not found' });
     }
 
+    // Build update data object with only provided fields
+    const updateData: any = { updatedAt: new Date() };
+    if (status !== undefined) updateData.status = status;
+    if (tripId !== undefined) updateData.tripId = tripId;
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (location !== undefined) updateData.location = location;
+    if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
+    if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
+
     const updated = await prisma.parsedBooking.update({
       where: { id },
-      data: {
-        status,
-        tripId,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     return res.json({ success: true, booking: updated });
