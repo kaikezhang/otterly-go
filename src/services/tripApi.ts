@@ -52,7 +52,7 @@ export async function createTrip(
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include', // Include auth cookies
     body: JSON.stringify({
-      title: `${trip.destination} Trip`, // Generate a title
+      title: trip.title || `${trip.destination} Trip`, // Use custom title or generate one
       destination: trip.destination,
       startDate: trip.startDate,
       endDate: trip.endDate,
@@ -83,7 +83,7 @@ export async function updateTrip(
     credentials: 'include', // Include auth cookies
     body: JSON.stringify({
       ...(tripData && {
-        title: `${tripData.destination} Trip`,
+        title: tripData.title || `${tripData.destination} Trip`,
         destination: tripData.destination,
         startDate: tripData.startDate,
         endDate: tripData.endDate,

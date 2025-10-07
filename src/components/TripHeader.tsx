@@ -70,7 +70,7 @@ export function TripHeader({
       <div className="px-6 pt-4 pb-2">
         <nav className="flex items-center gap-2 text-sm text-gray-600">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/dashboard', { state: { from: 'trip' } })}
             className="hover:text-gray-900 transition-colors"
           >
             Dashboard
