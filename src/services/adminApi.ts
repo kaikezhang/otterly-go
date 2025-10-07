@@ -143,3 +143,85 @@ export async function getUsers(
 
   return response.json();
 }
+
+/**
+ * Email job types and interfaces
+ */
+export interface EmailJobStats {
+  total: number;
+  byStatus: Array<{ status: string; count: number }>;
+  byType: Array<{ type: string; count: number }>;
+  last7Days: {
+    total: number;
+    byType: Array<{ type: string; count: number }>;
+  };
+}
+
+export interface EmailLog {
+  id: string;
+  userId: string;
+  tripId: string | null;
+  emailType: string;
+  recipientEmail: string;
+  subject: string;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+  user: {
+    email: string;
+    name: string | null;
+  };
+  trip: {
+    title: string;
+    destination: string;
+  } | null;
+}
+
+export interface EmailLogsResponse {
+  logs: EmailLog[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Get email job statistics
+ */
+export async function getEmailJobStats(): Promise<EmailJobStats> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/email-jobs/stats`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch email job stats: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get recent email logs
+ */
+export async function getEmailLogs(
+  limit = 50,
+  offset = 0
+): Promise<EmailLogsResponse> {
+  const params = new URLSearchParams();
+  params.append('limit', limit.toString());
+  params.append('offset', offset.toString());
+
+  const url = `${API_BASE_URL}/api/admin/email-jobs/logs?${params}`;
+
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch email logs: ${response.statusText}`);
+  }
+
+  return response.json();
+}

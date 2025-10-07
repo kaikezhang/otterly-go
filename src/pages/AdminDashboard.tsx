@@ -5,19 +5,25 @@ import {
   getUsageByUser,
   getUsageByDate,
   getUsers,
+  getEmailJobStats,
+  getEmailLogs,
   type UsageOverview,
   type UserUsage,
   type UsageByDate,
   type AdminUser,
+  type EmailJobStats,
+  type EmailLogsResponse,
 } from '../services/adminApi';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'usage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'usage' | 'email-jobs'>('overview');
   const [overview, setOverview] = useState<UsageOverview | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [userUsage, setUserUsage] = useState<UserUsage[]>([]);
   const [usageByDate, setUsageByDate] = useState<UsageByDate[]>([]);
+  const [emailJobStats, setEmailJobStats] = useState<EmailJobStats | null>(null);
+  const [emailLogs, setEmailLogs] = useState<EmailLogsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +49,13 @@ export default function AdminDashboard() {
         ]);
         setUserUsage(byUser.users);
         setUsageByDate(byDate.usage);
+      } else if (activeTab === 'email-jobs') {
+        const [stats, logs] = await Promise.all([
+          getEmailJobStats(),
+          getEmailLogs(50, 0),
+        ]);
+        setEmailJobStats(stats);
+        setEmailLogs(logs);
       }
     } catch (err) {
       console.error('Failed to load admin data:', err);
@@ -88,6 +101,7 @@ export default function AdminDashboard() {
               { id: 'overview', label: 'Overview' },
               { id: 'users', label: 'Users' },
               { id: 'usage', label: 'Usage Analytics' },
+              { id: 'email-jobs', label: 'Email Jobs' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -411,6 +425,178 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {formatCost(day.estimatedCost)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Jobs Tab */}
+            {activeTab === 'email-jobs' && emailJobStats && emailLogs && (
+              <div className="space-y-6">
+                {/* Job Schedule Info */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                    📅 Background Job Schedules
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Trip Reminders</p>
+                      <p className="text-blue-700 dark:text-blue-300">Daily at 9:00 AM</p>
+                      <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">Sends 7 days before trip start</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Weather Alerts</p>
+                      <p className="text-blue-700 dark:text-blue-300">Daily at 8:00 AM</p>
+                      <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">For trips in next 3 days</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Weekly Digest</p>
+                      <p className="text-blue-700 dark:text-blue-300">Mondays at 10:00 AM</p>
+                      <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">Summary for opted-in users</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Total Emails Sent
+                    </h3>
+                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                      {emailJobStats.total.toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Last 7 Days
+                    </h3>
+                    <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                      {emailJobStats.last7Days.total.toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Success Rate
+                    </h3>
+                    <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
+                      {emailJobStats.byStatus.find(s => s.status === 'sent')?.count || 0}
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Failed
+                    </h3>
+                    <p className="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">
+                      {emailJobStats.byStatus.find(s => s.status === 'failed')?.count || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Emails by Type */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Emails by Type
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Type
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Total Sent
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Last 7 Days
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {emailJobStats.byType.map((type) => (
+                          <tr key={type.type}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                              {type.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {type.count.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {emailJobStats.last7Days.byType.find(t => t.type === type.type)?.count || 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Recent Email Logs */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Recent Email Logs (Last 50)
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Type
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Recipient
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Subject
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {emailLogs.logs.map((log) => (
+                          <tr key={log.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(log.createdAt).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                              {log.emailType.replace(/_/g, ' ')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {log.recipientEmail}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-md truncate">
+                              {log.subject}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  log.status === 'sent'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : log.status === 'failed'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                                }`}
+                              >
+                                {log.status}
+                              </span>
                             </td>
                           </tr>
                         ))}
