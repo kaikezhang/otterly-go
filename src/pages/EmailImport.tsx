@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Mail, Upload, Check, X, AlertCircle, RefreshCw, Plus, Edit2, Save } from 'lucide-react';
 
@@ -36,6 +37,7 @@ interface ParsedBooking {
 }
 
 export default function EmailImport() {
+  const navigate = useNavigate();
   const user = useStore((state) => state.user);
 
   // Connection status
@@ -330,6 +332,17 @@ export default function EmailImport() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="font-medium">Back</span>
+      </button>
+
       <h1 className="text-3xl font-bold mb-8">Email Import</h1>
 
       {/* Gmail & Outlook Connection */}
