@@ -142,7 +142,7 @@ OtterlyGo has successfully built a **strong MVP foundation** with:
 - Stripe integration with multiple subscription tiers:
   - **Free**: 3 trips/month, basic AI, community itineraries
   - **Pro** ($12/month or $99/year): Unlimited trips, GPT-4o, priority support, offline mode, advanced editing
-  - **Team** ($49/month): All Pro features + 5 seats, shared workspace, admin controls, usage analytics
+  - **Team** ($36/month): All Pro features + 5 seats, collabrative workspace
 - Usage tracking and soft/hard limits
 - Upgrade prompts and paywalls
 - Payment history and invoice management
@@ -222,7 +222,7 @@ OtterlyGo has successfully built a **strong MVP foundation** with:
 **Priority**: Critical (TripIt's killer feature)
 
 **Features:**
-- Dedicated email address: `trips@otterly.app`
+- Dedicated email address: `trips@otterlygo.app`
 - Parse flight confirmations (all major airlines)
 - Parse hotel bookings (Booking.com, Airbnb, Hotels.com)
 - Parse rental car confirmations

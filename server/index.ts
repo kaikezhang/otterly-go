@@ -19,6 +19,7 @@ import subscriptionsRouter from './routes/subscriptions.js';
 import webhooksRouter from './routes/webhooks.js';
 import adminRouter from './routes/admin.js';
 import emailRouter from './routes/email.js';
+import emailImportRouter from './routes/emailImport.js';
 import { configurePassport } from './config/passport.js';
 import { logger } from './utils/logger.js';
 import { initializeEmailJobs } from './jobs/emailJobs.js';
@@ -155,6 +156,7 @@ app.use('/api/photos', photosRouter);
 app.use('/api/share', shareRouter); // Public share links (no auth required)
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/email', emailRouter); // Email preferences and unsubscribe
+app.use('/api/email-import', emailImportRouter); // Email import and parsing (Milestone 5.1)
 app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware

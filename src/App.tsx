@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Profile from './pages/Profile';
+import EmailImport from './pages/EmailImport';
 import { SharedTrip } from './pages/SharedTrip';
 import AdminDashboard from './pages/AdminDashboard';
 import { NotFound } from './pages/NotFound';
@@ -145,6 +146,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Email import */}
+            <Route
+              path="/email-import"
+              element={
+                <ProtectedRoute>
+                  <EmailImport />
                 </ProtectedRoute>
               }
             />
