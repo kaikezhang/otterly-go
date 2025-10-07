@@ -4,6 +4,9 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import type { User } from '@prisma/client';
 import { validateRequest, registerSchema, loginSchema } from '../middleware/validation.js';
+import { sendEmail, canSendEmail, getEmailPreferences } from '../services/emailService.js';
+import { welcomeEmail, passwordResetEmail } from '../services/emailTemplates.js';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -112,6 +115,32 @@ router.post('/register', validateRequest(registerSchema), async (req: Request, r
         subscriptionTier: 'free',
       },
     });
+
+    // Send welcome email (async, don't wait)
+    const sendWelcomeEmail = async () => {
+      try {
+        const canSend = await canSendEmail(user.id, 'welcome');
+        if (canSend) {
+          const preferences = await getEmailPreferences(user.id);
+          const html = welcomeEmail({
+            userName: user.name || 'there',
+            loginUrl: `${getFrontendUrl()}/dashboard`,
+            unsubscribeUrl: `${getFrontendUrl()}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+          });
+          await sendEmail({
+            to: user.email,
+            subject: 'Welcome to OtterlyGo! 🎉',
+            html,
+            userId: user.id,
+            emailType: 'welcome',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send welcome email:', error);
+        // Don't fail the registration if email fails
+      }
+    };
+    sendWelcomeEmail();
 
     // Generate JWT token
     const token = generateToken(user);
@@ -295,6 +324,131 @@ router.post('/refresh', async (req: Request, res: Response) => {
 router.post('/logout', (req: Request, res: Response) => {
   res.clearCookie('auth_token');
   res.json({ success: true });
+});
+
+/**
+ * POST /api/auth/reset-password-request
+ * Request password reset email
+ */
+const resetPasswordRequestSchema = z.object({
+  email: z.string().email(),
+});
+
+router.post('/reset-password-request', validateRequest(resetPasswordRequestSchema), async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    // Import prisma
+    const { prisma } = await import('../db.js');
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Always return success to prevent email enumeration
+    // Even if user doesn't exist, we return success
+    if (!user) {
+      return res.json({ success: true });
+    }
+
+    // Check if user has a password (might be Google-only user)
+    if (!user.passwordHash) {
+      return res.json({ success: true }); // Don't reveal that this is a Google-only account
+    }
+
+    // Create password reset token (expires in 1 hour)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    const passwordReset = await prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
+    // Send password reset email
+    const preferences = await getEmailPreferences(user.id);
+    const html = passwordResetEmail({
+      userName: user.name || 'there',
+      resetUrl: `${getFrontendUrl()}/reset-password?token=${passwordReset.token}`,
+      expiresIn: '1 hour',
+      unsubscribeUrl: `${getFrontendUrl()}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+    });
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Reset Your Password 🔐',
+      html,
+      userId: user.id,
+      emailType: 'transactional',
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    res.status(500).json({ error: 'Failed to request password reset' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with token
+ */
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(8),
+});
+
+router.post('/reset-password', validateRequest(resetPasswordSchema), async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // Import prisma
+    const { prisma } = await import('../db.js');
+
+    // Find password reset token
+    const passwordReset = await prisma.passwordReset.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Check if token has expired
+    if (passwordReset.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Reset token has expired' });
+    }
+
+    // Check if token has already been used
+    if (passwordReset.usedAt) {
+      return res.status(400).json({ error: 'Reset token has already been used' });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    await prisma.user.update({
+      where: { id: passwordReset.userId },
+      data: { passwordHash },
+    });
+
+    // Mark token as used
+    await prisma.passwordReset.update({
+      where: { id: passwordReset.id },
+      data: { usedAt: new Date() },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
 });
 
 export default router;

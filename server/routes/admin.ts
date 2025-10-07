@@ -337,4 +337,122 @@ router.get('/users', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/email-jobs/stats
+ * Get email job statistics
+ */
+router.get('/email-jobs/stats', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Get email statistics from EmailLog table
+    const totalEmails = await prisma.emailLog.count();
+
+    const emailsByStatus = await prisma.emailLog.groupBy({
+      by: ['status'],
+      _count: {
+        id: true,
+      },
+    });
+
+    const emailsByType = await prisma.emailLog.groupBy({
+      by: ['emailType'],
+      _count: {
+        id: true,
+      },
+    });
+
+    // Get recent activity (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentEmails = await prisma.emailLog.count({
+      where: {
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+    });
+
+    const recentByType = await prisma.emailLog.groupBy({
+      by: ['emailType'],
+      where: {
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    res.json({
+      total: totalEmails,
+      byStatus: emailsByStatus.map(s => ({ status: s.status, count: s._count.id })),
+      byType: emailsByType.map(t => ({ type: t.emailType, count: t._count.id })),
+      last7Days: {
+        total: recentEmails,
+        byType: recentByType.map(t => ({ type: t.emailType, count: t._count.id })),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching email job stats:', error);
+    res.status(500).json({ error: 'Failed to fetch email job statistics' });
+  }
+});
+
+/**
+ * GET /api/admin/email-jobs/logs
+ * Get recent email logs
+ */
+router.get('/email-jobs/logs', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const validation = paginationQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: validation.error.errors,
+      });
+    }
+
+    const limit = validation.data.limit ? parseInt(validation.data.limit) : 50;
+    const offset = validation.data.offset ? parseInt(validation.data.offset) : 0;
+
+    const logs = await prisma.emailLog.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
+        trip: {
+          select: {
+            title: true,
+            destination: true,
+          },
+        },
+      },
+    });
+
+    const total = await prisma.emailLog.count();
+
+    res.json({
+      logs,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching email logs:', error);
+    res.status(500).json({ error: 'Failed to fetch email logs' });
+  }
+});
+
 export default router;

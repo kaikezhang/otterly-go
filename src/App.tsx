@@ -28,7 +28,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Save the current location to redirect back after login
+    const returnUrl = window.location.pathname + window.location.search;
+    return <Navigate to={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} replace />;
   }
 
   return <>{children}</>;
@@ -72,10 +74,19 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  // Redirect to dashboard if already logged in and on login page
+  // Redirect after login
   useEffect(() => {
     if (user && window.location.pathname === '/login') {
-      navigate('/dashboard', { replace: true });
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('returnUrl');
+
+      if (returnUrl) {
+        // Redirect to the original destination
+        navigate(returnUrl, { replace: true });
+      } else {
+        // Default redirect to dashboard
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, navigate]);
 

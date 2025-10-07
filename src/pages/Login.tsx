@@ -10,6 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const error = searchParams.get('error');
+  const returnUrl = searchParams.get('returnUrl');
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -43,13 +44,22 @@ export default function Login() {
         : await loginWithEmail(email, password);
 
       if (result.success) {
-        navigate('/');
+        // Redirect to returnUrl if provided, otherwise dashboard
+        navigate(returnUrl || '/dashboard');
       } else {
         setFormError(result.error || 'Authentication failed');
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Save returnUrl to sessionStorage for OAuth callback
+    if (returnUrl) {
+      sessionStorage.setItem('returnUrl', returnUrl);
+    }
+    login();
   };
 
   const toggleMode = () => {
@@ -166,7 +176,7 @@ export default function Login() {
 
         {/* Google Sign-In Button */}
         <button
-          onClick={login}
+          onClick={handleGoogleLogin}
           className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg border-2 border-gray-300 transition-colors duration-200"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

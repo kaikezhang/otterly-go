@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { prisma } from '../db';
 import { verifyWebhookSignature } from '../services/stripe';
+import { sendEmail, getEmailPreferences } from '../services/emailService.js';
+import { paymentReceiptEmail } from '../services/emailTemplates.js';
 
 const router = express.Router();
 
@@ -69,6 +71,12 @@ router.post(
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
           await handleCheckoutCompleted(session);
+          break;
+        }
+
+        case 'invoice.payment_succeeded': {
+          const invoice = event.data.object as Stripe.Invoice;
+          await handlePaymentSucceeded(invoice);
           break;
         }
 
@@ -177,6 +185,65 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(`Checkout completed for user ${user.email}, subscription: ${subscriptionId}`);
   // Subscription details will be updated via subscription.created webhook
+}
+
+/**
+ * Handle successful payment
+ */
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  const customerId = invoice.customer as string;
+  const amount = invoice.amount_paid / 100; // Convert from cents to dollars
+  const currency = invoice.currency.toUpperCase();
+
+  // Find user by Stripe customer ID
+  const user = await prisma.user.findUnique({
+    where: { stripeCustomerId: customerId },
+  });
+
+  if (!user) {
+    console.error(`User not found for Stripe customer: ${customerId}`);
+    return;
+  }
+
+  // Send payment receipt email (async, don't wait)
+  const sendPaymentReceipt = async () => {
+    try {
+      const preferences = await getEmailPreferences(user.id);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      // Determine plan name based on user's subscription tier
+      const planName = user.subscriptionTier === 'pro' ? 'Pro Plan' : user.subscriptionTier === 'team' ? 'Team Plan' : 'Free Plan';
+
+      const html = paymentReceiptEmail({
+        userName: user.name || 'there',
+        amount: `${currency} $${amount.toFixed(2)}`,
+        planName,
+        invoiceUrl: invoice.hosted_invoice_url || `${frontendUrl}/account/billing`,
+        date: new Date(invoice.created * 1000).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        unsubscribeUrl: `${frontendUrl}/email/unsubscribe?token=${preferences.unsubscribeToken}`,
+      });
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Payment Receipt 💳',
+        html,
+        userId: user.id,
+        emailType: 'transactional',
+      });
+
+      console.log(`Sent payment receipt to ${user.email}`);
+    } catch (error) {
+      console.error('Failed to send payment receipt:', error);
+      // Don't fail the webhook if email fails
+    }
+  };
+  sendPaymentReceipt();
+
+  console.log(`Payment succeeded for user ${user.email}: ${currency} $${amount.toFixed(2)}`);
 }
 
 /**
