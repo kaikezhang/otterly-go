@@ -254,6 +254,7 @@ export interface TripStats {
     archived: number;
   };
   destinationsCount: number;
+  placesCount: number;
   totalDays: number;
   activitiesCount: number;
 }

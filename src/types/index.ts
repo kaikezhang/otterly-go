@@ -150,6 +150,7 @@ export interface TripStats {
   total: number;
   byStatus: Record<TripStatus, number>;
   destinationsCount: number;
+  placesCount: number;
   totalDays: number;
   activitiesCount: number;
 }

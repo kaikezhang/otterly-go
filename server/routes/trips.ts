@@ -170,6 +170,17 @@ router.get('/stats', requireAuth, async (req: Request, res: Response) => {
         archived: 0, // Exclude archived from this view
       },
       destinationsCount: new Set(trips.map(t => t.destination)).size,
+      placesCount: new Set(
+        trips.flatMap(trip => {
+          const tripData = trip.dataJson as any;
+          if (tripData && tripData.days && Array.isArray(tripData.days)) {
+            return tripData.days
+              .map((day: any) => day.location)
+              .filter((location: any) => location); // Filter out null/undefined locations
+          }
+          return [];
+        })
+      ).size,
       totalDays: trips.reduce((sum, trip) => {
         if (trip.startDate && trip.endDate) {
           const days = Math.ceil(
