@@ -32,15 +32,35 @@ npm run lint
 
 ## Configuration
 
-### API Key Setup (Milestone 1.1)
+### Required Configuration
 
-The app requires an OpenAI API key configured on the **backend server**:
+**Core API Keys** (required for basic functionality):
 
 1. Copy `.env.example` to `.env`
-2. Set `OPENAI_API_KEY=sk-...` with your OpenAI API key
-3. Optionally configure `OPENAI_MODEL` (defaults to `gpt-3.5-turbo`)
+2. Configure the following required keys:
 
-**Security Note**: As of Milestone 1.1 (2025-10-06), API keys are stored server-side only. The frontend never sees or handles API keys.
+```bash
+# OpenAI API (for AI trip generation)
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini  # or gpt-3.5-turbo
+
+# Google OAuth (for user authentication)
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
+
+# JWT Secret (for session tokens)
+JWT_SECRET=your-random-secret-key
+
+# Mapbox (for maps)
+MAPBOX_ACCESS_TOKEN=pk.your-token-here
+VITE_MAPBOX_ACCESS_TOKEN=pk.your-token-here
+
+# Unsplash (for photos)
+UNSPLASH_ACCESS_KEY=your-access-key
+```
+
+**Security Note**: All API keys are stored server-side only. The frontend never handles sensitive keys.
 
 ### Database Setup (Milestone 1.2)
 
@@ -53,10 +73,20 @@ The app uses **PostgreSQL** with **Prisma ORM** for data persistence:
 
 **For detailed setup instructions**, see [DATABASE_SETUP.md](./DATABASE_SETUP.md)
 
-**Schema**:
-- `users` - Account information (email, password_hash, subscription_tier)
-- `trips` - Trip itineraries with JSON data (user_id, title, destination, dates, data_json)
+**Schema**: See `prisma/schema.prisma` for complete schema. Key tables:
+- `users` - User accounts (email, Google OAuth, Stripe customer info, subscription tier, preferences)
+- `trips` - Trip itineraries (user_id, title, destination, dates, data_json, status, sharing, tags)
 - `conversations` - Chat history for trips (trip_id, messages_json)
+- `photo_library` - Cached Unsplash photos (source, URLs, attribution, usage tracking)
+- `trip_photos` - Links photos to trips and itinerary items
+- `api_usage` - Tracks OpenAI API usage per user (tokens, costs, model)
+- `email_preferences` - User email notification preferences
+- `email_logs` - Sent email tracking and analytics
+- `password_resets` - Password reset tokens
+- `email_connections` - Gmail/Outlook OAuth tokens for email import
+- `parsed_bookings` - Extracted booking details from emails (flights, hotels, activities)
+- `social_content_cache` - Cached content from Xiaohongshu, Reddit, etc. (unified multi-platform table)
+- `xiaohongshu_cache` - DEPRECATED: Legacy Xiaohongshu cache (kept for backward compatibility)
 
 ### Map Integration Setup (Milestone 3.1)
 
@@ -90,52 +120,206 @@ The app uses **Mapbox GL JS** for interactive map visualization:
 
 **Auto-Geocoding**: When a trip is generated, the conversation engine automatically geocodes all activity titles using the Mapbox Geocoding API. Results are cached server-side to minimize API costs.
 
-### Xiaohongshu Integration (OPTIONAL - FREE!)
+### Stripe Subscription System (Phase 4.1)
 
-The app integrates with **Xiaohongshu** (小红书, Little Red Book) to provide travel suggestions based on real user-generated content from the platform.
+The app uses **Stripe** for subscription management with three tiers:
 
-**No setup required!** This feature works out of the box using:
-- **Web scraping** of public Xiaohongshu search results
-- **LLM summarization** (GPT-3.5-turbo) to translate Chinese → English
-- **Sample data fallback** if scraping fails (works offline)
-- **Database caching** to minimize requests and improve performance
+**Configuration**:
+```bash
+# Stripe API Keys
+STRIPE_SECRET_KEY=sk_test_your-key
+STRIPE_PUBLISHABLE_KEY=pk_test_your-key
+STRIPE_WEBHOOK_SECRET=whsec_your-secret
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your-key
 
-**Features**:
-- Search Xiaohongshu notes for travel content based on destination and activity type
-- LLM-powered summarization of Chinese content into English
-- Automatic quote extraction from popular notes
-- Database caching to minimize API costs
-- Engagement metrics (likes, comments) displayed with suggestions
-- Direct links to original Xiaohongshu posts
-- Author attribution with profile pictures
+# Stripe Price IDs (create in Stripe Dashboard)
+STRIPE_PRICE_ID_PRO=price_your-pro-price-id
+STRIPE_PRICE_ID_TEAM=price_your-team-price-id
+```
 
-**Xiaohongshu API Endpoints**:
-- `POST /api/xiaohongshu/search` - Search for travel suggestions
-- `GET /api/xiaohongshu/stats` - View cached content statistics
+**Subscription Tiers**:
+- **Free**: Limited trips, basic features
+- **Pro**: Unlimited trips, GPT-4o, advanced features
+- **Team**: Shared workspaces, collaboration tools
+
+**Stripe API Endpoints**:
+- `POST /api/subscriptions/create-checkout-session` - Start subscription flow
+- `POST /api/subscriptions/create-portal-session` - Manage subscription
+- `GET /api/subscriptions/status` - Get current subscription
+- `POST /api/webhooks/stripe` - Handle Stripe webhooks
 
 **Backend Components**:
-- `server/services/xiaohongshu.ts` - API client and caching service
-- `server/routes/xiaohongshu.ts` - REST endpoints
-- Database table: `xiaohongshu_cache` - Caches notes with summaries
+- `server/services/stripe.ts` - Stripe API client
+- `server/routes/subscriptions.ts` - Subscription endpoints
+- `server/routes/webhooks.ts` - Webhook handlers
+- `server/middleware/usageLimits.ts` - Enforce tier limits
 
 **Frontend Components**:
-- `src/services/xiaohongshuApi.ts` - Frontend API client
-- `src/components/SuggestionCard.tsx` - Displays Xiaohongshu attribution
+- `src/pages/Profile.tsx` - Subscription management UI
+- `src/components/SubscriptionPanel.tsx` - Pricing display
+- `src/components/UsageWarning.tsx` - Usage limit warnings
+
+### Email Notification System (Phase 4.3)
+
+The app uses **Resend** for transactional emails and notifications.
+
+**Configuration**:
+```bash
+# Resend API
+RESEND_API_KEY=re_your-key
+EMAIL_FROM=OtterlyGo <notifications@yourdomain.com>
+
+# Weather API (for trip alerts)
+WEATHER_API_KEY=your-openweathermap-key
+```
+
+**Email Types**:
+- Welcome emails on signup
+- Trip creation confirmations
+- Trip reminders (7 days before departure)
+- Weather alerts for upcoming trips
+- Shared trip notifications
+- Password reset emails
+
+**Email API Endpoints**:
+- `POST /api/email/send` - Send transactional email
+- `GET /api/email/preferences` - Get user preferences
+- `PATCH /api/email/preferences` - Update preferences
+- `GET /api/email/unsubscribe/:token` - One-click unsubscribe
+
+**Backend Components**:
+- `server/services/emailService.ts` - Resend email client
+- `server/services/emailTemplates.ts` - HTML email templates
+- `server/routes/email.ts` - Email preference endpoints
+- `server/jobs/emailJobs.ts` - Scheduled email tasks (node-cron)
+
+**Frontend Components**:
+- `src/pages/Profile.tsx` - Email preferences UI
+
+### Email Import & Parsing (Phase 5.1)
+
+The app can auto-import booking confirmations from Gmail and Outlook using OAuth.
+
+**Configuration**:
+```bash
+# Gmail Import (Google OAuth)
+GOOGLE_CLIENT_ID=your-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-oauth-secret
+
+# Outlook Import (Microsoft OAuth)
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-microsoft-secret
+
+# OAuth Encryption Key (auto-generated if not provided)
+OAUTH_ENCRYPTION_KEY=your-encryption-key
+```
+
+**Supported Booking Types**:
+- Flight confirmations (all major airlines)
+- Hotel bookings (Booking.com, Airbnb, Hotels.com)
+- Car rentals
+- Restaurant reservations (OpenTable, Resy)
+- Activity bookings (Viator, GetYourGuide)
+
+**Email Import Endpoints**:
+- `GET /api/email-import/gmail/auth` - Start Gmail OAuth flow
+- `GET /api/email-import/gmail/callback` - OAuth callback
+- `GET /api/email-import/outlook/auth` - Start Outlook OAuth flow
+- `GET /api/email-import/outlook/callback` - OAuth callback
+- `GET /api/email-import/connections` - List connected accounts
+- `POST /api/email-import/scan` - Scan inbox for bookings
+- `GET /api/email-import/bookings` - List parsed bookings
+- `POST /api/email-import/bookings/:id/add-to-trip` - Add booking to trip
+
+**Backend Components**:
+- `server/services/gmailService.ts` - Gmail API client
+- `server/services/outlookService.ts` - Outlook API client
+- `server/services/emailParser.ts` - GPT-powered booking extraction
+- `server/services/autoInsert.ts` - Auto-add bookings to trips
+- `server/routes/emailImport.ts` - Email import endpoints
+
+**Frontend Components**:
+- `src/pages/EmailImport.tsx` - Email import UI with OAuth flow
+- Shows parsed bookings with confidence scores
+- One-click add to trip functionality
+- Conflict detection for overlapping bookings
 
 **How It Works**:
-1. Frontend calls `/api/xiaohongshu/search` with destination and activity type
-2. Backend scrapes public Xiaohongshu search page (or uses sample data)
-3. LLM (GPT-3.5-turbo) summarizes Chinese content into English
-4. Extracts quotes and engagement metrics (likes, comments)
-5. Results are cached in PostgreSQL database for future use
-6. Frontend displays suggestions with "Featured on Xiaohongshu" badge and author info
+1. User connects Gmail/Outlook account via OAuth
+2. Backend scans inbox for booking confirmation emails
+3. GPT-4o extracts structured data (flight numbers, dates, locations)
+4. Results are cached in `parsed_bookings` table
+5. User reviews and adds bookings to trips with one click
+6. Conflict detection prevents overlapping activities
 
-**Cost**: FREE! Uses web scraping + existing OpenAI API quota (same as chat).
+### Multi-Platform Content Integration (Phase 5.2)
 
-**Fallback Strategy**: If scraping fails or is blocked:
-- Uses realistic sample data (Chinese travel content)
-- Still processes through LLM for authentic-looking suggestions
-- App continues working seamlessly without real-time data
+The app aggregates travel content from multiple social platforms to provide rich, user-generated travel suggestions.
+
+**Supported Platforms**:
+- **Xiaohongshu (小红书)**: Chinese travel platform with authentic local insights
+- **Reddit**: Travel subreddit discussions and recommendations
+- Future: TikTok, Instagram, Google Places
+
+**No additional API keys required!** Content is aggregated using:
+- Web scraping of public content
+- LLM summarization and translation (GPT)
+- Sample data fallback for reliability
+- Database caching for performance
+
+**Configuration**:
+```bash
+# Enable/disable Xiaohongshu integration (optional)
+ENABLE_XIAOHONGSHU=false  # Set to true to enable
+```
+
+**Content API Endpoints**:
+- `POST /api/content/aggregate` - Fetch content from multiple platforms
+- Legacy endpoints (deprecated):
+  - `POST /api/xiaohongshu/search` - Xiaohongshu-only search
+  - `GET /api/xiaohongshu/stats` - Cache statistics
+
+**Backend Components**:
+- `server/services/content/aggregator.ts` - Multi-platform content aggregator
+- `server/services/content/base.ts` - Base content provider interface
+- `server/services/content/providers/xiaohongshu.ts` - Xiaohongshu provider
+- `server/services/content/providers/reddit.ts` - Reddit provider
+- `server/routes/content.ts` - Unified content API
+- Database table: `social_content_cache` - Unified cache for all platforms
+
+**Features**:
+- Activity-centric content filtering
+- Intelligent quality ranking based on engagement
+- LLM-powered translation and summarization
+- Multi-language support (Chinese, English)
+- Database caching with 7-day TTL
+- Engagement metrics (likes, comments, shares)
+- Author attribution with profile pictures
+
+### Admin Dashboard (Phase 4.4)
+
+The app includes an admin dashboard for user management and analytics.
+
+**Configuration**:
+- Admin users are identified by `role: "admin"` in the database
+- First user can be made admin manually in the database
+
+**Admin Endpoints**:
+- `GET /api/admin/users` - List all users with pagination
+- `PATCH /api/admin/users/:id` - Update user (subscription, role)
+- `GET /api/admin/stats` - System-wide statistics
+- `GET /api/admin/usage` - API usage analytics
+
+**Backend Components**:
+- `server/routes/admin.ts` - Admin endpoints
+- `server/middleware/adminAuth.ts` - Admin role verification
+- `server/utils/costCalculation.ts` - API cost tracking
+
+**Frontend Components**:
+- `src/pages/AdminDashboard.tsx` - Full admin UI
+- User management table with search and filters
+- System statistics and usage charts
+- Subscription management
 
 ## Architecture Overview
 
@@ -184,35 +368,88 @@ DELETE /api/trips/:id   - Delete trip
 - `useStore` actions: `saveTripToDatabase()`, `loadTripFromDatabase()`
 - Sync status indicator in header
 
-**Temporary Auth** (until Milestone 2.1):
-- userId generated on first visit and stored in localStorage
-- Passed in request body/query params
-- Will be replaced with JWT authentication
+**Authentication** (Phase 2):
+- Google OAuth 2.0 with Passport.js
+- Email/password with bcrypt hashing
+- JWT tokens stored in httpOnly cookies
+- Password reset flow with email tokens
+- Session management with 7-day expiration
 
-### Backend Architecture (Milestone 1.1-1.3)
+### Backend Architecture (Phases 1-5)
 
 The backend uses **Express.js** with TypeScript, running on port 3001:
 
 **File Structure:**
 ```
 server/
-├── index.ts                    # Main Express app, CORS, error handling
+├── index.ts                    # Main Express app with CORS, Passport, JWT, Pino logging
+├── config/
+│   └── passport.ts             # Google OAuth strategy configuration
 ├── routes/
-│   └── chat.ts                 # POST /api/chat endpoint
-└── middleware/
-    ├── rateLimit.ts            # Rate limiting (20 req/min)
-    └── validation.ts           # Zod request validation
+│   ├── auth.ts                 # Google OAuth + email/password authentication
+│   ├── chat.ts                 # POST /api/chat - OpenAI proxy with usage tracking
+│   ├── trips.ts                # Trip CRUD + sharing + status management
+│   ├── map.ts                  # Mapbox geocoding & directions with caching
+│   ├── photos.ts               # Unsplash photo search with caching
+│   ├── share.ts                # Public share access (no auth required)
+│   ├── user.ts                 # User profile and preferences management
+│   ├── subscriptions.ts        # Stripe subscription management
+│   ├── webhooks.ts             # Stripe webhooks for subscription events
+│   ├── admin.ts                # Admin dashboard and user management
+│   ├── email.ts                # Email notification preferences
+│   ├── emailImport.ts          # Gmail/Outlook OAuth and booking parsing
+│   ├── content.ts              # Multi-platform content aggregation
+│   ├── xiaohongshu.ts          # DEPRECATED: Legacy Xiaohongshu endpoint
+│   └── health.ts               # Health check endpoints (/, /health, /health/db)
+├── middleware/
+│   ├── auth.ts                 # JWT verification
+│   ├── adminAuth.ts            # Admin role verification
+│   ├── rateLimit.ts            # Rate limiting (per-IP and per-user)
+│   ├── usageLimits.ts          # Subscription tier usage limits
+│   └── validation.ts           # Zod request validation schemas
+├── services/
+│   ├── stripe.ts               # Stripe API client and subscription logic
+│   ├── emailService.ts         # Resend email sending service
+│   ├── emailTemplates.ts       # HTML email templates
+│   ├── emailParser.ts          # GPT-powered booking extraction from emails
+│   ├── gmailService.ts         # Gmail API client with OAuth
+│   ├── outlookService.ts       # Outlook/Microsoft Graph API client
+│   ├── autoInsert.ts           # Auto-add parsed bookings to trips
+│   └── content/
+│       ├── aggregator.ts       # Multi-platform content aggregator
+│       ├── base.ts             # Base content provider interface
+│       ├── activityExtractor.ts # Activity-centric filtering logic
+│       └── providers/
+│           ├── reddit.ts       # Reddit travel content provider
+│           └── xiaohongshu.ts  # Xiaohongshu content provider
+├── jobs/
+│   └── emailJobs.ts            # Scheduled email tasks (node-cron)
+├── utils/
+│   ├── logger.ts               # Pino structured logging configuration
+│   └── costCalculation.ts      # OpenAI API cost tracking
+└── db.ts                       # Prisma client singleton
 ```
 
-**Key Endpoints:**
-- `GET /health` - Health check (returns `{status: "ok", timestamp: "..."}`)
-- `POST /api/chat` - Proxy to OpenAI (validates, rate limits, returns JSON + usage)
+**Key Endpoint Categories:**
+- **Core**: Health checks, chat (OpenAI proxy)
+- **Auth**: Google OAuth, email/password, JWT, password reset
+- **Trips**: CRUD, sharing, status management, tags
+- **Content**: Map geocoding, photos, multi-platform social content
+- **Monetization**: Stripe subscriptions, webhooks, usage tracking
+- **Communication**: Email preferences, transactional emails
+- **Integrations**: Gmail/Outlook email import, booking parsing
+- **Admin**: User management, analytics, system stats
 
 **Security Features:**
-- Rate limiting: 20 requests/minute per IP
-- Request validation: Zod schemas
+- Rate limiting: 20 requests/minute per IP + per-user limits
+- Request validation: Zod schemas for all endpoints
 - CORS: Configured for frontend origin
-- API key: Server-side only, never exposed to client
+- Helmet: HTTP security headers
+- JWT: Secure session management with httpOnly cookies
+- API keys: Server-side only, never exposed to client
+- OAuth tokens: Encrypted storage in database
+- Input sanitization: Prevents SQL injection and XSS
+- Admin routes: Protected with role-based access control
 
 ### Conversation Engine Response Types
 
@@ -243,22 +480,36 @@ This structured approach makes parsing deterministic and enables rich UI renderi
 
 ### Component Hierarchy
 
+**Main App Structure:**
 ```
-App.tsx (orchestration layer)
-├── Chat.tsx (left pane, full-width until trip exists)
-│   └── SuggestionCard.tsx (rendered inline when message has suggestionCard)
-└── ItineraryView.tsx (right pane, appears after trip generation)
-    └── ItineraryItemComponent (internal, shows each activity)
+App.tsx (React Router with protected routes)
+├── Login.tsx - Landing page with Google OAuth
+├── AuthCallback.tsx - OAuth callback handler
+├── Dashboard.tsx - Trip list with filters and search
+├── Home.tsx - Trip planning interface
+│   ├── Chat.tsx (left pane with quick replies)
+│   │   └── SuggestionCard.tsx (inline suggestions)
+│   ├── ItineraryView.tsx (center pane with drag-and-drop)
+│   │   └── ItineraryItemComponent (activity cards)
+│   └── MapView.tsx (right pane with Mapbox)
+├── SharedTrip.tsx - Public trip view (no auth required)
+├── Profile.tsx - User settings and subscription management
+│   ├── SubscriptionPanel.tsx (Stripe pricing cards)
+│   └── UsageWarning.tsx (tier limit warnings)
+├── EmailImport.tsx - Email import with OAuth flow
+└── AdminDashboard.tsx - Admin user management (admin only)
 ```
 
-**App.tsx responsibilities:**
-- Handles all conversation engine calls (via backend proxy)
-- Bridges between Chat actions (onAddSuggestionToDay) and store updates (addItemToDay)
-- Orchestrates itinerary modification actions (Replace/Remove/Add Suggestion)
-
-**Chat.tsx** is purely presentational - it displays messages and emits events. It doesn't know about the trip structure.
-
-**ItineraryView.tsx** shows the trip and emits action requests (onRemoveItem, onRequestSuggestion, onRequestReplace) that App.tsx translates into new conversation engine calls.
+**Key Responsibilities:**
+- **App.tsx**: Route protection, authentication state, error boundaries
+- **Home.tsx**: Orchestrates conversation, trip updates, map sync
+- **Dashboard.tsx**: Trip list, filtering, archiving, status management
+- **Chat.tsx**: Message display, quick replies, suggestion cards
+- **ItineraryView.tsx**: Drag-and-drop editing, item CRUD, undo/redo
+- **MapView.tsx**: Mapbox rendering, auto-geocoding, route display
+- **Profile.tsx**: User preferences, email settings, subscription management
+- **EmailImport.tsx**: OAuth flow, booking list, add to trip
+- **AdminDashboard.tsx**: User table, system stats, subscription changes
 
 ### Tailwind CSS v4 Configuration
 
@@ -345,3 +596,24 @@ Edit the `SYSTEM_PROMPT` constant in `server/routes/chat.ts`. The prompt include
   - Test connection: `curl http://localhost:3001/health/db`
   - Check migrations applied: `npx prisma migrate status`
   - View database in GUI: `npx prisma studio`
+- **Stripe errors?**
+  - Verify `STRIPE_SECRET_KEY` and `STRIPE_PUBLISHABLE_KEY` are set
+  - Check webhook secret matches Stripe dashboard: `STRIPE_WEBHOOK_SECRET`
+  - Test webhook locally with Stripe CLI: `stripe listen --forward-to localhost:3001/api/webhooks/stripe`
+- **Email not sending?**
+  - Check `RESEND_API_KEY` is valid
+  - Verify `EMAIL_FROM` domain is verified in Resend dashboard
+  - Check email logs in database: `select * from email_logs order by created_at desc;`
+- **Email import not working?**
+  - Verify Google/Microsoft OAuth credentials are correct
+  - Check OAuth redirect URIs match in cloud console
+  - Review backend logs for API errors (Gmail/Outlook)
+  - Check if OAuth tokens are encrypted correctly in database
+- **Admin dashboard not accessible?**
+  - User must have `role = 'admin'` in database users table
+  - Manually update first user: `update users set role = 'admin' where id = 'user-id';`
+- **Content aggregation failing?**
+  - Check if `ENABLE_XIAOHONGSHU=true` in `.env` (if using Xiaohongshu)
+  - Review backend logs for scraping errors
+  - Fallback to sample data should work automatically
+  - Check `social_content_cache` table for cached content
