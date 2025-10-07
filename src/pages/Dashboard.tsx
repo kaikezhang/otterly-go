@@ -554,6 +554,12 @@ export function Dashboard() {
                     <p className="text-2xl font-bold text-purple-900">{stats.totalDays}</p>
                   </div>
                 )}
+                {stats.placesCount > 0 && (
+                  <div className="bg-teal-50 rounded-lg p-4">
+                    <p className="text-sm text-teal-600 font-medium">Places</p>
+                    <p className="text-2xl font-bold text-teal-900">{stats.placesCount}</p>
+                  </div>
+                )}
                 {stats.activitiesCount > 0 && (
                   <div className="bg-orange-50 rounded-lg p-4">
                     <p className="text-sm text-orange-600 font-medium">Activities</p>
