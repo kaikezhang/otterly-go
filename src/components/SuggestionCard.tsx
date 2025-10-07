@@ -2,6 +2,52 @@ import { useState, useEffect } from 'react';
 import type { SuggestionCard as SuggestionCardType } from '../types';
 import { searchPhotos, type Photo } from '../services/photoApi';
 
+// Platform badge component
+function PlatformBadge({ platform }: { platform: string }) {
+  const badges: Record<string, { bg: string; label: string }> = {
+    xiaohongshu: { bg: 'bg-red-500', label: '小红书' },
+    reddit: { bg: 'bg-orange-500', label: 'Reddit' },
+    tiktok: { bg: 'bg-black', label: 'TikTok' },
+    instagram: { bg: 'bg-pink-500', label: 'Instagram' },
+    youtube: { bg: 'bg-red-600', label: 'YouTube' },
+  };
+
+  const badge = badges[platform] || { bg: 'bg-gray-500', label: platform };
+
+  return (
+    <div className={`${badge.bg} text-white px-3 py-1 rounded-full text-xs font-bold`}>
+      {badge.label}
+    </div>
+  );
+}
+
+// Get platform-specific background class
+function getPlatformBgClass(platform: string): string {
+  const classes: Record<string, string> = {
+    xiaohongshu: 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-md p-3 mb-4',
+    reddit: 'bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-md p-3 mb-4',
+    tiktok: 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-md p-3 mb-4',
+    instagram: 'bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-md p-3 mb-4',
+    youtube: 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-md p-3 mb-4',
+  };
+
+  return classes[platform] || 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md p-3 mb-4';
+}
+
+// Get language label
+function getLanguageLabel(lang: string): string {
+  const labels: Record<string, string> = {
+    zh: '🇨🇳 Chinese',
+    ja: '🇯🇵 Japanese',
+    ko: '🇰🇷 Korean',
+    es: '🇪🇸 Spanish',
+    fr: '🇫🇷 French',
+    de: '🇩🇪 German',
+  };
+
+  return labels[lang] || lang;
+}
+
 interface SuggestionCardProps {
   suggestion: SuggestionCardType;
   onAddToDay: (dayIndex: number) => void;
@@ -50,11 +96,50 @@ export function SuggestionCard({
         {suggestion.title}
       </h3>
 
-      {/* Xiaohongshu Attribution */}
-      {suggestion.source === 'xiaohongshu' && suggestion.xiaohongshuMeta && (
+      {/* Platform Attribution (Xiaohongshu, Reddit, etc.) */}
+      {suggestion.source && suggestion.platformMeta && (
+        <div className={getPlatformBgClass(suggestion.source)}>
+          <div className="flex items-center gap-3">
+            {/* Platform Badge */}
+            <PlatformBadge platform={suggestion.source} />
+
+            {/* Language indicator for non-English content */}
+            {suggestion.platformMeta.contentLang && suggestion.platformMeta.contentLang !== 'en' && (
+              <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded-full">
+                {getLanguageLabel(suggestion.platformMeta.contentLang)}
+              </span>
+            )}
+          </div>
+
+          {/* Author Info */}
+          <div className="flex items-center gap-3 mt-2">
+            {suggestion.platformMeta.authorAvatar && (
+              <img
+                src={suggestion.platformMeta.authorAvatar}
+                alt={suggestion.platformMeta.authorName}
+                className="w-8 h-8 rounded-full"
+              />
+            )}
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 font-medium">
+                {suggestion.platformMeta.authorName}
+              </p>
+              <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                <span>👍 {suggestion.platformMeta.likes?.toLocaleString() || 0}</span>
+                <span>💬 {suggestion.platformMeta.comments?.toLocaleString() || 0}</span>
+                {suggestion.platformMeta.shares > 0 && (
+                  <span>🏆 {suggestion.platformMeta.shares}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legacy Xiaohongshu Attribution (for backward compatibility) */}
+      {suggestion.source === 'xiaohongshu' && suggestion.xiaohongshuMeta && !suggestion.platformMeta && (
         <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-md p-3 mb-4">
           <div className="flex items-center gap-3">
-            {/* Xiaohongshu Badge */}
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center">
                 <span className="text-white text-xs font-bold">小红书</span>
@@ -65,7 +150,6 @@ export function SuggestionCard({
             </div>
           </div>
 
-          {/* Author Info */}
           <div className="flex items-center gap-3 mt-2">
             {suggestion.xiaohongshuMeta.authorAvatar && (
               <img

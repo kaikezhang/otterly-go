@@ -8,7 +8,7 @@ import { prisma } from '../db.js';
 import { getModelForTier } from '../services/stripe.js';
 import { calculateCost } from '../utils/costCalculation.js';
 import { checkApiUsageLimits, addUsageWarning } from '../middleware/usageLimits.js';
-import { getRelevantNotes, noteToSuggestionCard } from '../services/xiaohongshu.js';
+import { aggregateContent } from '../services/content/aggregator.js';
 
 const router = express.Router();
 
@@ -23,39 +23,7 @@ function getOpenAIClient() {
   return openai;
 }
 
-/**
- * Translate English destination and activity to Chinese for Xiaohongshu search
- */
-async function translateToChineseQuery(
-  destination: string,
-  activityType: string
-): Promise<string> {
-  try {
-    const response = await getOpenAIClient().chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a translator. Translate destination and activity names from English to Chinese (Simplified). Return ONLY the Chinese translation, no explanations. Format: "[destination] [activity]"',
-        },
-        {
-          role: 'user',
-          content: `Destination: ${destination}\nActivity: ${activityType}`,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 50,
-    });
-
-    const translation = response.choices[0]?.message?.content?.trim() || `${destination} ${activityType}`;
-    console.log(`[Xiaohongshu] Translated "${destination} ${activityType}" → "${translation}"`);
-    return translation;
-  } catch (error) {
-    console.error('[Xiaohongshu] Translation error:', error);
-    // Fallback to English query
-    return `${destination} ${activityType}`;
-  }
-}
+// Translation function removed - aggregator handles multi-language content automatically
 
 const SYSTEM_PROMPT = `You are OtterlyGo, a warm and knowledgeable local guide who helps travelers plan amazing trips! You know the destinations inside-out and love sharing insider tips and route recommendations.
 
@@ -576,55 +544,85 @@ router.post(
         // Ignore parse errors, just for debugging
       }
 
-      // XIAOHONGSHU INTEGRATION (Feature Flag)
-      // If user is asking for suggestions, also fetch Xiaohongshu content
+      // MULTI-PLATFORM CONTENT INTEGRATION (Xiaohongshu, Reddit, etc.)
+      // If user is asking for suggestions, also fetch content from social platforms
       let finalMessage = assistantMessage;
-      const xiaohongshuEnabled = process.env.ENABLE_XIAOHONGSHU === 'true';
+      const socialContentEnabled = process.env.ENABLE_SOCIAL_CONTENT === 'true' || process.env.ENABLE_XIAOHONGSHU === 'true';
 
-      if (xiaohongshuEnabled && parsed && parsed.type === 'suggestion' && currentTrip) {
+      // Detect if user is asking about activities/suggestions (even if LLM doesn't return type="suggestion")
+      const userAskingForSuggestions = /\b(what can i do|suggest|activities|things to do|recommendations?|ideas?)\b/i.test(message);
+      const shouldFetchSocialContent = socialContentEnabled && currentTrip && (
+        (parsed && parsed.type === 'suggestion') || // LLM generated a suggestion
+        userAskingForSuggestions // User asked for suggestions
+      );
+
+      console.log(`[Chat] Social content enabled: ${socialContentEnabled}, parsed type: ${parsed?.type}, user asking for suggestions: ${userAskingForSuggestions}, has trip: ${!!currentTrip}`);
+
+      if (shouldFetchSocialContent) {
         try {
-          console.log('[Xiaohongshu] Detected suggestion request, fetching Xiaohongshu content');
+          console.log('[Social Content] Detected suggestion request, fetching multi-platform content');
 
           // Extract destination and activity type from the suggestion or trip
           const destination = currentTrip.destination || 'travel';
-          const suggestion = parsed.suggestion;
+          const suggestion = parsed?.suggestion;
           const activityType = suggestion?.title || message; // Use suggestion title or user message
           const itemType = suggestion?.itemType || 'experience';
-          const defaultDayIndex = suggestion?.defaultDayIndex;
+          const defaultDayIndex = suggestion?.defaultDayIndex ?? 0;
 
-          // Translate to Chinese for better Xiaohongshu search
-          const chineseQuery = await translateToChineseQuery(destination, activityType);
+          // Fetch content from all platforms (Xiaohongshu, Reddit, etc.)
+          const socialContent = await aggregateContent({
+            query: `${destination} ${activityType}`,
+            destination,
+            activityType,
+            language: 'all', // Get content in all languages
+            limit: 5, // Get up to 5 suggestions total
+          });
 
-          // Fetch Xiaohongshu notes (limit to 3)
-          const notes = await getRelevantNotes(chineseQuery.split(' ')[0], chineseQuery.split(' ').slice(1).join(' '), 3);
+          if (socialContent.length > 0) {
+            console.log(`[Social Content] Found ${socialContent.length} suggestions from multiple platforms`);
 
-          if (notes.length > 0) {
-            console.log(`[Xiaohongshu] Found ${notes.length} relevant notes`);
+            // Convert aggregated content to suggestion cards
+            const socialSuggestions = socialContent.map((content) => ({
+              id: `${content.platform}-${content.platformPostId}`,
+              title: content.title,
+              images: content.images,
+              summary: content.summary || content.content.substring(0, 200),
+              quotes: [],
+              sourceLinks: [{ url: content.postUrl, label: `View on ${content.platform}` }],
+              itemType,
+              defaultDayIndex,
+              duration: 'half day',
+              photoQuery: content.title,
+              source: content.platform,
+              platformMeta: {
+                authorName: content.authorName,
+                authorAvatar: content.authorAvatar,
+                likes: content.likes,
+                comments: content.comments,
+                shares: content.shares,
+                platform: content.platform,
+                contentLang: content.contentLang,
+                engagementScore: content.engagementScore,
+              },
+            }));
 
-            // Convert notes to suggestion cards
-            const xiaohongshuSuggestions = await Promise.all(
-              notes.map((note) => noteToSuggestionCard(note, itemType, defaultDayIndex))
-            );
-
-            // Return multiple suggestions instead of single suggestion
-            // Change response type to "suggestions" (plural) with array
+            // Return multiple suggestions from various platforms
             const enhancedResponse = {
               type: 'suggestions',
-              content: parsed.content + '\n\nHere are some recommendations from Xiaohongshu:',
-              suggestions: [
-                suggestion, // Include original LLM suggestion
-                ...xiaohongshuSuggestions // Add Xiaohongshu suggestions
-              ]
+              content: (parsed?.content || assistantMessage) + '\n\nHere are also recommendations from travelers on Xiaohongshu and Reddit:',
+              suggestions: suggestion
+                ? [suggestion, ...socialSuggestions] // Include original LLM suggestion if it exists
+                : socialSuggestions // Otherwise just show social suggestions
             };
 
             finalMessage = JSON.stringify(enhancedResponse);
-            console.log(`[Xiaohongshu] Enhanced response with ${xiaohongshuSuggestions.length} Xiaohongshu suggestions`);
+            console.log(`[Social Content] Enhanced response with ${socialSuggestions.length} suggestions from multiple platforms`);
           } else {
-            console.log('[Xiaohongshu] No notes found, returning original suggestion');
+            console.log('[Social Content] No content found, returning original suggestion');
           }
         } catch (error) {
-          console.error('[Xiaohongshu] Integration error:', error);
-          // If Xiaohongshu fails, just return the original LLM suggestion
+          console.error('[Social Content] Integration error:', error);
+          // If social content fetch fails, just return the original LLM suggestion
         }
       }
 
