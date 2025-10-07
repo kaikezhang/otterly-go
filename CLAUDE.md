@@ -90,6 +90,53 @@ The app uses **Mapbox GL JS** for interactive map visualization:
 
 **Auto-Geocoding**: When a trip is generated, the conversation engine automatically geocodes all activity titles using the Mapbox Geocoding API. Results are cached server-side to minimize API costs.
 
+### Xiaohongshu Integration (OPTIONAL - FREE!)
+
+The app integrates with **Xiaohongshu** (小红书, Little Red Book) to provide travel suggestions based on real user-generated content from the platform.
+
+**No setup required!** This feature works out of the box using:
+- **Web scraping** of public Xiaohongshu search results
+- **LLM summarization** (GPT-3.5-turbo) to translate Chinese → English
+- **Sample data fallback** if scraping fails (works offline)
+- **Database caching** to minimize requests and improve performance
+
+**Features**:
+- Search Xiaohongshu notes for travel content based on destination and activity type
+- LLM-powered summarization of Chinese content into English
+- Automatic quote extraction from popular notes
+- Database caching to minimize API costs
+- Engagement metrics (likes, comments) displayed with suggestions
+- Direct links to original Xiaohongshu posts
+- Author attribution with profile pictures
+
+**Xiaohongshu API Endpoints**:
+- `POST /api/xiaohongshu/search` - Search for travel suggestions
+- `GET /api/xiaohongshu/stats` - View cached content statistics
+
+**Backend Components**:
+- `server/services/xiaohongshu.ts` - API client and caching service
+- `server/routes/xiaohongshu.ts` - REST endpoints
+- Database table: `xiaohongshu_cache` - Caches notes with summaries
+
+**Frontend Components**:
+- `src/services/xiaohongshuApi.ts` - Frontend API client
+- `src/components/SuggestionCard.tsx` - Displays Xiaohongshu attribution
+
+**How It Works**:
+1. Frontend calls `/api/xiaohongshu/search` with destination and activity type
+2. Backend scrapes public Xiaohongshu search page (or uses sample data)
+3. LLM (GPT-3.5-turbo) summarizes Chinese content into English
+4. Extracts quotes and engagement metrics (likes, comments)
+5. Results are cached in PostgreSQL database for future use
+6. Frontend displays suggestions with "Featured on Xiaohongshu" badge and author info
+
+**Cost**: FREE! Uses web scraping + existing OpenAI API quota (same as chat).
+
+**Fallback Strategy**: If scraping fails or is blocked:
+- Uses realistic sample data (Chinese travel content)
+- Still processes through LLM for authentic-looking suggestions
+- App continues working seamlessly without real-time data
+
 ## Architecture Overview
 
 ### Data Flow Pattern (Updated in Milestone 1.3)

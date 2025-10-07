@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Xiaohongshu Integration</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .suggestion-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: linear-gradient(to right, #fff5f5, #ffe4e6);
+        }
+        .badge {
+            background: #ef4444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .author {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+        .stats {
+            color: #666;
+            font-size: 14px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #results {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔴 Xiaohongshu Integration Test</h1>
+
+    <div>
+        <label>Destination:</label>
+        <input type="text" id="destination" value="Tokyo" style="margin: 10px; padding: 8px; width: 200px;">
+
+        <label>Activity Type:</label>
+        <input type="text" id="activityType" value="food" style="margin: 10px; padding: 8px; width: 200px;">
+
+        <br><br>
+        <button onclick="testXiaohongshu()">🔍 Search Xiaohongshu</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function testXiaohongshu() {
+            const destination = document.getElementById('destination').value;
+            const activityType = document.getElementById('activityType').value;
+            const resultsDiv = document.getElementById('results');
+
+            resultsDiv.innerHTML = '<p>⏳ Searching Xiaohongshu...</p>';
+
+            try {
+                const response = await fetch('http://localhost:3001/api/xiaohongshu/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        destination: destination,
+                        activityType: activityType,
+                        itemType: 'food',
+                        limit: 3
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    resultsDiv.innerHTML = `
+                        <h2>✅ Found ${data.suggestions.length} suggestions!</h2>
+                        ${data.suggestions.map(s => `
+                            <div class="suggestion-card">
+                                <div>
+                                    <span class="badge">小红书 Xiaohongshu</span>
+                                </div>
+                                <h3>${s.title}</h3>
+                                <p>${s.summary}</p>
+                                ${s.xiaohongshuMeta ? `
+                                    <div class="author">
+                                        <img src="${s.xiaohongshuMeta.authorAvatar}" class="avatar" alt="${s.xiaohongshuMeta.authorName}">
+                                        <div>
+                                            <div><strong>${s.xiaohongshuMeta.authorName}</strong></div>
+                                            <div class="stats">
+                                                ❤️ ${s.xiaohongshuMeta.likes.toLocaleString()} likes
+                                                💬 ${s.xiaohongshuMeta.comments.toLocaleString()} comments
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${s.quotes && s.quotes.length > 0 ? `
+                                    <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 4px;">
+                                        ${s.quotes.map(q => `
+                                            <p style="margin: 5px 0;"><em>${q.zh}</em></p>
+                                            <p style="margin: 5px 0; color: #666;">"${q.en}"</p>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                                <div style="margin-top: 10px;">
+                                    ${s.sourceLinks.map(link => `
+                                        <a href="${link.url}" target="_blank" style="color: #3b82f6; text-decoration: none;">
+                                            🔗 ${link.label}
+                                        </a>
+                                    `).join(' | ')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<p>❌ No suggestions found</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+                console.error('Test failed:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -94,6 +94,13 @@ export interface SourceLink {
   label: string; // e.g., "View note", "Xiaohongshu"
 }
 
+export interface XiaohongshuMeta {
+  authorName: string;
+  authorAvatar?: string;
+  likes: number;
+  comments: number;
+}
+
 export interface SuggestionCard {
   id: string;
   title: string;
@@ -107,6 +114,8 @@ export interface SuggestionCard {
   photoQuery?: string; // LLM-generated photo search query (Milestone 3.3)
   isAdded?: boolean; // Track if this suggestion has been added to itinerary
   addedToDayIndex?: number; // Which day it was added to
+  source?: 'xiaohongshu' | 'generated'; // Source of the suggestion
+  xiaohongshuMeta?: XiaohongshuMeta; // Metadata if sourced from Xiaohongshu
 }
 
 export interface QuickReply {

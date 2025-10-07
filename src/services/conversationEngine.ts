@@ -15,6 +15,7 @@ class ConversationEngine {
     message: string;
     trip?: Trip;
     suggestion?: SuggestionCard;
+    suggestions?: SuggestionCard[]; // Support multiple suggestions (Xiaohongshu integration)
     tripUpdate?: Partial<Trip>;
     quickReplies?: QuickReply[];
     usageWarning?: UsageWarningData;
@@ -110,6 +111,13 @@ class ConversationEngine {
             return {
               message: parsed.content,
               suggestion: this.enrichSuggestion(parsed.suggestion),
+              usageWarning,
+            };
+
+          case 'suggestions': // Multiple suggestions (Xiaohongshu integration)
+            return {
+              message: parsed.content,
+              suggestions: parsed.suggestions.map((s: any) => this.enrichSuggestion(s)),
               usageWarning,
             };
 
