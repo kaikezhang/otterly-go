@@ -48,6 +48,17 @@ const TYPE_ICONS: Record<string, string> = {
   rest: '😴',
 };
 
+function getItemIcon(item: ItineraryItem): string {
+  // For transport items, check if it involves flying
+  if (item.type === 'transport') {
+    const text = `${item.title} ${item.description}`.toLowerCase();
+    if (text.includes('fly') || text.includes('flight') || text.includes('plane') || text.includes('airport')) {
+      return '✈️';
+    }
+  }
+  return TYPE_ICONS[item.type] || '📍';
+}
+
 interface DayItemsListProps {
   day: Trip['days'][0];
   dayIndex: number;
@@ -369,7 +380,7 @@ export function ItineraryView({
             <div className="bg-white rounded shadow-lg border-2 border-blue-500 p-3 opacity-90">
               <div className="flex items-start gap-3">
                 <div className="text-2xl" aria-hidden="true">
-                  {TYPE_ICONS[activeItem.type] || '📍'}
+                  {getItemIcon(activeItem)}
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-900">{activeItem.title}</h4>
@@ -448,7 +459,7 @@ function SortableItineraryItem({
         )}
 
         <div className="text-2xl flex-shrink-0" aria-hidden="true">
-          {TYPE_ICONS[item.type] || '📍'}
+          {getItemIcon(item)}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
