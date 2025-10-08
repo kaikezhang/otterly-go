@@ -723,8 +723,8 @@ export default function Home() {
       setTrip(updatedTrip);
       await saveTripToDatabase(updatedTrip);
 
-      // Now navigate to the new trip URL
-      navigate(`/trip/${updatedTrip.id}`);
+      // Replace the current URL instead of pushing a new one to avoid router context issues
+      navigate(`/trip/${updatedTrip.id}`, { replace: true });
 
       // Switch to itinerary tab
       setActiveTab('itinerary');
