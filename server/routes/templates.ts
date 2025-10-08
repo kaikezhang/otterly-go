@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
-import { authenticateJWT, AuthRequest } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -225,10 +225,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/templates/:id/fork - Fork/remix a template
-router.post('/:id/fork', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/:id/fork', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
 
     const originalTemplate = await prisma.trip.findFirst({
       where: {
@@ -247,10 +247,11 @@ router.post('/:id/fork', authenticateJWT, async (req: AuthRequest, res: Response
     }
 
     // Create forked trip
+    const templateTitle = originalTemplate.title || originalTemplate.destination || 'Template';
     const forkedTrip = await prisma.trip.create({
       data: {
         userId,
-        title: `${originalTemplate.title} (My Version)`,
+        title: `${templateTitle} (My Version)`,
         destination: originalTemplate.destination,
         startDate: originalTemplate.startDate,
         endDate: originalTemplate.endDate,
@@ -279,10 +280,10 @@ router.post('/:id/fork', authenticateJWT, async (req: AuthRequest, res: Response
 });
 
 // POST /api/templates/:id/save - Save template to inspiration folder
-router.post('/:id/save', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/:id/save', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
     const { folder = 'inspiration', notes } = req.body;
 
     const template = await prisma.trip.findFirst({
@@ -335,10 +336,10 @@ router.post('/:id/save', authenticateJWT, async (req: AuthRequest, res: Response
 });
 
 // DELETE /api/templates/:id/save - Unsave template
-router.delete('/:id/save', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.delete('/:id/save', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
 
     const savedTrip = await prisma.savedTrip.findUnique({
       where: {
@@ -376,9 +377,9 @@ router.delete('/:id/save', authenticateJWT, async (req: AuthRequest, res: Respon
 });
 
 // GET /api/templates/saved - Get user's saved templates
-router.get('/saved/list', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.get('/saved/list', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.userId!;
     const { folder } = req.query;
 
     const where: any = { userId };
@@ -423,10 +424,10 @@ const reviewSchema = z.object({
   isVerified: z.boolean().optional(),
 });
 
-router.post('/:id/review', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/:id/review', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
 
     const validatedData = reviewSchema.parse(req.body);
 
@@ -497,10 +498,10 @@ const publishSchema = z.object({
   revenueShare: z.number().optional(),
 });
 
-router.patch('/:id/publish', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.patch('/:id/publish', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
 
     const validatedData = publishSchema.parse(req.body);
 
@@ -548,10 +549,10 @@ router.patch('/:id/publish', authenticateJWT, async (req: AuthRequest, res: Resp
 });
 
 // PATCH /api/templates/:id/unpublish - Unpublish template
-router.patch('/:id/unpublish', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.patch('/:id/unpublish', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.userId!;
 
     const trip = await prisma.trip.findFirst({
       where: {

@@ -1,15 +1,15 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db.js';
-import { authenticateJWT, AuthRequest } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
 
 // POST /api/social/follow/:userId - Follow a user
-router.post('/follow/:userId', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/follow/:userId', requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId: targetUserId } = req.params;
-    const followerId = req.user!.userId;
+    const followerId = req.userId!;
 
     if (followerId === targetUserId) {
       return res.status(400).json({ error: 'Cannot follow yourself' });
@@ -53,10 +53,10 @@ router.post('/follow/:userId', authenticateJWT, async (req: AuthRequest, res: Re
 });
 
 // DELETE /api/social/follow/:userId - Unfollow a user
-router.delete('/follow/:userId', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.delete('/follow/:userId', requireAuth, async (req: Request, res: Response) => {
   try {
     const { userId: targetUserId } = req.params;
-    const followerId = req.user!.userId;
+    const followerId = req.userId!;
 
     const follow = await db.userFollow.findUnique({
       where: {
@@ -182,9 +182,9 @@ router.get('/following/:userId', async (req, res) => {
 });
 
 // GET /api/social/feed - Get social feed (trips from followed users)
-router.get('/feed', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.get('/feed', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.userId!;
     const { page = '1', limit = '20' } = req.query;
 
     const pageNum = parseInt(page as string, 10);
