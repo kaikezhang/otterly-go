@@ -9,6 +9,8 @@ import Profile from './pages/Profile';
 import EmailImport from './pages/EmailImport';
 import { SharedTrip } from './pages/SharedTrip';
 import AdminDashboard from './pages/AdminDashboard';
+import TemplateMarketplace from './pages/TemplateMarketplace';
+import TemplateDetail from './pages/TemplateDetail';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -156,6 +158,26 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EmailImport />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Template Marketplace */}
+            <Route
+              path="/templates"
+              element={
+                <ProtectedRoute>
+                  <TemplateMarketplace />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Template Detail */}
+            <Route
+              path="/template/:id"
+              element={
+                <ProtectedRoute>
+                  <TemplateDetail />
                 </ProtectedRoute>
               }
             />

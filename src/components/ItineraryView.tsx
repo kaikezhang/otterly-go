@@ -487,9 +487,9 @@ function SortableItineraryItem({
 
   // Truncate description if longer than 150 characters
   const MAX_LENGTH = 150;
-  const shouldTruncate = item.description.length > MAX_LENGTH;
+  const shouldTruncate = item.description && item.description.length > MAX_LENGTH;
   const displayDescription = shouldTruncate && !isExpanded && !isEditMode
-    ? item.description.slice(0, MAX_LENGTH) + '...'
+    ? item.description!.slice(0, MAX_LENGTH) + '...'
     : item.description;
 
   return (
