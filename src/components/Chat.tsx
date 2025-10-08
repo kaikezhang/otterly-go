@@ -20,6 +20,7 @@ interface ChatProps {
   onFlightSearch?: (criteria: SearchCriteria) => void;
   onSelectFlight?: (flight: Flight) => void;
   onViewFlightDetails?: (flight: Flight) => void;
+  onAddBookingToTrip?: (bookingId: string) => void;
 }
 
 export function Chat({
@@ -34,6 +35,7 @@ export function Chat({
   onFlightSearch,
   onSelectFlight,
   onViewFlightDetails,
+  onAddBookingToTrip,
 }: ChatProps) {
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -155,7 +157,7 @@ export function Chat({
                 <div className="mt-3">
                   <BookingConfirmation
                     booking={message.booking}
-                    onAddToTrip={undefined}
+                    onAddToTrip={onAddBookingToTrip ? () => onAddBookingToTrip(message.booking!.id) : undefined}
                   />
                 </div>
               )}
