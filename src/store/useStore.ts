@@ -6,6 +6,8 @@ import type {
   ConversationState,
   ItineraryItem,
   User,
+  Flight,
+  Booking,
 } from '../types';
 import {
   createTrip,
@@ -103,6 +105,19 @@ interface StoreState {
   // Budget actions (Phase 1: MVP, Phase 2: Categories)
   setBudget: (total: number, currency: string, categories?: Record<string, number>) => void;
   updateItemCost: (dayIndex: number, itemId: string, cost: number | undefined, category?: string) => void;
+
+  // Booking state (Phase 7.1)
+  flightSearchResults: Flight[];
+  selectedFlight: Flight | null;
+  currentBooking: Booking | null;
+  bookingMode: boolean;
+
+  // Booking actions
+  setFlightSearchResults: (flights: Flight[]) => void;
+  setSelectedFlight: (flight: Flight | null) => void;
+  setCurrentBooking: (booking: Booking | null) => void;
+  toggleBookingMode: () => void;
+  clearBookingState: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -837,6 +852,24 @@ export const useStore = create<StoreState>()(
 
           return { trip: newTrip, hasUnsavedChanges: true };
         }),
+
+      // Booking state (Phase 7.1)
+      flightSearchResults: [],
+      selectedFlight: null,
+      currentBooking: null,
+      bookingMode: false,
+
+      // Booking actions
+      setFlightSearchResults: (flights) => set({ flightSearchResults: flights }),
+      setSelectedFlight: (flight) => set({ selectedFlight: flight }),
+      setCurrentBooking: (booking) => set({ currentBooking: booking }),
+      toggleBookingMode: () => set((state) => ({ bookingMode: !state.bookingMode })),
+      clearBookingState: () => set({
+        flightSearchResults: [],
+        selectedFlight: null,
+        currentBooking: null,
+        bookingMode: false,
+      }),
     }),
     {
       name: 'otterly-go-storage',
