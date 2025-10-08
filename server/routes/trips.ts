@@ -150,11 +150,12 @@ router.get('/stats', requireAuth, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Get all non-archived trips
+    // Get all non-archived, non-template trips
     const trips = await prisma.trip.findMany({
       where: {
         userId: req.userId,
         archivedAt: null,
+        isTemplate: false, // Exclude templates from stats
       },
     });
 
@@ -231,6 +232,8 @@ router.get('/', validateQuery(tripListQuerySchema), async (req: Request, res: Re
     // Build where clause for filtering
     const where: Prisma.TripWhereInput = {
       userId: req.userId,
+      // Exclude template trips from user's personal trip list
+      isTemplate: false,
     };
 
     // Filter by archived status
@@ -498,6 +501,14 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
+    // Prevent deleting template trips
+    if (trip.isTemplate) {
+      return res.status(403).json({
+        error: 'Cannot delete template trips',
+        message: 'Template trips cannot be deleted. They are protected system resources.'
+      });
+    }
+
     // Delete trip (conversations will be cascade deleted)
     await prisma.trip.delete({
       where: { id },
@@ -658,6 +669,16 @@ router.post('/bulk', validateRequest(bulkOperationSchema), async (req: Request, 
         break;
 
       case 'delete':
+        // Check if any of the trips are templates
+        const templatesInSelection = trips.filter(t => t.isTemplate);
+        if (templatesInSelection.length > 0) {
+          return res.status(403).json({
+            error: 'Cannot delete template trips',
+            message: `${templatesInSelection.length} template trip(s) selected. Template trips cannot be deleted.`,
+            templateIds: templatesInSelection.map(t => t.id)
+          });
+        }
+
         // Delete trips (conversations will cascade)
         await prisma.trip.deleteMany({
           where: { id: { in: body.tripIds } },

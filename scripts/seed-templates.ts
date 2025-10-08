@@ -1,4 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
 
@@ -15,127 +21,27 @@ async function seedTemplates() {
 
   console.log(`✅ Found user: ${user.name} (${user.email})`);
 
-  // Create sample templates
-  const templates = [
-    {
-      userId: user.id,
-      title: 'Epic Peru Adventure',
-      destination: 'Peru',
-      startDate: new Date('2025-06-01'),
-      endDate: new Date('2025-06-10'),
-      dataJson: {
-        days: [
-          {
-            date: '2025-06-01',
-            items: [
-              { id: '1', type: 'activity', title: 'Arrive in Lima', time: '14:00', description: 'Check into hotel and explore Miraflores' },
-              { id: '2', type: 'food', title: 'Dinner at Central', time: '19:00', description: 'Fine dining at world-renowned restaurant' }
-            ]
-          },
-          {
-            date: '2025-06-02',
-            items: [
-              { id: '3', type: 'activity', title: 'City Tour', time: '09:00', description: 'Historic center and Plaza de Armas' },
-              { id: '4', type: 'food', title: 'Ceviche at La Mar', time: '13:00' }
-            ]
-          }
-        ]
-      },
-      isTemplate: true,
-      isPublic: true,
-      templateCategory: 'adventure',
-      estimatedBudget: 'moderate',
-      season: ['summer', 'spring'],
-      interests: ['culture', 'food', 'hiking'],
-      duration: 10,
-      status: 'completed'
-    },
-    {
-      userId: user.id,
-      title: 'Tokyo Food & Culture Tour',
-      destination: 'Tokyo, Japan',
-      startDate: new Date('2025-04-15'),
-      endDate: new Date('2025-04-22'),
-      dataJson: {
-        days: [
-          {
-            date: '2025-04-15',
-            items: [
-              { id: '1', type: 'activity', title: 'Arrive in Tokyo', time: '10:00' },
-              { id: '2', type: 'food', title: 'Ramen at Ichiran', time: '19:00' }
-            ]
-          },
-          {
-            date: '2025-04-16',
-            items: [
-              { id: '3', type: 'activity', title: 'Tsukiji Market', time: '06:00' },
-              { id: '4', type: 'activity', title: 'Senso-ji Temple', time: '10:00' }
-            ]
-          }
-        ]
-      },
-      isTemplate: true,
-      isPublic: true,
-      templateCategory: 'food_culture',
-      estimatedBudget: 'moderate',
-      season: ['spring', 'fall'],
-      interests: ['food', 'culture', 'photography'],
-      duration: 7,
-      status: 'completed'
-    },
-    {
-      userId: user.id,
-      title: 'European Cities Backpacking',
-      destination: 'Europe',
-      startDate: new Date('2025-07-01'),
-      endDate: new Date('2025-07-21'),
-      dataJson: {
-        days: [
-          {
-            date: '2025-07-01',
-            items: [
-              { id: '1', type: 'activity', title: 'Arrive in Paris', time: '12:00' },
-              { id: '2', type: 'activity', title: 'Eiffel Tower', time: '17:00' }
-            ]
-          }
-        ]
-      },
-      isTemplate: true,
-      isPublic: true,
-      templateCategory: 'backpacking',
-      estimatedBudget: 'budget',
-      season: ['summer'],
-      interests: ['culture', 'architecture', 'nightlife'],
-      duration: 21,
-      status: 'draft'
-    },
-    {
-      userId: user.id,
-      title: 'Bali Wellness Retreat',
-      destination: 'Bali, Indonesia',
-      startDate: new Date('2025-09-10'),
-      endDate: new Date('2025-09-17'),
-      dataJson: {
-        days: [
-          {
-            date: '2025-09-10',
-            items: [
-              { id: '1', type: 'activity', title: 'Arrive in Ubud', time: '14:00' },
-              { id: '2', type: 'activity', title: 'Yoga at sunset', time: '18:00' }
-            ]
-          }
-        ]
-      },
-      isTemplate: true,
-      isPublic: true,
-      templateCategory: 'relaxation',
-      estimatedBudget: 'luxury',
-      season: ['summer', 'fall'],
-      interests: ['wellness', 'yoga', 'nature'],
-      duration: 7,
-      status: 'draft'
-    },
-  ];
+  // Load template data from JSON file
+  const templateDataPath = path.join(__dirname, 'template-data.json');
+  const templateData = JSON.parse(fs.readFileSync(templateDataPath, 'utf-8'));
+
+  // Transform templates to include userId and ensure correct types
+  const templates = templateData.map((template: any) => ({
+    userId: user.id,
+    title: template.title,
+    destination: template.destination,
+    startDate: new Date(template.startDate),
+    endDate: new Date(template.endDate),
+    dataJson: template.dataJson,
+    isTemplate: true,
+    isPublic: true,
+    templateCategory: template.templateCategory,
+    estimatedBudget: template.estimatedBudget,
+    season: template.season,
+    interests: template.interests,
+    duration: template.duration,
+    status: 'completed'
+  }));
 
   for (const template of templates) {
     const created = await prisma.trip.create({

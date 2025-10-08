@@ -1,0 +1,2001 @@
+[
+  {
+    "title": "Epic Peru Adventure",
+    "destination": "Peru",
+    "startDate": "2025-06-01T00:00:00.000Z",
+    "endDate": "2025-06-10T00:00:00.000Z",
+    "dataJson": {
+      "days": [
+        {
+          "date": "2025-06-01",
+          "items": [
+            {
+              "id": "1",
+              "time": "14:00",
+              "type": "flight",
+              "title": "Arrive in Lima (Jorge Chávez International)",
+              "description": "International flight arrival"
+            },
+            {
+              "id": "2",
+              "time": "16:00",
+              "type": "accommodation",
+              "title": "Check into Hotel B Arte in Barranco",
+              "description": "Boutique hotel in bohemian arts district"
+            },
+            {
+              "id": "3",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Explore Barranco neighborhood",
+              "description": "Walk the Bridge of Sighs, street art, galleries"
+            },
+            {
+              "id": "4",
+              "time": "20:00",
+              "type": "food",
+              "title": "Dinner at La 73 Bistro",
+              "description": "Contemporary Peruvian fusion cuisine"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-02",
+          "items": [
+            {
+              "id": "5",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Historic Lima City Tour",
+              "description": "Plaza de Armas, Cathedral, Government Palace"
+            },
+            {
+              "id": "6",
+              "time": "12:30",
+              "type": "food",
+              "title": "Lunch at La Mar Cebichería",
+              "description": "Best ceviche in Lima by Gastón Acurio"
+            },
+            {
+              "id": "7",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Larco Museum visit",
+              "description": "Pre-Columbian art and artifacts"
+            },
+            {
+              "id": "8",
+              "time": "19:30",
+              "type": "food",
+              "title": "Dinner at Central",
+              "description": "Fine dining at world's #2 restaurant (reservations required)"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-03",
+          "items": [
+            {
+              "id": "9",
+              "time": "07:00",
+              "type": "flight",
+              "title": "Flight to Cusco",
+              "description": "Lima to Cusco (1.5 hours)"
+            },
+            {
+              "id": "10",
+              "time": "10:00",
+              "type": "accommodation",
+              "title": "Check into Tierra Viva Cusco Plaza",
+              "description": "Colonial hotel near Plaza de Armas"
+            },
+            {
+              "id": "11",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Rest and acclimatize",
+              "description": "Cusco is at 11,150 ft - take it easy, drink coca tea"
+            },
+            {
+              "id": "12",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Walk around Plaza de Armas",
+              "description": "Light exploration, visit the Cathedral"
+            },
+            {
+              "id": "13",
+              "time": "18:00",
+              "type": "food",
+              "title": "Dinner at Chicha by Gastón Acurio",
+              "description": "Traditional Cusqueñan cuisine with modern twist"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-04",
+          "items": [
+            {
+              "id": "14",
+              "time": "08:30",
+              "type": "activity",
+              "title": "Sacred Valley tour",
+              "description": "Full-day tour: Pisac ruins, market, Ollantaytambo fortress"
+            },
+            {
+              "id": "15",
+              "time": "13:00",
+              "type": "food",
+              "title": "Buffet lunch in Urubamba",
+              "description": "Traditional Andean buffet with live music"
+            },
+            {
+              "id": "16",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Visit Ollantaytambo ruins",
+              "description": "Massive Inca fortress with terraces"
+            },
+            {
+              "id": "17",
+              "time": "19:00",
+              "type": "transportation",
+              "title": "Return to Cusco",
+              "description": "Evening drive back to hotel"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-05",
+          "items": [
+            {
+              "id": "18",
+              "time": "06:00",
+              "type": "transportation",
+              "title": "Train to Aguas Calientes",
+              "description": "Scenic PeruRail journey through the mountains (3.5 hours)"
+            },
+            {
+              "id": "19",
+              "time": "11:00",
+              "type": "accommodation",
+              "title": "Check into Hatun Inti Boutique Hotel",
+              "description": "Cozy hotel in Aguas Calientes town"
+            },
+            {
+              "id": "20",
+              "time": "12:30",
+              "type": "food",
+              "title": "Lunch at Indio Feliz",
+              "description": "French-Peruvian fusion bistro"
+            },
+            {
+              "id": "21",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Explore Aguas Calientes town",
+              "description": "Hot springs, local markets, prepare for tomorrow"
+            },
+            {
+              "id": "22",
+              "time": "19:00",
+              "type": "activity",
+              "title": "Early dinner and rest",
+              "description": "Get ready for 4am wake-up call tomorrow"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-06",
+          "items": [
+            {
+              "id": "23",
+              "time": "04:30",
+              "type": "transportation",
+              "title": "Bus to Machu Picchu",
+              "description": "25-minute shuttle ride up the mountain"
+            },
+            {
+              "id": "24",
+              "time": "06:00",
+              "type": "activity",
+              "title": "Machu Picchu guided tour",
+              "description": "3-hour comprehensive tour of the ancient citadel"
+            },
+            {
+              "id": "25",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Free exploration time",
+              "description": "Take photos, hike to Sun Gate or Inca Bridge"
+            },
+            {
+              "id": "26",
+              "time": "13:00",
+              "type": "food",
+              "title": "Lunch at Sanctuary Lodge",
+              "description": "Buffet lunch at the only hotel at the site entrance"
+            },
+            {
+              "id": "27",
+              "time": "15:30",
+              "type": "transportation",
+              "title": "Train back to Cusco",
+              "description": "Evening train with dinner service"
+            },
+            {
+              "id": "28",
+              "time": "21:00",
+              "type": "accommodation",
+              "title": "Return to Cusco hotel",
+              "description": "Rest after full day at Machu Picchu"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-07",
+          "items": [
+            {
+              "id": "29",
+              "time": "07:00",
+              "type": "transportation",
+              "title": "Bus to Puno",
+              "description": "6-hour scenic journey to Lake Titicaca (lunch stop included)"
+            },
+            {
+              "id": "30",
+              "time": "14:00",
+              "type": "accommodation",
+              "title": "Check into Tierra Viva Puno Plaza",
+              "description": "Lakefront hotel with oxygen enrichment system"
+            },
+            {
+              "id": "31",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Walk along Lake Titicaca",
+              "description": "Enjoy views of the world's highest navigable lake"
+            },
+            {
+              "id": "32",
+              "time": "19:00",
+              "type": "food",
+              "title": "Dinner at Mojsa Restaurant",
+              "description": "Contemporary Andean cuisine with lake views"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-08",
+          "items": [
+            {
+              "id": "33",
+              "time": "07:30",
+              "type": "activity",
+              "title": "Full-day Uros & Taquile Islands tour",
+              "description": "Visit floating reed islands, traditional textile communities"
+            },
+            {
+              "id": "34",
+              "time": "12:30",
+              "type": "food",
+              "title": "Traditional lunch on Taquile Island",
+              "description": "Fresh lake trout, quinoa soup, hosted by locals"
+            },
+            {
+              "id": "35",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Explore Taquile Island",
+              "description": "Hike to viewpoint, learn about textile weaving traditions"
+            },
+            {
+              "id": "36",
+              "time": "17:00",
+              "type": "transportation",
+              "title": "Boat back to Puno",
+              "description": "Scenic return journey across the lake"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-09",
+          "items": [
+            {
+              "id": "37",
+              "time": "08:00",
+              "type": "flight",
+              "title": "Flight to Lima via Juliaca",
+              "description": "Morning flight back to Lima"
+            },
+            {
+              "id": "38",
+              "time": "12:00",
+              "type": "accommodation",
+              "title": "Check into Hotel B Lima",
+              "description": "Boutique hotel in Barranco for final night"
+            },
+            {
+              "id": "39",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Miraflores shopping",
+              "description": "Larcomar Mall, souvenirs, alpaca products"
+            },
+            {
+              "id": "40",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Paragliding over Costa Verde",
+              "description": "Tandem paragliding flight over Pacific cliffs (optional)"
+            },
+            {
+              "id": "41",
+              "time": "20:00",
+              "type": "food",
+              "title": "Farewell dinner at Maido",
+              "description": "Nikkei (Japanese-Peruvian) tasting menu - #1 in Latin America"
+            }
+          ]
+        },
+        {
+          "date": "2025-06-10",
+          "items": [
+            {
+              "id": "42",
+              "time": "08:00",
+              "type": "food",
+              "title": "Breakfast at hotel",
+              "description": "Final Peruvian breakfast with fresh fruit"
+            },
+            {
+              "id": "43",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Last-minute shopping or relaxation",
+              "description": "Kennedy Park, craft markets"
+            },
+            {
+              "id": "44",
+              "time": "13:00",
+              "type": "transportation",
+              "title": "Transfer to airport",
+              "description": "Hotel to Jorge Chávez International"
+            },
+            {
+              "id": "45",
+              "time": "15:00",
+              "type": "flight",
+              "title": "Depart Lima",
+              "description": "International flight departure"
+            }
+          ]
+        }
+      ]
+    },
+    "templateCategory": "adventure",
+    "estimatedBudget": "moderate",
+    "season": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "interests": [
+      "adventure",
+      "culture",
+      "food",
+      "hiking",
+      "history"
+    ],
+    "duration": 10
+  },
+  {
+    "title": "Tokyo Food & Culture Tour",
+    "destination": "Tokyo, Japan",
+    "startDate": "2025-04-15T00:00:00.000Z",
+    "endDate": "2025-04-22T00:00:00.000Z",
+    "dataJson": {
+      "days": [
+        {
+          "date": "2025-04-15",
+          "items": [
+            {
+              "id": "1",
+              "time": "10:00",
+              "type": "flight",
+              "title": "Arrive at Narita/Haneda Airport",
+              "description": "International arrival to Tokyo"
+            },
+            {
+              "id": "2",
+              "time": "12:00",
+              "type": "transportation",
+              "title": "Narita Express to Shinjuku",
+              "description": "JR train to central Tokyo"
+            },
+            {
+              "id": "3",
+              "time": "14:00",
+              "type": "accommodation",
+              "title": "Check into Hotel Gracery Shinjuku",
+              "description": "Modern hotel near Shinjuku Station with Godzilla views"
+            },
+            {
+              "id": "4",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Explore Shinjuku area",
+              "description": "Walk through Kabukicho, Golden Gai alleys"
+            },
+            {
+              "id": "5",
+              "time": "19:00",
+              "type": "food",
+              "title": "Ramen at Ichiran Shibuya",
+              "description": "Famous solo dining ramen experience"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-16",
+          "items": [
+            {
+              "id": "6",
+              "time": "06:00",
+              "type": "activity",
+              "title": "Tsukiji Outer Market",
+              "description": "Early morning seafood market, street food breakfast"
+            },
+            {
+              "id": "7",
+              "time": "08:30",
+              "type": "food",
+              "title": "Fresh sushi breakfast at Sushi Dai",
+              "description": "Queue early for the best sushi breakfast"
+            },
+            {
+              "id": "8",
+              "time": "10:30",
+              "type": "activity",
+              "title": "Senso-ji Temple in Asakusa",
+              "description": "Tokyo's oldest temple, Nakamise shopping street"
+            },
+            {
+              "id": "9",
+              "time": "13:00",
+              "type": "food",
+              "title": "Tempura lunch at Daikokuya",
+              "description": "Crispy tempura donburi"
+            },
+            {
+              "id": "10",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Tokyo Skytree observation deck",
+              "description": "Panoramic city views from 450m"
+            },
+            {
+              "id": "11",
+              "time": "18:00",
+              "type": "food",
+              "title": "Izakaya dinner at Torikizoku",
+              "description": "Yakitori and beer in casual atmosphere"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-17",
+          "items": [
+            {
+              "id": "12",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Meiji Shrine visit",
+              "description": "Peaceful Shinto shrine in forest"
+            },
+            {
+              "id": "13",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Harajuku Takeshita Street",
+              "description": "Youth fashion, crepes, kawaii culture"
+            },
+            {
+              "id": "14",
+              "time": "12:30",
+              "type": "food",
+              "title": "Marion Crepes on Takeshita",
+              "description": "Instagram-worthy sweet crepes"
+            },
+            {
+              "id": "15",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Cat Street & Omotesando shopping",
+              "description": "Designer boutiques and cafes"
+            },
+            {
+              "id": "16",
+              "time": "16:30",
+              "type": "activity",
+              "title": "Shibuya Crossing & Hachiko Statue",
+              "description": "World's busiest pedestrian crossing"
+            },
+            {
+              "id": "17",
+              "time": "19:00",
+              "type": "food",
+              "title": "Wagyu beef dinner at Han no Daidokoro",
+              "description": "Premium Japanese BBQ yakiniku"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-18",
+          "items": [
+            {
+              "id": "18",
+              "time": "08:00",
+              "type": "transportation",
+              "title": "Day trip to Nikko",
+              "description": "JR train to Nikko (2 hours with JR Pass)"
+            },
+            {
+              "id": "19",
+              "time": "10:30",
+              "type": "activity",
+              "title": "Toshogu Shrine",
+              "description": "Ornate UNESCO World Heritage shrine complex"
+            },
+            {
+              "id": "20",
+              "time": "12:30",
+              "type": "food",
+              "title": "Yuba (tofu skin) lunch",
+              "description": "Nikko specialty vegetarian Buddhist cuisine"
+            },
+            {
+              "id": "21",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Lake Chuzenji & Kegon Falls",
+              "description": "Scenic lake and 97m waterfall"
+            },
+            {
+              "id": "22",
+              "time": "17:00",
+              "type": "transportation",
+              "title": "Return to Tokyo",
+              "description": "Evening train back to Shinjuku"
+            },
+            {
+              "id": "23",
+              "time": "20:00",
+              "type": "food",
+              "title": "Conveyor belt sushi at Genki Sushi",
+              "description": "Fun automated sushi experience"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-19",
+          "items": [
+            {
+              "id": "24",
+              "time": "09:30",
+              "type": "activity",
+              "title": "teamLab Borderless digital art museum",
+              "description": "Immersive interactive art installations"
+            },
+            {
+              "id": "25",
+              "time": "12:00",
+              "type": "food",
+              "title": "Tonkatsu at Maisen",
+              "description": "Crispy breaded pork cutlet"
+            },
+            {
+              "id": "26",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Akihabara Electric Town",
+              "description": "Anime, manga, gaming, electronics shops"
+            },
+            {
+              "id": "27",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Visit a maid cafe (optional)",
+              "description": "Unique Akihabara experience"
+            },
+            {
+              "id": "28",
+              "time": "18:30",
+              "type": "food",
+              "title": "Monjayaki dinner in Tsukishima",
+              "description": "Tokyo-style savory pancake on hot plate"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-20",
+          "items": [
+            {
+              "id": "29",
+              "time": "08:00",
+              "type": "transportation",
+              "title": "Day trip to Kamakura",
+              "description": "JR train to historic coastal town (1 hour)"
+            },
+            {
+              "id": "30",
+              "time": "09:30",
+              "type": "activity",
+              "title": "Great Buddha (Daibutsu)",
+              "description": "Massive 13m bronze Buddha statue"
+            },
+            {
+              "id": "31",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Hasedera Temple",
+              "description": "Hillside temple with ocean views"
+            },
+            {
+              "id": "32",
+              "time": "12:30",
+              "type": "food",
+              "title": "Shirasu (whitebait) lunch",
+              "description": "Fresh local seafood specialty"
+            },
+            {
+              "id": "33",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Komachi-dori shopping street",
+              "description": "Traditional crafts, snacks, souvenirs"
+            },
+            {
+              "id": "34",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Enoshima Island (optional)",
+              "description": "Sea caves, shrine, sunset views"
+            },
+            {
+              "id": "35",
+              "time": "19:00",
+              "type": "transportation",
+              "title": "Return to Tokyo",
+              "description": "Evening train to Shinjuku"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-21",
+          "items": [
+            {
+              "id": "36",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Ueno Park & cherry blossoms",
+              "description": "Museums, zoo, temples in large park (sakura season!)"
+            },
+            {
+              "id": "37",
+              "time": "11:30",
+              "type": "activity",
+              "title": "Tokyo National Museum",
+              "description": "Japan's largest art and antiquities museum"
+            },
+            {
+              "id": "38",
+              "time": "13:30",
+              "type": "food",
+              "title": "Unagi (eel) lunch at Nodaiwa",
+              "description": "Traditional grilled eel over rice"
+            },
+            {
+              "id": "39",
+              "time": "15:30",
+              "type": "activity",
+              "title": "Ginza shopping district",
+              "description": "Luxury brands, department stores, art galleries"
+            },
+            {
+              "id": "40",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Imperial Palace East Gardens",
+              "description": "Historic castle grounds and gardens (free entry)"
+            },
+            {
+              "id": "41",
+              "time": "19:30",
+              "type": "food",
+              "title": "Omakase sushi at Sushi Saito",
+              "description": "Michelin-starred farewell dinner (reservations required)"
+            }
+          ]
+        },
+        {
+          "date": "2025-04-22",
+          "items": [
+            {
+              "id": "42",
+              "time": "08:00",
+              "type": "food",
+              "title": "Breakfast at hotel",
+              "description": "Japanese or Western buffet"
+            },
+            {
+              "id": "43",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Last-minute shopping",
+              "description": "Don Quijote for souvenirs, snacks, omiyage"
+            },
+            {
+              "id": "44",
+              "time": "12:00",
+              "type": "transportation",
+              "title": "Narita Express to airport",
+              "description": "Check-in for departure flight"
+            },
+            {
+              "id": "45",
+              "time": "15:00",
+              "type": "flight",
+              "title": "Depart Tokyo",
+              "description": "International flight home"
+            }
+          ]
+        }
+      ]
+    },
+    "templateCategory": "food_tour",
+    "estimatedBudget": "moderate",
+    "season": [
+      "spring"
+    ],
+    "interests": [
+      "food",
+      "culture",
+      "shopping",
+      "temples",
+      "photography"
+    ],
+    "duration": 8
+  },
+  {
+    "title": "European Cities Backpacking",
+    "destination": "Europe",
+    "startDate": "2025-07-01T00:00:00.000Z",
+    "endDate": "2025-07-21T00:00:00.000Z",
+    "dataJson": {
+      "days": [
+        {
+          "date": "2025-07-01",
+          "items": [
+            {
+              "id": "1",
+              "time": "12:00",
+              "type": "flight",
+              "title": "Arrive in Paris CDG",
+              "description": "International arrival"
+            },
+            {
+              "id": "2",
+              "time": "14:00",
+              "type": "transportation",
+              "title": "RER train to city center",
+              "description": "Cheap train to central Paris"
+            },
+            {
+              "id": "3",
+              "time": "15:30",
+              "type": "accommodation",
+              "title": "Check into Generator Paris Hostel",
+              "description": "Social hostel near Canal St-Martin"
+            },
+            {
+              "id": "4",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Walk along Seine River",
+              "description": "Free walk from Notre-Dame to Eiffel Tower"
+            },
+            {
+              "id": "5",
+              "time": "20:00",
+              "type": "food",
+              "title": "Baguette & cheese picnic at Eiffel Tower",
+              "description": "Budget dinner with iconic views"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-02",
+          "items": [
+            {
+              "id": "6",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Free walking tour of Paris",
+              "description": "Tip-based tour covering major sights"
+            },
+            {
+              "id": "7",
+              "time": "12:00",
+              "type": "food",
+              "title": "Cheap falafel in Le Marais",
+              "description": "L'As du Fallafel - under €10"
+            },
+            {
+              "id": "8",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Louvre Museum",
+              "description": "Free entry under 26 (EU residents) or €17"
+            },
+            {
+              "id": "9",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Sacré-Cœur & Montmartre",
+              "description": "Free basilica, bohemian neighborhood"
+            },
+            {
+              "id": "10",
+              "time": "20:00",
+              "type": "food",
+              "title": "Crêpe from street vendor",
+              "description": "Classic Parisian snack"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-03",
+          "items": [
+            {
+              "id": "11",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Versailles Palace day trip",
+              "description": "Take RER C train (€7.50 round trip)"
+            },
+            {
+              "id": "12",
+              "time": "12:00",
+              "type": "food",
+              "title": "Packed lunch in Versailles gardens",
+              "description": "Bring food from supermarket"
+            },
+            {
+              "id": "13",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Explore palace gardens",
+              "description": "Gardens are free!"
+            },
+            {
+              "id": "14",
+              "time": "18:00",
+              "type": "transportation",
+              "title": "Return to Paris",
+              "description": "Evening RER train"
+            },
+            {
+              "id": "15",
+              "time": "20:00",
+              "type": "activity",
+              "title": "Eiffel Tower light show",
+              "description": "Free nightly sparkle show at 10pm"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-04",
+          "items": [
+            {
+              "id": "16",
+              "time": "08:00",
+              "type": "transportation",
+              "title": "FlixBus to Amsterdam",
+              "description": "Budget bus (€25-40, 7 hours)"
+            },
+            {
+              "id": "17",
+              "time": "16:00",
+              "type": "accommodation",
+              "title": "Check into ClinkNOORD Hostel",
+              "description": "Modern hostel near city center"
+            },
+            {
+              "id": "18",
+              "time": "17:30",
+              "type": "activity",
+              "title": "Free canal walk",
+              "description": "Explore Jordaan neighborhood"
+            },
+            {
+              "id": "19",
+              "time": "19:00",
+              "type": "food",
+              "title": "Dutch pancakes at Pancakes Amsterdam",
+              "description": "Filling and affordable meal"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-05",
+          "items": [
+            {
+              "id": "20",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Rent a bike",
+              "description": "Explore like a local (€10/day)"
+            },
+            {
+              "id": "21",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Vondelpark picnic",
+              "description": "Free park, bring supermarket food"
+            },
+            {
+              "id": "22",
+              "time": "13:00",
+              "type": "activity",
+              "title": "Van Gogh Museum",
+              "description": "Must-see (€20, book online)"
+            },
+            {
+              "id": "23",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Anne Frank House area",
+              "description": "Explore neighborhood (tickets sold out? Walk by)"
+            },
+            {
+              "id": "24",
+              "time": "18:00",
+              "type": "food",
+              "title": "Frites from street vendor",
+              "description": "Dutch fries with sauce"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-06",
+          "items": [
+            {
+              "id": "25",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "FlixBus to Berlin",
+              "description": "Budget bus (€25-35, 6 hours)"
+            },
+            {
+              "id": "26",
+              "time": "16:00",
+              "type": "accommodation",
+              "title": "Check into Wombats City Hostel",
+              "description": "Central location near Alexanderplatz"
+            },
+            {
+              "id": "27",
+              "time": "18:00",
+              "type": "activity",
+              "title": "East Side Gallery",
+              "description": "Free outdoor Berlin Wall art"
+            },
+            {
+              "id": "28",
+              "time": "20:00",
+              "type": "food",
+              "title": "Döner kebab dinner",
+              "description": "Berlin specialty for under €5"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-07",
+          "items": [
+            {
+              "id": "29",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Free walking tour",
+              "description": "Brandenburg Gate, Reichstag, Holocaust Memorial"
+            },
+            {
+              "id": "30",
+              "time": "13:00",
+              "type": "food",
+              "title": "Currywurst at curry stand",
+              "description": "Berlin street food classic"
+            },
+            {
+              "id": "31",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Museum Island",
+              "description": "Pergamon Museum (€12 student)"
+            },
+            {
+              "id": "32",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Explore Kreuzberg neighborhood",
+              "description": "Hipster cafes, street art"
+            },
+            {
+              "id": "33",
+              "time": "21:00",
+              "type": "activity",
+              "title": "Bar hopping in Friedrichshain",
+              "description": "Cheap drinks, nightlife"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-08",
+          "items": [
+            {
+              "id": "34",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Checkpoint Charlie",
+              "description": "Free historic site"
+            },
+            {
+              "id": "35",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Topography of Terror museum",
+              "description": "Free exhibition on Nazi history"
+            },
+            {
+              "id": "36",
+              "time": "13:00",
+              "type": "food",
+              "title": "Thai Park picnic",
+              "description": "Cheap authentic Thai food from vendors"
+            },
+            {
+              "id": "37",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Tiergarten walk",
+              "description": "Free city park"
+            },
+            {
+              "id": "38",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Reichstag dome visit",
+              "description": "Free but book online in advance"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-09",
+          "items": [
+            {
+              "id": "39",
+              "time": "08:00",
+              "type": "transportation",
+              "title": "FlixBus to Prague",
+              "description": "Budget bus (€20-30, 5 hours)"
+            },
+            {
+              "id": "40",
+              "time": "14:00",
+              "type": "accommodation",
+              "title": "Check into Hostel One Home",
+              "description": "Social hostel with free dinner"
+            },
+            {
+              "id": "41",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Walk across Charles Bridge",
+              "description": "Iconic medieval bridge"
+            },
+            {
+              "id": "42",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Old Town Square & Astronomical Clock",
+              "description": "Free historic center"
+            },
+            {
+              "id": "43",
+              "time": "19:30",
+              "type": "food",
+              "title": "Cheap Czech beer & goulash",
+              "description": "Budget traditional meal (under €8)"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-10",
+          "items": [
+            {
+              "id": "44",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Prague Castle complex",
+              "description": "Cathedral, Golden Lane (€10 ticket)"
+            },
+            {
+              "id": "45",
+              "time": "12:00",
+              "type": "food",
+              "title": "Trdelník (chimney cake)",
+              "description": "Sweet street food snack"
+            },
+            {
+              "id": "46",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Petřín Lookout Tower",
+              "description": "Mini Eiffel Tower with city views (€5)"
+            },
+            {
+              "id": "47",
+              "time": "16:00",
+              "type": "activity",
+              "title": "John Lennon Wall",
+              "description": "Free graffiti memorial"
+            },
+            {
+              "id": "48",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Pub crawl",
+              "description": "Meet other backpackers (€12-15 including drinks)"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-11",
+          "items": [
+            {
+              "id": "49",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Free walking tour",
+              "description": "Jewish Quarter, Dancing House"
+            },
+            {
+              "id": "50",
+              "time": "13:00",
+              "type": "food",
+              "title": "Supermarket picnic by Vltava River",
+              "description": "Budget lunch"
+            },
+            {
+              "id": "51",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Explore Wenceslas Square",
+              "description": "Shopping street, historic sites"
+            },
+            {
+              "id": "52",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Letná Park beer garden",
+              "description": "Cheap beer with panoramic views"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-12",
+          "items": [
+            {
+              "id": "53",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "Train to Vienna",
+              "description": "Budget ticket (€20-30, 4 hours)"
+            },
+            {
+              "id": "54",
+              "time": "14:00",
+              "type": "accommodation",
+              "title": "Check into Wombats City Hostel Vienna",
+              "description": "Central location near Naschmarkt"
+            },
+            {
+              "id": "55",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Walk around Ringstrasse",
+              "description": "Free grand boulevard tour"
+            },
+            {
+              "id": "56",
+              "time": "18:00",
+              "type": "food",
+              "title": "Würstelstand (sausage stand)",
+              "description": "Cheap Vienna street food"
+            },
+            {
+              "id": "57",
+              "time": "19:30",
+              "type": "activity",
+              "title": "St. Stephen's Cathedral",
+              "description": "Free entry to main church"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-13",
+          "items": [
+            {
+              "id": "58",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Schönbrunn Palace grounds",
+              "description": "Palace exterior and gardens (gardens free)"
+            },
+            {
+              "id": "59",
+              "time": "12:00",
+              "type": "food",
+              "title": "Naschmarkt food stalls",
+              "description": "Affordable international food"
+            },
+            {
+              "id": "60",
+              "time": "14:00",
+              "type": "activity",
+              "title": "MuseumsQuartier",
+              "description": "Free courtyard, affordable museums"
+            },
+            {
+              "id": "61",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Karlskirche exterior",
+              "description": "Baroque church"
+            },
+            {
+              "id": "62",
+              "time": "18:00",
+              "type": "food",
+              "title": "Schnitzel at affordable restaurant",
+              "description": "Classic Austrian dish (€10-12)"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-14",
+          "items": [
+            {
+              "id": "63",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "Train to Budapest",
+              "description": "Budget ticket (€15-25, 3 hours)"
+            },
+            {
+              "id": "64",
+              "time": "13:00",
+              "type": "accommodation",
+              "title": "Check into Carpe Noctem Hostel",
+              "description": "Party hostel with free welcome drink"
+            },
+            {
+              "id": "65",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Walk along Danube River",
+              "description": "Chain Bridge, Parliament views"
+            },
+            {
+              "id": "66",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Fisherman's Bastion",
+              "description": "Panoramic views (free area)"
+            },
+            {
+              "id": "67",
+              "time": "19:00",
+              "type": "food",
+              "title": "Lángos (Hungarian fried bread)",
+              "description": "Cheap street food (€2-3)"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-15",
+          "items": [
+            {
+              "id": "68",
+              "time": "09:00",
+              "type": "activity",
+              "title": "Free walking tour",
+              "description": "Buda Castle, Jewish Quarter"
+            },
+            {
+              "id": "69",
+              "time": "13:00",
+              "type": "food",
+              "title": "Goulash at central market",
+              "description": "Affordable traditional meal"
+            },
+            {
+              "id": "70",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Széchenyi Thermal Bath",
+              "description": "Famous thermal spa (€20)"
+            },
+            {
+              "id": "71",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Ruin bars in Jewish Quarter",
+              "description": "Szimpla Kert - unique nightlife"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-16",
+          "items": [
+            {
+              "id": "72",
+              "time": "07:00",
+              "type": "transportation",
+              "title": "Night bus to Venice",
+              "description": "Budget overnight bus (€35-50, 8 hours)"
+            },
+            {
+              "id": "73",
+              "time": "15:00",
+              "type": "accommodation",
+              "title": "Check into Generator Venice Hostel",
+              "description": "Island location near Giudecca"
+            },
+            {
+              "id": "74",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Walk through Venice",
+              "description": "Get lost in narrow streets"
+            },
+            {
+              "id": "75",
+              "time": "19:00",
+              "type": "food",
+              "title": "Cicchetti & wine bar",
+              "description": "Venetian tapas (budget-friendly)"
+            },
+            {
+              "id": "76",
+              "time": "20:30",
+              "type": "activity",
+              "title": "Sunset at Rialto Bridge",
+              "description": "Free iconic views"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-17",
+          "items": [
+            {
+              "id": "77",
+              "time": "08:00",
+              "type": "activity",
+              "title": "St. Mark's Square early morning",
+              "description": "Avoid crowds, free to explore"
+            },
+            {
+              "id": "78",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Doge's Palace or Basilica",
+              "description": "Choose one (€20-25)"
+            },
+            {
+              "id": "79",
+              "time": "12:00",
+              "type": "food",
+              "title": "Cheap pizza slice",
+              "description": "Avoid tourist traps near square"
+            },
+            {
+              "id": "80",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Murano glass island day trip",
+              "description": "Free vaporetto with transport pass"
+            },
+            {
+              "id": "81",
+              "time": "18:00",
+              "type": "food",
+              "title": "Supermarket dinner",
+              "description": "Venice is expensive - save money"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-18",
+          "items": [
+            {
+              "id": "82",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "Train to Florence",
+              "description": "Budget regional train (€25, 2.5 hours)"
+            },
+            {
+              "id": "83",
+              "time": "12:00",
+              "type": "accommodation",
+              "title": "Check into Plus Florence Hostel",
+              "description": "Large social hostel with pool"
+            },
+            {
+              "id": "84",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Walk to Piazzale Michelangelo",
+              "description": "Free panoramic city views"
+            },
+            {
+              "id": "85",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Ponte Vecchio & Duomo exterior",
+              "description": "Free iconic sights"
+            },
+            {
+              "id": "86",
+              "time": "19:00",
+              "type": "food",
+              "title": "Cheap pasta at trattoria",
+              "description": "Student-friendly restaurants (€8-10)"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-19",
+          "items": [
+            {
+              "id": "87",
+              "time": "08:00",
+              "type": "activity",
+              "title": "Uffizi Gallery",
+              "description": "Book online in advance (€20)"
+            },
+            {
+              "id": "88",
+              "time": "12:00",
+              "type": "food",
+              "title": "Panini from All'Antico Vinaio",
+              "description": "Famous cheap sandwiches"
+            },
+            {
+              "id": "89",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Climb Duomo dome",
+              "description": "Incredible views (€18, book ahead)"
+            },
+            {
+              "id": "90",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Explore Oltrarno neighborhood",
+              "description": "Artisan shops, less touristy"
+            },
+            {
+              "id": "91",
+              "time": "18:00",
+              "type": "food",
+              "title": "Gelato from local gelateria",
+              "description": "Best in Italy!"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-20",
+          "items": [
+            {
+              "id": "92",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "Train to Rome",
+              "description": "Regional train (€15-25, 1.5 hours)"
+            },
+            {
+              "id": "93",
+              "time": "12:00",
+              "type": "accommodation",
+              "title": "Check into The Yellow Hostel",
+              "description": "Central Rome party hostel"
+            },
+            {
+              "id": "94",
+              "time": "14:00",
+              "type": "activity",
+              "title": "Colosseum & Roman Forum",
+              "description": "Combined ticket (€16)"
+            },
+            {
+              "id": "95",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Trevi Fountain",
+              "description": "Free, toss a coin!"
+            },
+            {
+              "id": "96",
+              "time": "18:30",
+              "type": "food",
+              "title": "Pizza al taglio (by slice)",
+              "description": "Cheap Roman street food"
+            },
+            {
+              "id": "97",
+              "time": "20:00",
+              "type": "activity",
+              "title": "Spanish Steps at night",
+              "description": "Free people watching"
+            }
+          ]
+        },
+        {
+          "date": "2025-07-21",
+          "items": [
+            {
+              "id": "98",
+              "time": "08:00",
+              "type": "activity",
+              "title": "Vatican Museums & Sistine Chapel",
+              "description": "Book online (€17-20)"
+            },
+            {
+              "id": "99",
+              "time": "12:00",
+              "type": "activity",
+              "title": "St. Peter's Basilica",
+              "description": "Free entry (dress code required)"
+            },
+            {
+              "id": "100",
+              "time": "14:00",
+              "type": "food",
+              "title": "Cheap pasta in Trastevere",
+              "description": "Final Italian meal"
+            },
+            {
+              "id": "101",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Wander Trastevere streets",
+              "description": "Charming neighborhood"
+            },
+            {
+              "id": "102",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Pantheon visit",
+              "description": "Free ancient Roman temple"
+            },
+            {
+              "id": "103",
+              "time": "20:00",
+              "type": "food",
+              "title": "Farewell dinner & wine",
+              "description": "Celebrate last night in Europe"
+            }
+          ]
+        }
+      ]
+    },
+    "templateCategory": "backpacking",
+    "estimatedBudget": "budget",
+    "season": [
+      "summer"
+    ],
+    "interests": [
+      "backpacking",
+      "culture",
+      "budget",
+      "history",
+      "nightlife",
+      "art"
+    ],
+    "duration": 21
+  },
+  {
+    "title": "Bali Wellness Retreat",
+    "destination": "Bali, Indonesia",
+    "startDate": "2025-09-10T00:00:00.000Z",
+    "endDate": "2025-09-17T00:00:00.000Z",
+    "dataJson": {
+      "days": [
+        {
+          "date": "2025-09-10",
+          "items": [
+            {
+              "id": "1",
+              "time": "14:00",
+              "type": "flight",
+              "title": "Arrive at Ngurah Rai Airport",
+              "description": "International arrival to Bali"
+            },
+            {
+              "id": "2",
+              "time": "16:00",
+              "type": "transportation",
+              "title": "Private transfer to Ubud",
+              "description": "Luxury van through rice paddies (1.5 hours)"
+            },
+            {
+              "id": "3",
+              "time": "18:00",
+              "type": "accommodation",
+              "title": "Check into Bisma Eight Resort",
+              "description": "5-star boutique hotel with infinity pool overlooking jungle"
+            },
+            {
+              "id": "4",
+              "time": "19:30",
+              "type": "food",
+              "title": "Welcome dinner at Copper Kitchen & Bar",
+              "description": "Farm-to-table organic cuisine with sunset views"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-11",
+          "items": [
+            {
+              "id": "5",
+              "time": "06:30",
+              "type": "activity",
+              "title": "Sunrise yoga class",
+              "description": "Vinyasa flow on rooftop shala overlooking rice terraces"
+            },
+            {
+              "id": "6",
+              "time": "08:30",
+              "type": "food",
+              "title": "Healthy breakfast at resort",
+              "description": "Açai bowls, tropical fruits, fresh juice"
+            },
+            {
+              "id": "7",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Tegalalang Rice Terrace walk",
+              "description": "Instagram-famous terraced fields"
+            },
+            {
+              "id": "8",
+              "time": "13:00",
+              "type": "food",
+              "title": "Lunch at Sari Organik",
+              "description": "Organic salads and bowls surrounded by rice paddies"
+            },
+            {
+              "id": "9",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Traditional Balinese massage at resort spa",
+              "description": "90-minute relaxation treatment with aromatherapy"
+            },
+            {
+              "id": "10",
+              "time": "19:00",
+              "type": "food",
+              "title": "Dinner at Locavore",
+              "description": "Michelin Guide restaurant - tasting menu of local ingredients"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-12",
+          "items": [
+            {
+              "id": "11",
+              "time": "06:00",
+              "type": "activity",
+              "title": "Meditation & breathwork session",
+              "description": "Guided practice at The Yoga Barn"
+            },
+            {
+              "id": "12",
+              "time": "08:00",
+              "type": "food",
+              "title": "Smoothie bowl at Alchemy",
+              "description": "Raw vegan café with superfoods"
+            },
+            {
+              "id": "13",
+              "time": "10:00",
+              "type": "activity",
+              "title": "Sacred Monkey Forest Sanctuary",
+              "description": "Walk among 700+ macaque monkeys in jungle temple"
+            },
+            {
+              "id": "14",
+              "time": "12:30",
+              "type": "food",
+              "title": "Lunch at Clear Cafe",
+              "description": "Organic vegetarian with beautiful garden setting"
+            },
+            {
+              "id": "15",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Balinese cooking class",
+              "description": "Learn to make traditional dishes at Paon Bali"
+            },
+            {
+              "id": "16",
+              "time": "18:00",
+              "type": "activity",
+              "title": "Sunset at Campuhan Ridge Walk",
+              "description": "Scenic hilltop trail above the valley"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-13",
+          "items": [
+            {
+              "id": "17",
+              "time": "07:00",
+              "type": "activity",
+              "title": "Sound healing session",
+              "description": "Tibetan singing bowls and gongs at Pyramids of Chi"
+            },
+            {
+              "id": "18",
+              "time": "09:00",
+              "type": "food",
+              "title": "Breakfast at Seniman Coffee",
+              "description": "Specialty coffee and healthy pastries"
+            },
+            {
+              "id": "19",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Visit Tirta Empul Holy Spring Temple",
+              "description": "Purification ritual in sacred water temple"
+            },
+            {
+              "id": "20",
+              "time": "14:00",
+              "type": "food",
+              "title": "Lunch at Swept Away",
+              "description": "Riverside dining overlooking Ayung River"
+            },
+            {
+              "id": "21",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Luxury spa day at Karsa Spa",
+              "description": "3-hour package: scrub, massage, flower bath"
+            },
+            {
+              "id": "22",
+              "time": "20:00",
+              "type": "food",
+              "title": "Private dining experience at resort",
+              "description": "Romantic dinner on private terrace"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-14",
+          "items": [
+            {
+              "id": "23",
+              "time": "09:00",
+              "type": "transportation",
+              "title": "Transfer to Canggu",
+              "description": "Private driver to beach town (1 hour)"
+            },
+            {
+              "id": "24",
+              "time": "11:00",
+              "type": "accommodation",
+              "title": "Check into The Slow",
+              "description": "Luxury boutique hotel steps from Echo Beach"
+            },
+            {
+              "id": "25",
+              "time": "13:00",
+              "type": "food",
+              "title": "Lunch at The Lawn",
+              "description": "Beachfront healthy bowls and cocktails"
+            },
+            {
+              "id": "26",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Surf lesson or beach relaxation",
+              "description": "Beginner-friendly waves or sunbathe"
+            },
+            {
+              "id": "27",
+              "time": "17:30",
+              "type": "activity",
+              "title": "Sunset at Echo Beach",
+              "description": "Watch surfers and spectacular sunset"
+            },
+            {
+              "id": "28",
+              "time": "19:00",
+              "type": "food",
+              "title": "Dinner at Mason",
+              "description": "Farm-to-table contemporary Asian cuisine"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-15",
+          "items": [
+            {
+              "id": "29",
+              "time": "07:00",
+              "type": "activity",
+              "title": "Beach yoga at Desa Seni",
+              "description": "Morning flow on the sand"
+            },
+            {
+              "id": "30",
+              "time": "09:00",
+              "type": "food",
+              "title": "Breakfast at Crate Cafe",
+              "description": "Healthy brunch with açai and avocado toast"
+            },
+            {
+              "id": "31",
+              "time": "11:00",
+              "type": "activity",
+              "title": "Cycling tour through rice fields",
+              "description": "E-bike tour to hidden villages"
+            },
+            {
+              "id": "32",
+              "time": "13:30",
+              "type": "food",
+              "title": "Lunch at Betelnut Cafe",
+              "description": "Organic salads, smoothies, plant-based options"
+            },
+            {
+              "id": "33",
+              "time": "16:00",
+              "type": "activity",
+              "title": "Balinese healing session",
+              "description": "Energy work with traditional healer (balian)"
+            },
+            {
+              "id": "34",
+              "time": "19:00",
+              "type": "food",
+              "title": "Dinner at Motel Mexicola",
+              "description": "Vibrant Mexican with great cocktails (cheat day!)"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-16",
+          "items": [
+            {
+              "id": "35",
+              "time": "08:00",
+              "type": "activity",
+              "title": "Sunrise SUP yoga",
+              "description": "Stand-up paddleboard yoga on calm morning ocean"
+            },
+            {
+              "id": "36",
+              "time": "10:00",
+              "type": "food",
+              "title": "Brunch at Milk & Madu",
+              "description": "Instagrammable healthy brunch spot"
+            },
+            {
+              "id": "37",
+              "time": "12:00",
+              "type": "activity",
+              "title": "Beach club relaxation",
+              "description": "Cabana, pool, and ocean at Finns Beach Club"
+            },
+            {
+              "id": "38",
+              "time": "15:00",
+              "type": "activity",
+              "title": "Spa treatment at Bodyworks",
+              "description": "Deep tissue massage and reflexology"
+            },
+            {
+              "id": "39",
+              "time": "17:00",
+              "type": "activity",
+              "title": "Sunset cocktails at Old Man's",
+              "description": "Iconic Canggu beach bar"
+            },
+            {
+              "id": "40",
+              "time": "19:30",
+              "type": "food",
+              "title": "Farewell dinner at Merah Putih",
+              "description": "Modern Indonesian fine dining in Seminyak"
+            }
+          ]
+        },
+        {
+          "date": "2025-09-17",
+          "items": [
+            {
+              "id": "41",
+              "time": "08:00",
+              "type": "food",
+              "title": "Final breakfast at hotel",
+              "description": "Tropical fruit platter, coconut yogurt"
+            },
+            {
+              "id": "42",
+              "time": "09:30",
+              "type": "activity",
+              "title": "Last-minute shopping",
+              "description": "Seminyak boutiques, artisan crafts, essential oils"
+            },
+            {
+              "id": "43",
+              "time": "12:00",
+              "type": "food",
+              "title": "Lunch at Kynd Community",
+              "description": "Plant-based comfort food"
+            },
+            {
+              "id": "44",
+              "time": "14:00",
+              "type": "transportation",
+              "title": "Private transfer to airport",
+              "description": "Relaxed drive to Ngurah Rai"
+            },
+            {
+              "id": "45",
+              "time": "17:00",
+              "type": "flight",
+              "title": "Depart Bali",
+              "description": "Feeling rejuvenated and refreshed"
+            }
+          ]
+        }
+      ]
+    },
+    "templateCategory": "relaxation",
+    "estimatedBudget": "luxury",
+    "season": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "interests": [
+      "wellness",
+      "yoga",
+      "spa",
+      "healthy-food",
+      "relaxation",
+      "beach"
+    ],
+    "duration": 8
+  }
+]
