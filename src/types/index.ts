@@ -155,6 +155,10 @@ export interface ChatMessage {
   timestamp: number;
   hasItineraryChanges?: boolean; // Track if this message contains itinerary changes
   isNewItinerary?: boolean; // Track if this is a new itinerary generation vs update
+  flightResults?: Flight[]; // Flight search results to render
+  booking?: Booking; // Booking confirmation to render
+  showFlightSearchForm?: boolean; // Flag to show flight search form
+  flightCriteria?: Partial<SearchCriteria>; // Pre-populated flight search criteria
 }
 
 export type ConversationState =
@@ -300,4 +304,33 @@ export interface PriceAlert {
   targetPrice: number;
   currentPrice?: number;
   isActive: boolean;
+}
+
+export interface FlightSegment {
+  origin: string;
+  destination: string;
+  departTime: string;
+  arriveTime: string;
+  duration: string;
+  airline: string;
+  flightNumber: string;
+  aircraft?: string;
+}
+
+export interface FlightDetails {
+  id: string;
+  offerId: string;
+  segments: FlightSegment[];
+  price: {
+    basePrice: number;
+    taxes: number;
+    fees: number;
+    total: number;
+    currency: string;
+  };
+  baggage: {
+    carryOn: string;
+    checked: string;
+  };
+  amenities?: string[];
 }
