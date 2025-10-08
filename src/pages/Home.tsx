@@ -719,12 +719,8 @@ export default function Home() {
       // Add booking to the new trip
       const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
 
-      // Save to store and database first
+      // Save to store (no navigation needed - stay at /trip/new like normal flow)
       setTrip(updatedTrip);
-      await saveTripToDatabase(updatedTrip);
-
-      // Replace the current URL instead of pushing a new one to avoid router context issues
-      navigate(`/trip/${updatedTrip.id}`, { replace: true });
 
       // Switch to itinerary tab
       setActiveTab('itinerary');
