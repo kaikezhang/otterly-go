@@ -262,7 +262,7 @@ export function ItineraryView({
               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                 {trip.pace} pace
               </span>
-              {trip.interests.map((interest) => (
+              {trip.interests?.map((interest) => (
                 <span
                   key={interest}
                   className="px-2 py-1 bg-green-100 text-green-800 rounded"
