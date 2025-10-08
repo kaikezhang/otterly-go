@@ -66,6 +66,20 @@ export function Chat({
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* Floating Template Marketplace Button - Only show at start of conversation */}
+      {messages.length <= 1 && (
+        <button
+          onClick={() => navigate('/templates')}
+          className="absolute top-4 right-4 z-10 flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 shadow-lg transition-all hover:scale-105 animate-fadeIn font-medium"
+          title="Browse trip templates"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          <span>✨ Browse Templates</span>
+        </button>
+      )}
+
       {/* Floating Email Import Button - Only show after conversation starts */}
       {messages.length >= 2 && (
         <button
