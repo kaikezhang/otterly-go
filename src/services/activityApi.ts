@@ -26,6 +26,17 @@ export interface ActivityRecommendationResponse {
 export async function getActivityRecommendations(
   request: ActivityRecommendationRequest
 ): Promise<SuggestionCard[]> {
+  // Debug logging
+  console.log('[activityApi] Sending recommendation request:', {
+    tripId: request.trip?.id,
+    destination: request.trip?.destination,
+    daysLength: request.trip?.days?.length,
+    interests: request.trip?.interests,
+    mustSee: request.trip?.mustSee,
+    dayIndex: request.dayIndex,
+    mode: request.mode,
+  });
+
   const response = await fetch(`${API_URL}/api/activities/recommend`, {
     method: 'POST',
     headers: {
