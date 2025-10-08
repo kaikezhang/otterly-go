@@ -719,20 +719,23 @@ export default function Home() {
       // Add booking to the new trip
       const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
 
-      // Save to store (no navigation needed - stay at /trip/new like normal flow)
-      setTrip(updatedTrip);
+      // Use setTimeout to avoid router context issues during state update
+      setTimeout(() => {
+        // Save to store (no navigation needed - stay at /trip/new like normal flow)
+        setTrip(updatedTrip);
 
-      // Switch to itinerary tab
-      setActiveTab('itinerary');
+        // Switch to itinerary tab
+        setActiveTab('itinerary');
 
-      // Add confirmation message
-      const confirmMsg = {
-        id: crypto.randomUUID(),
-        role: 'assistant' as const,
-        content: `Perfect! I've created a new trip and added your flight to Day ${dayIndex + 1}.`,
-        timestamp: Date.now(),
-      };
-      addMessage(confirmMsg);
+        // Add confirmation message
+        const confirmMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: `Perfect! I've created a new trip and added your flight to Day ${dayIndex + 1}.`,
+          timestamp: Date.now(),
+        };
+        addMessage(confirmMsg);
+      }, 0);
       return;
     }
 
