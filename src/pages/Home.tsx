@@ -691,7 +691,7 @@ export default function Home() {
     }
   };
 
-  const handleAddBookingToTrip = (bookingId: string) => {
+  const handleAddBookingToTrip = async (bookingId: string) => {
     // Find the booking from messages (the booking is stored in the message)
     const bookingMessage = messages.find(msg => msg.booking?.id === bookingId);
     if (!bookingMessage?.booking) {
@@ -719,6 +719,9 @@ export default function Home() {
       // Add booking to the new trip
       const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
       setTrip(updatedTrip);
+
+      // Navigate to the new trip URL
+      navigate(`/trip/${updatedTrip.id}`);
 
       // Switch to itinerary tab
       setActiveTab('itinerary');
