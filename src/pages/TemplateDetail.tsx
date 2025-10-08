@@ -19,6 +19,19 @@ interface TemplateReview {
   };
 }
 
+interface ItineraryItem {
+  id: string;
+  time: string;
+  type: 'flight' | 'accommodation' | 'activity' | 'food' | 'transportation';
+  title: string;
+  description?: string;
+}
+
+interface ItineraryDay {
+  date: string;
+  items: ItineraryItem[];
+}
+
 interface TemplateDetail {
   id: string;
   title: string;
@@ -32,6 +45,9 @@ interface TemplateDetail {
   forkCount: number;
   saveCount: number;
   avgRating: number;
+  dataJson?: {
+    days: ItineraryDay[];
+  };
   user: {
     id: string;
     name: string | null;
@@ -49,6 +65,105 @@ interface TemplateDetail {
     forks: number;
     savedBy: number;
   };
+}
+
+// Helper function to extract location groups from itinerary
+function extractLocationGroups(dataJson?: { days: ItineraryDay[] }) {
+  if (!dataJson || !dataJson.days || dataJson.days.length === 0) {
+    return [];
+  }
+
+  interface LocationGroup {
+    location: string;
+    days: number[];
+    dayRange: string;
+    activities: Array<{ title: string; description?: string; type: string }>;
+    uniqueHighlights: string[];
+  }
+
+  const locationMap: { [key: string]: LocationGroup } = {};
+
+  dataJson.days.forEach((day, index) => {
+    day.items.forEach((item) => {
+      // Extract location from item title
+      let location = 'General';
+
+      if (item.title.includes('Lima')) location = 'Lima';
+      else if (item.title.includes('Sacred Valley')) location = 'Sacred Valley';
+      else if (item.title.includes('Machu Picchu')) location = 'Machu Picchu';
+      else if (item.title.includes('Cusco')) location = 'Cusco';
+      else if (item.title.includes('Puno') || item.title.includes('Titicaca')) location = 'Lake Titicaca';
+      else if (item.title.includes('Nikko')) location = 'Nikko';
+      else if (item.title.includes('Kamakura')) location = 'Kamakura';
+      else if (item.title.includes('Tokyo')) location = 'Tokyo';
+      else if (item.title.includes('Paris')) location = 'Paris';
+      else if (item.title.includes('Amsterdam')) location = 'Amsterdam';
+      else if (item.title.includes('Berlin')) location = 'Berlin';
+      else if (item.title.includes('Prague')) location = 'Prague';
+      else if (item.title.includes('Vienna')) location = 'Vienna';
+      else if (item.title.includes('Budapest')) location = 'Budapest';
+      else if (item.title.includes('Venice')) location = 'Venice';
+      else if (item.title.includes('Florence')) location = 'Florence';
+      else if (item.title.includes('Rome')) location = 'Rome';
+      else if (item.title.includes('Ubud')) location = 'Ubud';
+      else if (item.title.includes('Canggu')) location = 'Canggu';
+      else if (item.title.includes('Bali')) location = 'Bali';
+
+      if (!locationMap[location]) {
+        locationMap[location] = {
+          location,
+          days: [],
+          dayRange: '',
+          activities: [],
+          uniqueHighlights: []
+        };
+      }
+
+      if (!locationMap[location].days.includes(index + 1)) {
+        locationMap[location].days.push(index + 1);
+      }
+
+      // Add activities with descriptions
+      if (item.type === 'food' || item.type === 'activity') {
+        locationMap[location].activities.push({
+          title: item.title,
+          description: item.description,
+          type: item.type
+        });
+      }
+    });
+  });
+
+  // Convert to array and format day ranges
+  const locationGroups: LocationGroup[] = Object.values(locationMap).map(group => {
+    const sortedDays = group.days.sort((a, b) => a - b);
+    group.dayRange = sortedDays.length === 1
+      ? `Day ${sortedDays[0]}`
+      : `Days ${sortedDays[0]}-${sortedDays[sortedDays.length - 1]}`;
+
+    // Extract unique highlights (remove duplicates and generic words)
+    const highlights = new Set<string>();
+    group.activities.forEach(activity => {
+      // Extract meaningful parts from titles
+      const cleaned = activity.title
+        .replace(/^(Dinner at|Lunch at|Breakfast at|Visit|Explore|Tour|Check into|Evening at|Morning at|Afternoon at)\s*/i, '')
+        .trim();
+
+      if (cleaned && cleaned.length > 3) {
+        highlights.add(cleaned);
+      }
+
+      // Add descriptions as highlights too
+      if (activity.description && activity.description.length > 10) {
+        highlights.add(activity.description);
+      }
+    });
+
+    group.uniqueHighlights = Array.from(highlights);
+    return group;
+  }).filter(group => group.days.length > 0);
+
+  return locationGroups;
 }
 
 export default function TemplateDetail() {
@@ -319,6 +434,63 @@ export default function TemplateDetail() {
             </div>
           </div>
         </div>
+
+        {/* Itinerary Overview Section */}
+        {template.dataJson && template.dataJson.days.length > 0 && (() => {
+          const locationGroups = extractLocationGroups(template.dataJson);
+
+          return (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-4">Itinerary Overview</h2>
+              <p className="text-gray-600 mb-6">
+                Experience an unforgettable journey through {locationGroups.length} unique {locationGroups.length === 1 ? 'destination' : 'destinations'} over {template.duration} days.
+              </p>
+
+              {/* Location Cards */}
+              <div className="space-y-4">
+                {locationGroups.map((group, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    {/* Location Header */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">📍</span>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{group.location}</h3>
+                        <p className="text-sm text-gray-500">{group.dayRange} • {group.activities.length} activities</p>
+                      </div>
+                    </div>
+
+                    {/* Highlights */}
+                    <div className="ml-11">
+                      <ul className="space-y-2">
+                        {group.uniqueHighlights.slice(0, 6).map((highlight, i) => (
+                          <li key={i} className="flex items-start gap-2 text-gray-700">
+                            <span className="text-blue-600 mt-1">•</span>
+                            <span className="text-sm leading-relaxed">{highlight}</span>
+                          </li>
+                        ))}
+                        {group.uniqueHighlights.length > 6 && (
+                          <li className="text-sm text-gray-500 italic">
+                            + {group.uniqueHighlights.length - 6} more experiences
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary Footer */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 text-center">
+                  Click "Use Template" above to start customizing this itinerary for your trip
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Reviews Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
