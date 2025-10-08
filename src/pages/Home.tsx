@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, startTransition } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Chat } from '../components/Chat';
@@ -18,6 +18,7 @@ import { getTrip } from '../services/tripApi';
 import { getActivityRecommendations } from '../services/activityApi';
 import { bookingApi } from '../services/bookingApi';
 import { isBookingIntent, extractFlightCriteria } from '../services/agentRouter';
+import { addBookingToTrip } from '../utils/bookingToItinerary';
 import type { ItineraryItem, QuickReply, SuggestionCard, SearchCriteria, Flight, Passenger, FlightDetails } from '../types';
 
 export default function Home() {
@@ -690,6 +691,71 @@ export default function Home() {
     }
   };
 
+  const handleAddBookingToTrip = async (bookingId: string) => {
+    // Find the booking from messages (the booking is stored in the message)
+    const bookingMessage = messages.find(msg => msg.booking?.id === bookingId);
+    if (!bookingMessage?.booking) {
+      console.error('Booking not found in messages');
+      return;
+    }
+
+    const booking = bookingMessage.booking;
+
+    // If no trip exists, create a basic trip structure
+    if (!trip) {
+      const departDate = new Date(booking.departDate);
+      const newTrip = {
+        id: crypto.randomUUID(),
+        title: `Trip to ${booking.destination}`,
+        destination: booking.destination,
+        startDate: booking.departDate,
+        endDate: booking.returnDate || booking.departDate,
+        days: [],
+        userId: user?.id || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Add booking to the new trip
+      const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
+
+      // Use startTransition to mark these updates as non-urgent
+      startTransition(() => {
+        // Save to store (no navigation needed - stay at /trip/new like normal flow)
+        setTrip(updatedTrip);
+
+        // Switch to itinerary tab
+        setActiveTab('itinerary');
+
+        // Add confirmation message
+        const confirmMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: `Perfect! I've created a new trip and added your flight to Day ${dayIndex + 1}.`,
+          timestamp: Date.now(),
+        };
+        addMessage(confirmMsg);
+      });
+      return;
+    }
+
+    // Add booking to existing trip
+    const { updatedTrip, dayIndex } = addBookingToTrip(trip, booking);
+    updateTrip(updatedTrip);
+
+    // Switch to itinerary tab
+    setActiveTab('itinerary');
+
+    // Add confirmation message
+    const confirmMsg = {
+      id: crypto.randomUUID(),
+      role: 'assistant' as const,
+      content: `Great! I've added your flight to Day ${dayIndex + 1} of your itinerary.`,
+      timestamp: Date.now(),
+    };
+    addMessage(confirmMsg);
+  };
+
   // Main App Screen
   return (
     <div className="h-screen flex flex-col bg-gray-100">
@@ -996,6 +1062,7 @@ export default function Home() {
             onFlightSearch={handleFlightSearch}
             onSelectFlight={handleSelectFlight}
             onViewFlightDetails={handleViewFlightDetails}
+            onAddBookingToTrip={handleAddBookingToTrip}
           />
         </div>
 
