@@ -24,6 +24,8 @@ import xiaohongshuRouter from './routes/xiaohongshu.js';
 import contentRouter from './routes/content.js';
 import activitiesRouter from './routes/activities.js';
 import bookingRouter from './routes/booking.js';
+import templatesRouter from './routes/templates.js';
+import socialRouter from './routes/social.js';
 import { configurePassport } from './config/passport.js';
 import { logger } from './utils/logger.js';
 import { initializeEmailJobs } from './jobs/emailJobs.js';
@@ -170,6 +172,8 @@ app.use('/api/xiaohongshu', xiaohongshuRouter); // Xiaohongshu integration for t
 app.use('/api/content', contentRouter); // Unified content aggregation (Xiaohongshu, Reddit, etc.)
 app.use('/api/activities', activitiesRouter); // Activity recommendations based on itinerary
 app.use('/api/booking', bookingRouter); // Flight booking integration (Phase 7.1)
+app.use('/api/templates', templatesRouter); // Trip templates and marketplace (Milestone 5.5)
+app.use('/api/social', socialRouter); // Social features: follow, feed, user templates (Milestone 5.5)
 app.use('/api/admin', adminRouter); // Admin-only endpoints
 
 // Error handling middleware

@@ -53,6 +53,10 @@ model User {
   flightBookings     FlightBooking[]
   priceAlerts        PriceAlert[]
   passengerProfiles  PassengerProfile[]
+  tripReviews        TripReview[]
+  savedTrips         SavedTrip[]
+  following          UserFollow[]      @relation("UserFollowing")
+  followers          UserFollow[]      @relation("UserFollowers")
 
   @@map("users")
 }
@@ -81,6 +85,21 @@ model Trip {
   lastViewedAt  DateTime @default(now()) @map("last_viewed_at") // Last time user viewed this trip
   archivedAt    DateTime? @map("archived_at") // When trip was archived (null if not archived)
 
+  // Template Library & Discovery fields (Milestone 5.5)
+  isTemplate       Boolean  @default(false) @map("is_template") // Mark as public template
+  isPublic         Boolean  @default(false) @map("is_public") // Make discoverable in marketplace
+  templateCategory String?  @map("template_category") // 'food_tour' | 'adventure' | 'cultural' | 'beach' | 'city_break' | 'road_trip' | etc.
+  estimatedBudget  String?  @map("estimated_budget") // 'budget' | 'moderate' | 'luxury'
+  season           String[] @default([]) @map("season") // ['spring', 'summer', 'fall', 'winter']
+  interests        String[] @default([]) @map("interests") // ['food', 'adventure', 'culture', 'nature', 'nightlife', etc.]
+  duration         Int?     @map("duration") // Trip duration in days (for filtering)
+  forkCount        Int      @default(0) @map("fork_count") // Number of times forked/remixed
+  viewCount        Int      @default(0) @map("view_count") // Total views (for trending)
+  saveCount        Int      @default(0) @map("save_count") // Times saved to inspiration folder
+  originalTripId   String?  @map("original_trip_id") // FK to Trip if this is a fork
+  isPremium        Boolean  @default(false) @map("is_premium") // Premium template from influencer
+  revenueShare     Decimal? @db.Decimal(5, 2) @map("revenue_share") // Influencer commission % (0-100)
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -93,6 +112,10 @@ model Trip {
   emailLogs       EmailLog[]
   flightSearches  FlightSearch[]
   flightBookings  FlightBooking[]
+  reviews         TripReview[]
+  savedBy         SavedTrip[]
+  originalTrip    Trip?             @relation("TripForks", fields: [originalTripId], references: [id], onDelete: SetNull)
+  forks           Trip[]            @relation("TripForks")
 
   @@index([userId])
   @@index([userId, status]) // Fast filtering by user and status
@@ -100,6 +123,12 @@ model Trip {
   @@index([lastViewedAt]) // Fast sorting by recent views
   @@index([coverPhotoId])
   @@index([publicShareToken])
+  @@index([isTemplate, isPublic]) // Fast template discovery
+  @@index([templateCategory]) // Filter by template type
+  @@index([viewCount]) // Trending templates
+  @@index([forkCount]) // Popular templates
+  @@index([saveCount]) // Most saved templates
+  @@index([originalTripId]) // Find forks
   @@map("trips")
 }
 
@@ -606,4 +635,64 @@ model PassengerProfile {
 
   @@unique([userId, passportNumber])
   @@map("passenger_profiles")
+}
+
+// TripReview table - ratings and reviews for trip templates (Milestone 5.5)
+model TripReview {
+  id          String   @id @default(cuid())
+  tripId      String   @map("trip_id")
+  userId      String   @map("user_id")
+  rating      Int      // 1-5 stars
+  comment     String?  @db.Text
+  helpfulCount Int     @default(0) @map("helpful_count") // How many found this review helpful
+  isVerified  Boolean  @default(false) @map("is_verified") // User actually took the trip
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId]) // One review per user per trip
+  @@index([tripId])
+  @@index([userId])
+  @@index([rating]) // Filter by rating
+  @@map("trip_reviews")
+}
+
+// SavedTrip table - save templates to inspiration folder (Milestone 5.5)
+model SavedTrip {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tripId    String   @map("trip_id")
+  folder    String   @default("inspiration") // 'inspiration' | 'favorites' | custom folder name
+  notes     String?  @db.Text // User's personal notes about this template
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tripId]) // Can't save same trip twice
+  @@index([userId])
+  @@index([tripId])
+  @@index([folder]) // Filter by folder
+  @@map("saved_trips")
+}
+
+// UserFollow table - follow system for social features (Milestone 5.5)
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String   @map("follower_id") // User who is following
+  followingId String   @map("following_id") // User being followed
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId]) // Can't follow same user twice
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_follows")
 }
