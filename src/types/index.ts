@@ -256,6 +256,16 @@ export interface BookingRequest {
   totalPrice: number;
 }
 
+export interface FlightLeg {
+  origin: string;
+  destination: string;
+  airline: string;
+  flightNumber: string;
+  departTime: string; // ISO datetime
+  arriveTime: string; // ISO datetime
+  duration: string;
+}
+
 export interface Booking {
   id: string;
   userId: string;
@@ -276,6 +286,9 @@ export interface Booking {
   confirmationEmail?: string;
   ticketUrls?: string[];
   createdAt: string;
+  // Enriched flight data for better display
+  outboundFlight?: FlightLeg;
+  returnFlight?: FlightLeg;
 }
 
 export interface BookingResponse {

@@ -131,6 +131,9 @@ router.post('/create', requireAuth, async (req, res) => {
         departDate: booking.departDate.toISOString(),
         returnDate: booking.returnDate?.toISOString(),
         createdAt: new Date().toISOString(),
+        // Include enriched flight data
+        outboundFlight: booking.outboundFlight,
+        returnFlight: booking.returnFlight,
       },
       message: 'Booking created successfully',
     });

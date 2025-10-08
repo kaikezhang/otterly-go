@@ -124,14 +124,35 @@ export function BookingForm({ flight, onSubmit, onCancel, isLoading }: BookingFo
 
       {/* Flight Summary */}
       <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-        <div className="text-sm text-gray-600 mb-1">Selected Flight</div>
-        <div className="font-semibold">
-          {flight.origin} → {flight.destination}
+        <div className="text-sm text-gray-600 mb-3">Selected Flight{flight.returnTime ? 's' : ''}</div>
+
+        {/* Outbound Flight */}
+        <div className="mb-3 pb-3 border-b border-blue-200">
+          <div className="text-xs text-gray-500 mb-1">Outbound</div>
+          <div className="font-semibold">
+            {flight.origin} → {flight.destination}
+          </div>
+          <div className="text-sm text-gray-600">
+            {flight.airline} {flight.flightNumber} • {formatDate(flight.departTime)} • {formatTime(flight.departTime)}
+          </div>
         </div>
-        <div className="text-sm text-gray-600">
-          {flight.airline} {flight.flightNumber} • {formatDate(flight.departTime)} • {formatTime(flight.departTime)}
+
+        {/* Return Flight (if exists) */}
+        {flight.returnTime && (
+          <div className="mb-2">
+            <div className="text-xs text-gray-500 mb-1">Return</div>
+            <div className="font-semibold">
+              {flight.destination} → {flight.origin}
+            </div>
+            <div className="text-sm text-gray-600">
+              {flight.airline} • {formatDate(flight.returnTime)} • {formatTime(flight.returnTime)}
+            </div>
+          </div>
+        )}
+
+        <div className="text-lg font-bold mt-3 pt-3 border-t border-blue-200">
+          Total: ${flight.price} {flight.currency}
         </div>
-        <div className="text-lg font-bold mt-2">${flight.price} {flight.currency}</div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

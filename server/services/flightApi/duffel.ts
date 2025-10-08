@@ -260,6 +260,16 @@ export class DuffelProvider implements FlightProvider {
 
   private getMockBooking(request: BookingRequest): Booking {
     const pnr = `MOCK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const now = new Date();
+    const returnDate = new Date(now);
+    returnDate.setDate(returnDate.getDate() + 7);
+
+    // Helper to create datetime
+    const createDateTime = (date: Date, hours: number, minutes: number): string => {
+      const dt = new Date(date);
+      dt.setHours(hours, minutes, 0, 0);
+      return dt.toISOString();
+    };
 
     return {
       id: `booking-${Date.now()}`,
@@ -269,7 +279,8 @@ export class DuffelProvider implements FlightProvider {
       status: 'confirmed',
       origin: 'JFK',
       destination: 'NRT',
-      departDate: new Date(),
+      departDate: now,
+      returnDate: returnDate,
       airline: 'United Airlines',
       flightNumber: 'UA 123',
       passengers: request.passengers,
@@ -281,6 +292,25 @@ export class DuffelProvider implements FlightProvider {
         currency: 'USD',
       },
       confirmationEmail: request.contactEmail,
+      // Enriched flight data
+      outboundFlight: {
+        origin: 'JFK',
+        destination: 'NRT',
+        airline: 'United Airlines',
+        flightNumber: 'UA 123',
+        departTime: createDateTime(now, 8, 0),
+        arriveTime: createDateTime(now, 17, 30),
+        duration: '9h 30m',
+      },
+      returnFlight: {
+        origin: 'NRT',
+        destination: 'JFK',
+        airline: 'United Airlines',
+        flightNumber: 'UA 456',
+        departTime: createDateTime(returnDate, 10, 0),
+        arriveTime: createDateTime(returnDate, 18, 45),
+        duration: '8h 45m',
+      },
     };
   }
 

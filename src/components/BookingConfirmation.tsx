@@ -7,6 +7,16 @@ interface BookingConfirmationProps {
   addedToTrip?: boolean; // Track if already added
 }
 
+const formatTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const formatDate = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export function BookingConfirmation({ booking, onAddToTrip, addedToTrip }: BookingConfirmationProps) {
   const [isAdded, setIsAdded] = useState(addedToTrip || false);
 
@@ -31,32 +41,90 @@ export function BookingConfirmation({ booking, onAddToTrip, addedToTrip }: Booki
           <div className="text-3xl font-bold text-blue-600">{booking.pnr}</div>
         </div>
 
-        <div className="border-t border-blue-200 pt-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Flight</span>
-            <span className="font-medium">{booking.airline} {booking.flightNumber}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Route</span>
-            <span className="font-medium">{booking.origin} → {booking.destination}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Departure</span>
-            <span className="font-medium">{new Date(booking.departDate).toLocaleDateString()} at {new Date(booking.departDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-          {booking.returnDate && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Return</span>
-              <span className="font-medium">{new Date(booking.returnDate).toLocaleDateString()}</span>
+        <div className="border-t border-blue-200 pt-4 space-y-4">
+          {/* Outbound Flight */}
+          {booking.outboundFlight ? (
+            <div className="bg-white rounded-lg p-4">
+              <div className="text-xs text-gray-500 mb-2">Outbound Flight</div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Flight</span>
+                  <span className="font-medium">{booking.outboundFlight.airline} {booking.outboundFlight.flightNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Route</span>
+                  <span className="font-medium">{booking.outboundFlight.origin} → {booking.outboundFlight.destination}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Departure</span>
+                  <span className="font-medium">{formatDate(booking.outboundFlight.departTime)} • {formatTime(booking.outboundFlight.departTime)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Arrival</span>
+                  <span className="font-medium">{formatTime(booking.outboundFlight.arriveTime)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Duration</span>
+                  <span className="font-medium">{booking.outboundFlight.duration}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg p-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Flight</span>
+                <span className="font-medium">{booking.airline} {booking.flightNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Route</span>
+                <span className="font-medium">{booking.origin} → {booking.destination}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Departure</span>
+                <span className="font-medium">{formatDate(booking.departDate)} • {formatTime(booking.departDate)}</span>
+              </div>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-gray-600">Passengers</span>
-            <span className="font-medium">{booking.passengers.length}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold pt-2 border-t border-blue-200">
-            <span>Total Paid</span>
-            <span>${booking.totalPrice} {booking.currency}</span>
+
+          {/* Return Flight */}
+          {booking.returnFlight && (
+            <div className="bg-white rounded-lg p-4">
+              <div className="text-xs text-gray-500 mb-2">Return Flight</div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Flight</span>
+                  <span className="font-medium">{booking.returnFlight.airline} {booking.returnFlight.flightNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Route</span>
+                  <span className="font-medium">{booking.returnFlight.origin} → {booking.returnFlight.destination}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Departure</span>
+                  <span className="font-medium">{formatDate(booking.returnFlight.departTime)} • {formatTime(booking.returnFlight.departTime)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Arrival</span>
+                  <span className="font-medium">{formatTime(booking.returnFlight.arriveTime)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Duration</span>
+                  <span className="font-medium">{booking.returnFlight.duration}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Passengers and Total */}
+          <div className="pt-2 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Passengers</span>
+              <span className="font-medium">{booking.passengers.length}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold pt-2 border-t border-blue-200">
+              <span>Total Paid</span>
+              <span>${booking.totalPrice} {booking.currency}</span>
+            </div>
           </div>
         </div>
       </div>
