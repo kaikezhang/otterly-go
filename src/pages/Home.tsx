@@ -14,7 +14,7 @@ import { FlightDetailsModal } from '../components/FlightDetailsModal';
 import { BookingForm } from '../components/BookingForm';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
-import { getTrip } from '../services/tripApi';
+import { getTrip, listTripsWithFilters } from '../services/tripApi';
 import { getActivityRecommendations, saveActivityDetails, checkActivityDetails } from '../services/activityApi';
 import { bookingApi } from '../services/bookingApi';
 import { isBookingIntent, extractFlightCriteria } from '../services/agentRouter';
