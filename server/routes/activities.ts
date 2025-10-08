@@ -19,12 +19,12 @@ const router = express.Router();
 // Validation schema
 const recommendationRequestSchema = z.object({
   trip: z.object({
-    id: z.string(),
+    id: z.string().optional().transform(val => val || `temp-${Date.now()}`), // Make ID optional with dynamic fallback
     destination: z.string(),
     days: z.array(z.any()),
-    interests: z.array(z.string()).optional().default([]),
-    mustSee: z.array(z.string()).optional().default([]),
-  }),
+    interests: z.union([z.array(z.string()), z.null(), z.undefined()]).transform(val => val || []),
+    mustSee: z.union([z.array(z.string()), z.null(), z.undefined()]).transform(val => val || []),
+  }).passthrough(), // Allow additional fields from the full Trip interface
   dayIndex: z.number().int().min(0).optional(),
   activityType: z.string().optional(),
   limit: z.number().int().min(1).max(10).optional().default(5),
@@ -56,13 +56,39 @@ router.post(
   chatRateLimiter, // Reuse chat rate limiter since this also uses OpenAI
   async (req, res) => {
     try {
+      // Log the incoming request
+      console.log('[Activities API] Received request:', {
+        hasTripId: !!req.body?.trip?.id,
+        tripId: req.body?.trip?.id,
+        hasDestination: !!req.body?.trip?.destination,
+        destination: req.body?.trip?.destination,
+        hasDays: !!req.body?.trip?.days,
+        daysLength: req.body?.trip?.days?.length,
+        interests: req.body?.trip?.interests,
+        interestsType: typeof req.body?.trip?.interests,
+        mustSee: req.body?.trip?.mustSee,
+        mustSeeType: typeof req.body?.trip?.mustSee,
+        dayIndex: req.body?.dayIndex,
+        mode: req.body?.mode,
+      });
+
       // Validate request body
       const validationResult = recommendationRequestSchema.safeParse(req.body);
 
       if (!validationResult.success) {
+        const errorDetails = validationResult.error?.errors?.map(e => ({
+          path: e.path.join('.'),
+          message: e.message,
+          code: e.code,
+        })) || [];
+
+        console.error('[Activities API] Validation failed:', {
+          errors: validationResult.error,
+          errorDetails,
+        });
         return res.status(400).json({
           error: 'Invalid request',
-          details: validationResult.error.errors,
+          details: validationResult.error?.errors || [],
         });
       }
 
@@ -246,7 +272,7 @@ router.post(
         itemId,
         hasSuggestionCard: !!suggestionCard,
         suggestionCardKeys: suggestionCard ? Object.keys(suggestionCard) : [],
-        userId: req.user?.id,
+        userId: req.userId,
       });
 
       if (!tripId || dayIndex === undefined || !itemId || !suggestionCard) {
@@ -273,8 +299,8 @@ router.post(
         return res.status(404).json({ error: 'Trip not found' });
       }
 
-      if (trip.userId !== req.user!.id) {
-        console.error(`[Activities API] Access denied for user ${req.user!.id} to trip ${tripId}`);
+      if (trip.userId !== req.userId) {
+        console.error(`[Activities API] Access denied for user ${req.userId} to trip ${tripId}`);
         return res.status(403).json({ error: 'Access denied' });
       }
 

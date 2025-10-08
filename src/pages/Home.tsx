@@ -443,12 +443,16 @@ export default function Home() {
     // First ensure the trip is saved to the database (needed for foreign key constraint)
     if (trip) {
       try {
-        // Save trip first if it hasn't been saved yet
-        await saveTripToDatabase();
+        // Check if trip already has an ID
+        let tripId = trip.id;
 
-        // Get the updated trip ID from the store (saveTripToDatabase updates it)
-        const currentState = useStore.getState();
-        const tripId = currentState.trip?.id;
+        // If no ID exists, save trip first to get one
+        if (!tripId) {
+          await saveTripToDatabase();
+          // Get the updated trip ID from the store
+          const currentState = useStore.getState();
+          tripId = currentState.trip?.id;
+        }
 
         if (!tripId) {
           throw new Error('Trip ID not available after save');

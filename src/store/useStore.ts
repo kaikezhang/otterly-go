@@ -655,6 +655,7 @@ export const useStore = create<StoreState>()(
           trip: {
             ...tripResponse.tripData,
             // Merge database-level fields to ensure they're up-to-date
+            id: tripResponse.id, // Include the trip ID
             title: tripResponse.title,
             destination: tripResponse.destination,
             startDate: tripResponse.startDate,
