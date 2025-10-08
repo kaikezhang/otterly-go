@@ -75,6 +75,7 @@ export interface BookingRequest {
   passengers: Passenger[];
   tripId?: string;
   contactEmail: string;
+  userId: string;
 }
 
 export interface Booking {

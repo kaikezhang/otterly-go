@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
-import { authenticateToken } from '../middleware/auth';
-import { FlightAggregator } from '../services/flightApi/aggregator';
+import { requireAuth } from '../middleware/auth.js';
+import { FlightAggregator } from '../services/flightApi/aggregator.js';
 
 const router = express.Router();
 const flightService = new FlightAggregator();
@@ -35,7 +35,7 @@ const bookingSchema = z.object({
 });
 
 // POST /api/booking/search - Search for flights
-router.post('/search', authenticateToken, async (req, res) => {
+router.post('/search', requireAuth, async (req, res) => {
   try {
     const validated = searchSchema.parse(req.body);
 
@@ -75,7 +75,7 @@ router.post('/search', authenticateToken, async (req, res) => {
 });
 
 // GET /api/booking/flights/:id - Get flight details
-router.get('/flights/:id', authenticateToken, async (req, res) => {
+router.get('/flights/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const details = await flightService.getDetails(id);
@@ -95,7 +95,7 @@ router.get('/flights/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/booking/create - Create a flight booking
-router.post('/create', authenticateToken, async (req, res) => {
+router.post('/create', requireAuth, async (req, res) => {
   try {
     const validated = bookingSchema.parse(req.body);
     const user = (req as any).user;
@@ -112,6 +112,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       })),
       tripId: validated.tripId,
       contactEmail: validated.contactEmail,
+      userId: req.userId!, // Add user ID from auth middleware
     };
 
     const booking = await flightService.createBooking(bookingRequest);
@@ -148,7 +149,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // GET /api/booking/:pnr - Get booking status by PNR
-router.get('/:pnr', authenticateToken, async (req, res) => {
+router.get('/:pnr', requireAuth, async (req, res) => {
   try {
     const { pnr } = req.params;
     const status = await flightService.getBooking(pnr);
@@ -168,7 +169,7 @@ router.get('/:pnr', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/booking/:pnr - Cancel a booking
-router.delete('/:pnr', authenticateToken, async (req, res) => {
+router.delete('/:pnr', requireAuth, async (req, res) => {
   try {
     const { pnr } = req.params;
     const result = await flightService.cancelBooking(pnr);

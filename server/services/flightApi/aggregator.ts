@@ -1,4 +1,4 @@
-import prisma from '../../db';
+import { prisma } from '../../db.js';
 import { DuffelProvider } from './duffel';
 import {
   FlightProvider,
@@ -144,7 +144,7 @@ export class FlightAggregator implements FlightProvider {
     try {
       await prisma.flightBooking.create({
         data: {
-          userId: 'system', // Will be replaced with actual user ID in routes
+          userId: request.userId,
           tripId: request.tripId,
           pnr: booking.pnr,
           provider: booking.provider,
