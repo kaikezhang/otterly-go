@@ -108,13 +108,19 @@ interface StoreState {
 
   // Booking state (Phase 7.1)
   flightSearchResults: Flight[];
+  returnFlightSearchResults: Flight[]; // For round-trip bookings
+  searchCriteria: SearchCriteria | null; // Store criteria to determine round-trip
   selectedFlight: Flight | null;
+  selectedReturnFlight: Flight | null; // For round-trip bookings
   currentBooking: Booking | null;
   bookingMode: boolean;
 
   // Booking actions
   setFlightSearchResults: (flights: Flight[]) => void;
+  setReturnFlightSearchResults: (flights: Flight[]) => void;
+  setSearchCriteria: (criteria: SearchCriteria | null) => void;
   setSelectedFlight: (flight: Flight | null) => void;
+  setSelectedReturnFlight: (flight: Flight | null) => void;
   setCurrentBooking: (booking: Booking | null) => void;
   toggleBookingMode: () => void;
   clearBookingState: () => void;
@@ -855,18 +861,27 @@ export const useStore = create<StoreState>()(
 
       // Booking state (Phase 7.1)
       flightSearchResults: [],
+      returnFlightSearchResults: [],
+      searchCriteria: null,
       selectedFlight: null,
+      selectedReturnFlight: null,
       currentBooking: null,
       bookingMode: false,
 
       // Booking actions
       setFlightSearchResults: (flights) => set({ flightSearchResults: flights }),
+      setReturnFlightSearchResults: (flights) => set({ returnFlightSearchResults: flights }),
+      setSearchCriteria: (criteria) => set({ searchCriteria: criteria }),
       setSelectedFlight: (flight) => set({ selectedFlight: flight }),
+      setSelectedReturnFlight: (flight) => set({ selectedReturnFlight: flight }),
       setCurrentBooking: (booking) => set({ currentBooking: booking }),
       toggleBookingMode: () => set((state) => ({ bookingMode: !state.bookingMode })),
       clearBookingState: () => set({
         flightSearchResults: [],
+        returnFlightSearchResults: [],
+        searchCriteria: null,
         selectedFlight: null,
+        selectedReturnFlight: null,
         currentBooking: null,
         bookingMode: false,
       }),

@@ -96,8 +96,8 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ErrorBoundary>
         <AuthChecker>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -174,8 +174,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthChecker>
-      </BrowserRouter>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }
 

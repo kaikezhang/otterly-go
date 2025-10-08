@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import {
   DndContext,
   closestCenter,
@@ -262,7 +262,7 @@ export function ItineraryView({
               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                 {trip.pace} pace
               </span>
-              {trip.interests.map((interest) => (
+              {trip.interests?.map((interest) => (
                 <span
                   key={interest}
                   className="px-2 py-1 bg-green-100 text-green-800 rounded"
@@ -304,6 +304,11 @@ export function ItineraryView({
           {trip.days.map((day, dayIndex) => {
             const isExpanded = expandedDays.has(dayIndex);
 
+            // Calculate actual day number based on date difference from trip start
+            const dayNumber = trip.startDate
+              ? differenceInDays(parseISO(day.date), parseISO(trip.startDate)) + 1
+              : dayIndex + 1;
+
             return (
               <div
                 key={dayIndex}
@@ -318,7 +323,7 @@ export function ItineraryView({
                   >
                     <div className="text-left">
                       <h3 className="text-lg font-bold text-gray-900">
-                        Day {dayIndex + 1}
+                        Day {dayNumber}
                       </h3>
                       <p className="text-sm text-gray-600 font-medium">
                         {format(parseISO(day.date), 'EEEE, MMM d')}

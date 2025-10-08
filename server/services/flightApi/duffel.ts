@@ -164,16 +164,23 @@ export class DuffelProvider implements FlightProvider {
 
   // Helper methods
   private getMockFlights(criteria: SearchCriteria): Flight[] {
-    const { origin, destination } = criteria;
+    const { origin, destination, departDate } = criteria;
     const basePrice = 400 + Math.random() * 600;
+
+    // Helper to create datetime from date + time
+    const createDateTime = (date: Date, hours: number, minutes: number): string => {
+      const dt = new Date(date);
+      dt.setHours(hours, minutes, 0, 0);
+      return dt.toISOString();
+    };
 
     return [
       {
         id: `mock-flight-1-${Date.now()}`,
         origin,
         destination,
-        departTime: '08:00 AM',
-        arriveTime: '05:30 PM',
+        departTime: createDateTime(departDate, 8, 0), // 8:00 AM
+        arriveTime: createDateTime(departDate, 17, 30), // 5:30 PM same day
         duration: '9h 30m',
         stops: 0,
         airline: 'United Airlines',
@@ -188,8 +195,8 @@ export class DuffelProvider implements FlightProvider {
         id: `mock-flight-2-${Date.now()}`,
         origin,
         destination,
-        departTime: '11:00 AM',
-        arriveTime: '11:45 PM',
+        departTime: createDateTime(departDate, 11, 0), // 11:00 AM
+        arriveTime: createDateTime(departDate, 23, 45), // 11:45 PM same day
         duration: '12h 45m',
         stops: 1,
         airline: 'Delta',
@@ -204,8 +211,8 @@ export class DuffelProvider implements FlightProvider {
         id: `mock-flight-3-${Date.now()}`,
         origin,
         destination,
-        departTime: '02:00 PM',
-        arriveTime: '09:15 PM',
+        departTime: createDateTime(departDate, 14, 0), // 2:00 PM
+        arriveTime: createDateTime(departDate, 21, 15), // 9:15 PM same day
         duration: '7h 15m',
         stops: 0,
         airline: 'American Airlines',
@@ -253,6 +260,16 @@ export class DuffelProvider implements FlightProvider {
 
   private getMockBooking(request: BookingRequest): Booking {
     const pnr = `MOCK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const now = new Date();
+    const returnDate = new Date(now);
+    returnDate.setDate(returnDate.getDate() + 7);
+
+    // Helper to create datetime
+    const createDateTime = (date: Date, hours: number, minutes: number): string => {
+      const dt = new Date(date);
+      dt.setHours(hours, minutes, 0, 0);
+      return dt.toISOString();
+    };
 
     return {
       id: `booking-${Date.now()}`,
@@ -262,7 +279,8 @@ export class DuffelProvider implements FlightProvider {
       status: 'confirmed',
       origin: 'JFK',
       destination: 'NRT',
-      departDate: new Date(),
+      departDate: now,
+      returnDate: returnDate,
       airline: 'United Airlines',
       flightNumber: 'UA 123',
       passengers: request.passengers,
@@ -274,6 +292,25 @@ export class DuffelProvider implements FlightProvider {
         currency: 'USD',
       },
       confirmationEmail: request.contactEmail,
+      // Enriched flight data
+      outboundFlight: {
+        origin: 'JFK',
+        destination: 'NRT',
+        airline: 'United Airlines',
+        flightNumber: 'UA 123',
+        departTime: createDateTime(now, 8, 0),
+        arriveTime: createDateTime(now, 17, 30),
+        duration: '9h 30m',
+      },
+      returnFlight: {
+        origin: 'NRT',
+        destination: 'JFK',
+        airline: 'United Airlines',
+        flightNumber: 'UA 456',
+        departTime: createDateTime(returnDate, 10, 0),
+        arriveTime: createDateTime(returnDate, 18, 45),
+        duration: '8h 45m',
+      },
     };
   }
 
@@ -286,8 +323,8 @@ export class DuffelProvider implements FlightProvider {
         id: offer.id,
         origin: slice.origin.iata_code,
         destination: slice.destination.iata_code,
-        departTime: new Date(segment.departing_at).toLocaleTimeString(),
-        arriveTime: new Date(segment.arriving_at).toLocaleTimeString(),
+        departTime: segment.departing_at, // Keep as ISO string
+        arriveTime: segment.arriving_at, // Keep as ISO string
         duration: slice.duration,
         stops: slice.segments.length - 1,
         airline: segment.marketing_carrier.name,
