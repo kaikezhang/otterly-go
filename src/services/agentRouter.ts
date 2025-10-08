@@ -1,4 +1,4 @@
-import { AgentType, AgentContext } from '../types';
+import type { AgentType, AgentContext, SearchCriteria } from '../types';
 
 const BOOKING_KEYWORDS = [
   'book flight',
@@ -53,4 +53,21 @@ export function isBookingIntent(message: string): boolean {
 export function isExitBooking(message: string): boolean {
   const lowerMessage = message.toLowerCase();
   return EXIT_KEYWORDS.some((kw) => lowerMessage.includes(kw));
+}
+
+export function extractFlightCriteria(message: string): Partial<SearchCriteria> | null {
+  const criteria: Partial<SearchCriteria> = {};
+
+  // Extract cities/airports (simplified - use a proper parser in production)
+  const fromMatch = message.match(/from\s+([A-Z]{3})/i);
+  const toMatch = message.match(/to\s+([A-Z]{3})/i);
+
+  if (fromMatch) criteria.origin = fromMatch[1].toUpperCase();
+  if (toMatch) criteria.destination = toMatch[1].toUpperCase();
+
+  // Extract dates (simplified)
+  const dateMatch = message.match(/(\d{4}-\d{2}-\d{2})/);
+  if (dateMatch) criteria.departDate = dateMatch[1];
+
+  return Object.keys(criteria).length > 0 ? criteria : null;
 }

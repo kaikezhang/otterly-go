@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ChatMessage, QuickReply } from '../types';
+import type { ChatMessage, QuickReply, SearchCriteria, Flight } from '../types';
 import { SuggestionCard } from './SuggestionCard';
 import { QuickRepliesContainer } from './QuickRepliesContainer';
+import { FlightSearchForm } from './FlightSearchForm';
+import { FlightCard } from './FlightCard';
+import { BookingConfirmation } from './BookingConfirmation';
 
 interface ChatProps {
   messages: ChatMessage[];
@@ -13,6 +16,10 @@ interface ChatProps {
   onViewItinerary?: () => void;
   isLoading: boolean;
   maxDays: number;
+  // Booking props
+  onFlightSearch?: (criteria: SearchCriteria) => void;
+  onSelectFlight?: (flight: Flight) => void;
+  onViewFlightDetails?: (flight: Flight) => void;
 }
 
 export function Chat({
@@ -24,6 +31,9 @@ export function Chat({
   onViewItinerary,
   isLoading,
   maxDays,
+  onFlightSearch,
+  onSelectFlight,
+  onViewFlightDetails,
 }: ChatProps) {
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -111,6 +121,41 @@ export function Chat({
                     }
                     onSkip={() => onSkipSuggestion(message.suggestionCard!.id)}
                     maxDays={maxDays}
+                  />
+                </div>
+              )}
+
+              {/* Render flight search form if present */}
+              {message.showFlightSearchForm && onFlightSearch && (
+                <div className="mt-3">
+                  <FlightSearchForm
+                    onSearch={onFlightSearch}
+                    isLoading={isLoading}
+                    initialCriteria={message.flightCriteria}
+                  />
+                </div>
+              )}
+
+              {/* Render flight results if present */}
+              {message.flightResults && message.flightResults.length > 0 && (
+                <div className="space-y-3 mt-3">
+                  {message.flightResults.map((flight) => (
+                    <FlightCard
+                      key={flight.id}
+                      flight={flight}
+                      onSelect={(f) => onSelectFlight?.(f)}
+                      onViewDetails={(f) => onViewFlightDetails?.(f)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Render booking confirmation if present */}
+              {message.booking && (
+                <div className="mt-3">
+                  <BookingConfirmation
+                    booking={message.booking}
+                    onAddToTrip={undefined}
                   />
                 </div>
               )}

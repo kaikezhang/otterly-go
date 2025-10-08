@@ -10,11 +10,15 @@ import { TripSettingsModal } from '../components/TripSettingsModal';
 import { ShareButton } from '../components/ShareButton';
 import UsageWarning, { type UsageWarningData } from '../components/UsageWarning';
 import { BudgetSetupModal } from '../components/BudgetSetupModal';
+import { FlightDetailsModal } from '../components/FlightDetailsModal';
+import { BookingForm } from '../components/BookingForm';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
 import { getTrip } from '../services/tripApi';
 import { getActivityRecommendations } from '../services/activityApi';
-import type { ItineraryItem, QuickReply, SuggestionCard } from '../types';
+import { bookingApi } from '../services/bookingApi';
+import { isBookingIntent, extractFlightCriteria } from '../services/agentRouter';
+import type { ItineraryItem, QuickReply, SuggestionCard, SearchCriteria, Flight, Passenger, FlightDetails } from '../types';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -57,6 +61,13 @@ export default function Home() {
     deleteTrip,
     markItineraryViewed,
     setBudget,
+    flightSearchResults,
+    selectedFlight,
+    currentBooking,
+    setFlightSearchResults,
+    setSelectedFlight,
+    setCurrentBooking,
+    clearBookingState,
   } = useStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +84,11 @@ export default function Home() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [animationTrigger, setAnimationTrigger] = useState(0);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+
+  // Booking state
+  const [flightDetails, setFlightDetails] = useState<FlightDetails | null>(null);
+  const [showFlightDetailsModal, setShowFlightDetailsModal] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -205,6 +221,73 @@ export default function Home() {
     };
     addMessage(userMsg);
     setIsLoading(true);
+
+    // Check if user wants to book flights
+    if (isBookingIntent(userMessage)) {
+      // Helper function to map destination names to airport codes
+      const getAirportCode = (destination: string): string => {
+        const mapping: Record<string, string> = {
+          'peru': 'LIM',
+          'lima': 'LIM',
+          'japan': 'NRT',
+          'tokyo': 'NRT',
+          'france': 'CDG',
+          'paris': 'CDG',
+          'uk': 'LHR',
+          'london': 'LHR',
+          'italy': 'FCO',
+          'rome': 'FCO',
+          'spain': 'MAD',
+          'madrid': 'MAD',
+          'germany': 'FRA',
+          'berlin': 'BER',
+          'thailand': 'BKK',
+          'bangkok': 'BKK',
+          'china': 'PEK',
+          'beijing': 'PEK',
+          'australia': 'SYD',
+          'sydney': 'SYD',
+        };
+        return mapping[destination.toLowerCase()] || '';
+      };
+
+      // Try to extract origin from itinerary items (look for flights/transport)
+      const extractOrigin = (): string => {
+        if (!trip?.days) return '';
+
+        for (const day of trip.days) {
+          for (const item of day.items) {
+            if (item.type === 'transport' && item.title.toLowerCase().includes('flight')) {
+              // Try to extract origin from title like "Flight from JFK to LIM"
+              const match = item.title.match(/from\s+([A-Z]{3})/i);
+              if (match) return match[1].toUpperCase();
+            }
+          }
+        }
+        return '';
+      };
+
+      // Pre-populate form with trip data if available
+      const flightCriteria = trip ? {
+        origin: extractOrigin(),
+        destination: getAirportCode(trip.destination),
+        departDate: trip.startDate || '',
+        returnDate: trip.endDate || '',
+      } : {};
+
+      // Show flight search form instead of calling chat API
+      const bookingMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: `I'll help you search for flights${trip ? ` to ${trip.destination}` : ''}. Please fill in your travel details below:`,
+        showFlightSearchForm: true,
+        flightCriteria,
+        timestamp: Date.now(),
+      };
+      addMessage(bookingMsg);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const engine = getConversationEngine();
@@ -527,6 +610,86 @@ export default function Home() {
     }
   };
 
+  // Booking handlers
+  const handleFlightSearch = async (criteria: SearchCriteria) => {
+    try {
+      const { flights } = await bookingApi.searchFlights(criteria);
+      setFlightSearchResults(flights);
+
+      // Add flight results to chat
+      const flightMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: `Found ${flights.length} flights from ${criteria.origin} to ${criteria.destination}. Select a flight to book.`,
+        flightResults: flights,
+        timestamp: Date.now(),
+      };
+      addMessage(flightMsg);
+    } catch (error) {
+      console.error('Flight search failed:', error);
+      const errorMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: "Sorry, I couldn't find any flights. Please try different search criteria.",
+        timestamp: Date.now(),
+      };
+      addMessage(errorMsg);
+    }
+  };
+
+  const handleViewFlightDetails = async (flight: Flight) => {
+    try {
+      const details = await bookingApi.getFlightDetails(flight.id);
+      setFlightDetails(details);
+      setShowFlightDetailsModal(true);
+    } catch (error) {
+      console.error('Failed to fetch flight details:', error);
+    }
+  };
+
+  const handleSelectFlight = (flight: Flight) => {
+    setSelectedFlight(flight);
+    setShowFlightDetailsModal(false);
+    setShowBookingForm(true);
+  };
+
+  const handleBookFlight = async (passengers: Passenger[], contactEmail: string) => {
+    if (!selectedFlight) return;
+
+    try {
+      const booking = await bookingApi.createBooking({
+        offerId: selectedFlight.offerId!,
+        flightId: selectedFlight.id,
+        tripId: trip?.id,
+        passengers,
+        contactEmail,
+        totalPrice: selectedFlight.price,
+      });
+
+      setCurrentBooking(booking);
+      setShowBookingForm(false);
+
+      // Add booking confirmation to chat
+      const confirmMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: `Great! Your flight has been booked. Your confirmation number is ${booking.pnr}.`,
+        booking,
+        timestamp: Date.now(),
+      };
+      addMessage(confirmMsg);
+    } catch (error) {
+      console.error('Booking failed:', error);
+      const errorMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: 'Sorry, the booking failed. Please try again.',
+        timestamp: Date.now(),
+      };
+      addMessage(errorMsg);
+    }
+  };
+
   // Main App Screen
   return (
     <div className="h-screen flex flex-col bg-gray-100">
@@ -830,6 +993,9 @@ export default function Home() {
             onViewItinerary={trip ? handleViewItinerary : undefined}
             isLoading={isLoading}
             maxDays={trip?.days.length || 0}
+            onFlightSearch={handleFlightSearch}
+            onSelectFlight={handleSelectFlight}
+            onViewFlightDetails={handleViewFlightDetails}
           />
         </div>
 
@@ -951,6 +1117,40 @@ export default function Home() {
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteModal(false)}
       />
+
+      {/* Flight Details Modal */}
+      {showFlightDetailsModal && flightDetails && (
+        <FlightDetailsModal
+          details={flightDetails}
+          isOpen={showFlightDetailsModal}
+          onClose={() => {
+            setShowFlightDetailsModal(false);
+            setFlightDetails(null);
+          }}
+          onBook={() => {
+            if (flightDetails) {
+              // Find the corresponding flight from search results
+              const flight = flightSearchResults.find(f => f.id === flightDetails.id);
+              if (flight) {
+                handleSelectFlight(flight);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Booking Form */}
+      {showBookingForm && selectedFlight && (
+        <BookingForm
+          flight={selectedFlight}
+          onSubmit={handleBookFlight}
+          onCancel={() => {
+            setShowBookingForm(false);
+            setSelectedFlight(null);
+          }}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 }
