@@ -125,6 +125,7 @@ export interface SuggestionCard {
   photoQuery?: string; // LLM-generated photo search query (Milestone 3.3)
   isAdded?: boolean; // Track if this suggestion has been added to itinerary
   addedToDayIndex?: number; // Which day it was added to
+  hideActions?: boolean; // Hide Add/Skip buttons (for details view of already-added items)
   source?: 'xiaohongshu' | 'reddit' | 'multi-platform' | 'ai-generated' | 'generated'; // Source of the suggestion
   xiaohongshuMeta?: XiaohongshuMeta; // Metadata if sourced from Xiaohongshu (deprecated)
   platformMeta?: {

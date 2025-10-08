@@ -73,6 +73,7 @@ export function SuggestionCard({
   // Use persisted flags from suggestion prop
   const isAdded = suggestion.isAdded ?? false;
   const addedToDayIndex = suggestion.addedToDayIndex ?? null;
+  const hideActions = suggestion.hideActions ?? false;
 
   // Fetch photos if photoQuery is provided
   useEffect(() => {
@@ -337,61 +338,63 @@ export function SuggestionCard({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-        {isAdded ? (
-          // Show confirmation message after adding
-          <div className="flex items-center gap-2 text-green-700 font-medium">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span>Activity added to Day {addedToDayIndex! + 1}!</span>
-          </div>
-        ) : (
-          // Show action buttons before adding
-          <>
-            <div className="flex items-center gap-2 flex-1">
-              <label htmlFor="day-select" className="text-sm font-medium text-gray-700">
-                Add to:
-              </label>
-              <select
-                id="day-select"
-                value={selectedDayIndex}
-                onChange={(e) => setSelectedDayIndex(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      {/* Actions - Only show if not a details view */}
+      {!hideActions && (
+        <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+          {isAdded ? (
+            // Show confirmation message after adding
+            <div className="flex items-center gap-2 text-green-700 font-medium">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                {Array.from({ length: maxDays }, (_, i) => (
-                  <option key={i} value={i}>
-                    Day {i + 1}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => onAddToDay(selectedDayIndex)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
-              >
-                Add to Day
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span>Activity added to Day {addedToDayIndex! + 1}!</span>
             </div>
-            <button
-              onClick={onSkip}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded-md transition-colors"
-            >
-              Skip
-            </button>
-          </>
-        )}
-      </div>
+          ) : (
+            // Show action buttons before adding
+            <>
+              <div className="flex items-center gap-2 flex-1">
+                <label htmlFor="day-select" className="text-sm font-medium text-gray-700">
+                  Add to:
+                </label>
+                <select
+                  id="day-select"
+                  value={selectedDayIndex}
+                  onChange={(e) => setSelectedDayIndex(Number(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Array.from({ length: maxDays }, (_, i) => (
+                    <option key={i} value={i}>
+                      Day {i + 1}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => onAddToDay(selectedDayIndex)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
+                >
+                  Add to Day
+                </button>
+              </div>
+              <button
+                onClick={onSkip}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded-md transition-colors"
+              >
+                Skip
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Image Modal */}
       {expandedImage && (

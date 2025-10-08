@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getSharedTrip, type SharedTripResponse } from '../services/tripApi';
+import { checkActivityDetails } from '../services/activityApi';
 import { ItineraryView } from '../components/ItineraryView';
 import { MapView } from '../components/MapView';
 import type { Trip } from '../types';
@@ -10,6 +11,7 @@ type ViewMode = 'itinerary' | 'map';
 export function SharedTrip() {
   const { token } = useParams<{ token: string }>();
   const [sharedTrip, setSharedTrip] = useState<SharedTripResponse | null>(null);
+  const [activityDetailsMap, setActivityDetailsMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('itinerary');
@@ -25,6 +27,17 @@ export function SharedTrip() {
       try {
         const data = await getSharedTrip(token);
         setSharedTrip(data);
+
+        // Fetch activity details map
+        if (data.tripData.id) {
+          try {
+            const detailsMap = await checkActivityDetails(data.tripData.id);
+            setActivityDetailsMap(detailsMap);
+          } catch (detailsErr) {
+            console.error('Failed to fetch activity details:', detailsErr);
+            // Don't fail the whole page if details check fails
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load shared trip');
       } finally {
@@ -140,6 +153,7 @@ export function SharedTrip() {
             onRequestSuggestion={() => {}}
             onShowDetails={() => {}}
             hideShareButton={true}
+            activityDetailsMap={activityDetailsMap}
           />
         </div>
 
