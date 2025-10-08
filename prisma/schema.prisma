@@ -49,6 +49,10 @@ model User {
   passwordResets     PasswordReset[]
   emailConnections   EmailConnection[]
   parsedBookings     ParsedBooking[]
+  flightSearches     FlightSearch[]
+  flightBookings     FlightBooking[]
+  priceAlerts        PriceAlert[]
+  passengerProfiles  PassengerProfile[]
 
   @@map("users")
 }
@@ -86,6 +90,8 @@ model Trip {
   coverPhoto    PhotoLibrary? @relation("TripCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
   tripPhotos    TripPhoto[]
   emailLogs     EmailLog[]
+  flightSearches FlightSearch[]
+  flightBookings FlightBooking[]
 
   @@index([userId])
   @@index([userId, status]) // Fast filtering by user and status
@@ -421,4 +427,163 @@ model SocialContentCache {
   @@index([usageCount])
   @@index([contentLang])                // Filter by language
   @@map("social_content_cache")
+}
+
+// FlightSearch table - caches flight search results (Phase 7.1)
+model FlightSearch {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  tripId      String?  @map("trip_id")
+
+  // Search criteria
+  origin      String
+  destination String
+  departDate  DateTime @map("depart_date")
+  returnDate  DateTime? @map("return_date")
+  passengers  Int      @default(1)
+  class       String   @default("economy") // economy, business, first
+
+  // Results (cached)
+  results     Json     // Array of flight options
+  expiresAt   DateTime @map("expires_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@map("flight_searches")
+}
+
+// FlightBooking table - stores confirmed flight bookings (Phase 7.1)
+model FlightBooking {
+  id                String        @id @default(cuid())
+  userId            String        @map("user_id")
+  tripId            String?       @map("trip_id")
+  searchId          String?       @map("search_id")
+
+  // Booking reference
+  pnr               String        @unique
+  provider          String        // 'duffel', 'kiwi', 'amadeus'
+  providerBookingId String        @map("provider_booking_id")
+
+  // Flight details (denormalized for easy access)
+  origin            String
+  destination       String
+  departDate        DateTime      @map("depart_date")
+  returnDate        DateTime?     @map("return_date")
+  airline           String
+  flightNumber      String        @map("flight_number")
+  passengers        Json          // Array of passenger objects
+  seatAssignments   Json?         @map("seat_assignments") // Seat selections
+
+  // Pricing
+  basePrice         Decimal       @db.Decimal(10, 2) @map("base_price")
+  taxes             Decimal       @db.Decimal(10, 2)
+  fees              Decimal       @db.Decimal(10, 2)
+  totalPrice        Decimal       @db.Decimal(10, 2) @map("total_price")
+  currency          String        @default("USD")
+  commission        Decimal       @db.Decimal(10, 2) // Our revenue
+
+  // Status
+  status            BookingStatus @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING) @map("payment_status")
+  paymentIntentId   String?       @map("payment_intent_id") // Stripe payment intent
+
+  // Documents
+  confirmationEmail String?       @map("confirmation_email")
+  ticketUrls        Json?         @map("ticket_urls") // E-ticket PDFs
+
+  // Metadata
+  metadata          Json?         // Extra provider-specific data
+
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([tripId])
+  @@index([pnr])
+  @@map("flight_bookings")
+}
+
+enum BookingStatus {
+  PENDING           // Awaiting payment
+  CONFIRMED         // Payment successful, booking confirmed
+  TICKETED          // E-tickets issued
+  CANCELLED         // User cancelled
+  COMPLETED         // Flight departed
+  REFUNDED          // Refund processed
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// PriceAlert table - tracks price alerts for routes (Phase 7.1)
+model PriceAlert {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  // Route details
+  origin      String
+  destination String
+  departDate  DateTime?  @map("depart_date") // Optional for flexible dates
+  returnDate  DateTime?  @map("return_date")
+
+  // Alert criteria
+  targetPrice Decimal  @db.Decimal(10, 2) @map("target_price")
+  currentPrice Decimal? @db.Decimal(10, 2) @map("current_price")
+
+  // Status
+  isActive    Boolean  @default(true) @map("is_active")
+  lastChecked DateTime? @map("last_checked")
+  triggeredAt DateTime? @map("triggered_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("price_alerts")
+}
+
+// PassengerProfile table - stores passenger info for faster bookings (Phase 7.1)
+model PassengerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+
+  // Personal info
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  dateOfBirth     DateTime @map("date_of_birth")
+
+  // Travel documents
+  passportNumber  String?  @map("passport_number")
+  passportExpiry  DateTime? @map("passport_expiry")
+  passportCountry String?  @map("passport_country")
+
+  // Preferences
+  seatPreference  String?  @map("seat_preference") // window, aisle, middle
+  mealPreference  String?  @map("meal_preference") // vegetarian, kosher, etc.
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, passportNumber])
+  @@map("passenger_profiles")
 }

@@ -571,6 +571,58 @@ Edit the `SYSTEM_PROMPT` constant in `server/routes/chat.ts`. The prompt include
 2. Implement in the Zustand `create()` callback
 3. Use immutable update patterns (spread operators) to ensure React re-renders
 
+## Flight Booking Integration (Phase 7.1 - MVP)
+
+The app includes backend infrastructure for flight search and booking functionality.
+
+**Current Status**: Backend API complete with mock data support. Frontend UI to be added in future phases.
+
+**Configuration**:
+```bash
+# Duffel Flight API (optional)
+DUFFEL_API_KEY=your-duffel-api-key
+DUFFEL_WEBHOOK_SECRET=your-webhook-secret
+FLIGHT_SEARCH_CACHE_TTL=900000  # 15 minutes
+BOOKING_COMMISSION_PERCENT=2
+ENABLE_PRICE_ALERTS=true
+```
+
+**Database Schema** (see `prisma/schema.prisma`):
+- `flight_searches` - Cached flight search results (15min TTL)
+- `flight_bookings` - Confirmed bookings with PNR
+- `price_alerts` - User price tracking
+- `passenger_profiles` - Saved passenger information
+
+**Booking API Endpoints**:
+- `POST /api/booking/search` - Search for flights
+- `GET /api/booking/flights/:id` - Get flight details
+- `POST /api/booking/create` - Create a booking
+- `GET /api/booking/:pnr` - Get booking status
+- `DELETE /api/booking/:pnr` - Cancel a booking
+
+**Backend Components**:
+- `server/services/flightApi/duffel.ts` - Duffel API provider with mock data fallback
+- `server/services/flightApi/aggregator.ts` - Flight aggregator with caching
+- `server/services/flightApi/types.ts` - TypeScript interfaces
+- `server/routes/booking.ts` - Booking endpoints
+
+**Frontend Components** (to be implemented):
+- `src/services/agentRouter.ts` - Agent routing logic (planning vs booking)
+- `src/types/index.ts` - Frontend TypeScript types for booking
+
+**How It Works**:
+1. When Duffel API key is not configured, the system uses mock flight data
+2. Search results are cached in PostgreSQL for 15 minutes
+3. All bookings are saved to database with PNR tracking
+4. Provider interface allows for future multi-provider support (Kiwi.com, Amadeus)
+
+**Next Steps** (Future PRs):
+- Add booking UI components (search cards, flight results, passenger forms)
+- Implement booking agent with GPT-4o
+- Add Stripe payment integration for flights
+- Create price alert system with background jobs
+- Auto-sync bookings to trip itinerary
+
 ## Debugging Tips
 
 - **Conversation not working?**

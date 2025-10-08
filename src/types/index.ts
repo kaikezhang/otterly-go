@@ -188,3 +188,116 @@ export interface TripStats {
   totalDays: number;
   activitiesCount: number;
 }
+
+// Flight Booking Types (Phase 7.1)
+
+export type AgentType = 'planning' | 'booking';
+
+export interface AgentContext {
+  agent: AgentType;
+  conversationId: string;
+  state: string;
+  metadata?: Record<string, any>;
+  history?: ChatMessage[];
+}
+
+export type BookingResponseType =
+  | 'search_flights'
+  | 'flight_options'
+  | 'passenger_form'
+  | 'payment_required'
+  | 'booking_confirmed'
+  | 'message';
+
+export interface Flight {
+  id: string;
+  origin: string;
+  destination: string;
+  departTime: string;
+  arriveTime: string;
+  duration: string;
+  stops: number;
+  airline: string;
+  flightNumber: string;
+  price: number;
+  currency: string;
+  badge?: string; // 'Best Value', 'Fastest', 'Cheapest'
+  provider: string; // 'duffel', 'kiwi'
+  offerId?: string; // Provider-specific offer ID
+}
+
+export interface SearchCriteria {
+  origin: string;
+  destination: string;
+  departDate: string; // ISO date
+  returnDate?: string; // ISO date
+  passengers: number;
+  class: 'economy' | 'business' | 'first';
+}
+
+export interface Passenger {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // ISO date
+  passportNumber?: string;
+  passportExpiry?: string; // ISO date
+  passportCountry?: string;
+}
+
+export interface BookingRequest {
+  flightId: string;
+  offerId: string;
+  passengers: Passenger[];
+  tripId?: string;
+  totalPrice: number;
+}
+
+export interface Booking {
+  id: string;
+  userId: string;
+  tripId?: string;
+  pnr: string;
+  provider: string;
+  status: 'pending' | 'confirmed' | 'ticketed' | 'cancelled';
+  paymentStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  origin: string;
+  destination: string;
+  departDate: string;
+  returnDate?: string;
+  airline: string;
+  flightNumber: string;
+  passengers: Passenger[];
+  totalPrice: number;
+  currency: string;
+  confirmationEmail?: string;
+  ticketUrls?: string[];
+  createdAt: string;
+}
+
+export interface BookingResponse {
+  type: BookingResponseType;
+  message: string;
+  criteria?: SearchCriteria;
+  flights?: Flight[];
+  highlight?: string;
+  fields?: string[];
+  summary?: {
+    flight: string;
+    total: number;
+    breakdown: Record<string, number>;
+  };
+  booking_id?: string;
+  booking?: Booking;
+  next_steps?: string[];
+}
+
+export interface PriceAlert {
+  id: string;
+  origin: string;
+  destination: string;
+  departDate?: string;
+  returnDate?: string;
+  targetPrice: number;
+  currentPrice?: number;
+  isActive: boolean;
+}
