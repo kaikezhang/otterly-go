@@ -63,10 +63,16 @@ export default function Home() {
     markItineraryViewed,
     setBudget,
     flightSearchResults,
+    returnFlightSearchResults,
+    searchCriteria,
     selectedFlight,
+    selectedReturnFlight,
     currentBooking,
     setFlightSearchResults,
+    setReturnFlightSearchResults,
+    setSearchCriteria,
     setSelectedFlight,
+    setSelectedReturnFlight,
     setCurrentBooking,
     clearBookingState,
   } = useStore();
@@ -614,18 +620,45 @@ export default function Home() {
   // Booking handlers
   const handleFlightSearch = async (criteria: SearchCriteria) => {
     try {
-      const { flights } = await bookingApi.searchFlights(criteria);
-      setFlightSearchResults(flights);
+      // Store criteria to track if it's round-trip
+      setSearchCriteria(criteria);
 
-      // Add flight results to chat
-      const flightMsg = {
-        id: crypto.randomUUID(),
-        role: 'assistant' as const,
-        content: `Found ${flights.length} flights from ${criteria.origin} to ${criteria.destination}. Select a flight to book.`,
-        flightResults: flights,
-        timestamp: Date.now(),
-      };
-      addMessage(flightMsg);
+      // Search for outbound flights
+      const { flights: outboundFlights } = await bookingApi.searchFlights(criteria);
+      setFlightSearchResults(outboundFlights);
+
+      // Search for return flights if round-trip
+      if (criteria.returnDate) {
+        const returnCriteria = {
+          ...criteria,
+          origin: criteria.destination,
+          destination: criteria.origin,
+          departDate: criteria.returnDate,
+          returnDate: undefined,
+        };
+        const { flights: returnFlights } = await bookingApi.searchFlights(returnCriteria);
+        setReturnFlightSearchResults(returnFlights);
+
+        // Add message for round-trip results
+        const flightMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: `Found ${outboundFlights.length} outbound flights from ${criteria.origin} to ${criteria.destination} and ${returnFlights.length} return flights. Please select your outbound flight first.`,
+          flightResults: outboundFlights,
+          timestamp: Date.now(),
+        };
+        addMessage(flightMsg);
+      } else {
+        // One-way flight message
+        const flightMsg = {
+          id: crypto.randomUUID(),
+          role: 'assistant' as const,
+          content: `Found ${outboundFlights.length} flights from ${criteria.origin} to ${criteria.destination}. Select a flight to book.`,
+          flightResults: outboundFlights,
+          timestamp: Date.now(),
+        };
+        addMessage(flightMsg);
+      }
     } catch (error) {
       console.error('Flight search failed:', error);
       const errorMsg = {
@@ -649,9 +682,33 @@ export default function Home() {
   };
 
   const handleSelectFlight = (flight: Flight) => {
-    setSelectedFlight(flight);
-    setShowFlightDetailsModal(false);
-    setShowBookingForm(true);
+    // If this is a round-trip and we haven't selected outbound yet
+    if (searchCriteria?.returnDate && !selectedFlight) {
+      setSelectedFlight(flight);
+      setShowFlightDetailsModal(false);
+
+      // Show return flight options
+      const returnMsg = {
+        id: crypto.randomUUID(),
+        role: 'assistant' as const,
+        content: `Great! You've selected your outbound flight. Now please select your return flight from ${searchCriteria.destination} to ${searchCriteria.origin}.`,
+        flightResults: returnFlightSearchResults,
+        timestamp: Date.now(),
+      };
+      addMessage(returnMsg);
+    }
+    // If this is a round-trip and we're selecting the return flight
+    else if (searchCriteria?.returnDate && selectedFlight && !selectedReturnFlight) {
+      setSelectedReturnFlight(flight);
+      setShowFlightDetailsModal(false);
+      setShowBookingForm(true);
+    }
+    // One-way flight
+    else {
+      setSelectedFlight(flight);
+      setShowFlightDetailsModal(false);
+      setShowBookingForm(true);
+    }
   };
 
   const handleBookFlight = async (passengers: Passenger[], contactEmail: string) => {
@@ -1209,11 +1266,21 @@ export default function Home() {
       {/* Booking Form */}
       {showBookingForm && selectedFlight && (
         <BookingForm
-          flight={selectedFlight}
+          flight={{
+            ...selectedFlight,
+            // Add return flight information for round-trips
+            ...(selectedReturnFlight && {
+              returnTime: selectedReturnFlight.departTime,
+              returnArriveTime: selectedReturnFlight.arriveTime,
+              returnDuration: selectedReturnFlight.duration,
+              returnFlightNumber: selectedReturnFlight.flightNumber,
+            }),
+          }}
           onSubmit={handleBookFlight}
           onCancel={() => {
             setShowBookingForm(false);
             setSelectedFlight(null);
+            setSelectedReturnFlight(null);
           }}
           isLoading={isLoading}
         />
