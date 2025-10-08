@@ -75,3 +75,32 @@ export async function getActivitySuggestions(
   const data = await response.json();
   return data.suggestions || data.recommendations || [];
 }
+
+/**
+ * Get detailed information about a specific activity
+ * Returns a SuggestionCard with rich details, quotes, images, etc.
+ */
+export async function getActivityDetails(
+  trip: Trip,
+  item: { title: string; description: string; type: string }
+): Promise<SuggestionCard> {
+  const response = await fetch(`${API_URL}/api/activities/details`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      trip,
+      item,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.message || error.error || 'Failed to get activity details');
+  }
+
+  const data = await response.json();
+  return data.card;
+}

@@ -138,7 +138,7 @@ export function SharedTrip() {
             isEditMode={false}
             onRemoveItem={() => {}}
             onRequestSuggestion={() => {}}
-            onRequestReplace={() => {}}
+            onShowDetails={() => {}}
             hideShareButton={true}
           />
         </div>

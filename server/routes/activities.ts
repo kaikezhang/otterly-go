@@ -157,4 +157,67 @@ router.post(
   }
 );
 
+/**
+ * POST /api/activities/details
+ * Generate detailed information card for a specific activity
+ * Uses caching to avoid redundant LLM calls
+ *
+ * Request body:
+ * {
+ *   trip: Trip,
+ *   item: { title: string, description: string, type: string }
+ * }
+ *
+ * Response:
+ * {
+ *   card: SuggestionCard
+ * }
+ */
+router.post(
+  '/details',
+  requireAuth,
+  chatRateLimiter,
+  async (req, res) => {
+    try {
+      const { trip, item } = req.body;
+
+      if (!trip || !trip.destination || !item || !item.title) {
+        return res.status(400).json({
+          error: 'Invalid request',
+          message: 'Trip and item (with title) are required',
+        });
+      }
+
+      console.log(`[Activities API] Generating details for "${item.title}" in ${trip.destination}`);
+
+      // Import the details generator
+      const { generateActivityDetails } = await import('../services/activityDetails.js');
+
+      // Generate detailed card
+      const card = await generateActivityDetails(trip, item);
+
+      console.log(`[Activities API] Generated card for "${item.title}"`);
+
+      res.json({ card });
+
+    } catch (error) {
+      console.error('[Activities API] Error generating details:', error);
+
+      if (error instanceof Error) {
+        if (error.message.includes('OpenAI')) {
+          return res.status(503).json({
+            error: 'AI service unavailable',
+            message: 'Failed to generate activity details. Please try again.',
+          });
+        }
+      }
+
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to generate activity details.',
+      });
+    }
+  }
+);
+
 export default router;
