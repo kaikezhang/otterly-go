@@ -124,8 +124,13 @@ router.post('/create', requireAuth, async (req, res) => {
       success: true,
       booking: {
         ...booking,
+        userId: req.userId!,
+        paymentStatus: 'completed' as const,
+        totalPrice: booking.price.total,
+        currency: booking.price.currency,
         departDate: booking.departDate.toISOString(),
         returnDate: booking.returnDate?.toISOString(),
+        createdAt: new Date().toISOString(),
       },
       message: 'Booking created successfully',
     });

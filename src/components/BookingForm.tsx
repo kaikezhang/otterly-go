@@ -9,6 +9,16 @@ interface BookingFormProps {
   isLoading: boolean;
 }
 
+const formatTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const formatDate = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export function BookingForm({ flight, onSubmit, onCancel, isLoading }: BookingFormProps) {
   const [contactEmail, setContactEmail] = useState('');
   const [passengers, setPassengers] = useState<Passenger[]>([
@@ -119,7 +129,7 @@ export function BookingForm({ flight, onSubmit, onCancel, isLoading }: BookingFo
           {flight.origin} → {flight.destination}
         </div>
         <div className="text-sm text-gray-600">
-          {flight.airline} {flight.flightNumber} • {flight.departTime}
+          {flight.airline} {flight.flightNumber} • {formatDate(flight.departTime)} • {formatTime(flight.departTime)}
         </div>
         <div className="text-lg font-bold mt-2">${flight.price} {flight.currency}</div>
       </div>

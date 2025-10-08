@@ -7,6 +7,16 @@ interface FlightCardProps {
   onViewDetails: (flight: Flight) => void;
 }
 
+const formatTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const formatDate = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
 export function FlightCard({ flight, onSelect, onViewDetails }: FlightCardProps) {
   return (
     <div className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
@@ -18,7 +28,8 @@ export function FlightCard({ flight, onSelect, onViewDetails }: FlightCardProps)
 
       <div className="flex justify-between items-start mb-4">
         <div>
-          <div className="text-2xl font-bold">{flight.departTime}</div>
+          <div className="text-2xl font-bold">{formatTime(flight.departTime)}</div>
+          <div className="text-sm text-gray-500">{formatDate(flight.departTime)}</div>
           <div className="text-gray-600">{flight.origin}</div>
         </div>
 
@@ -31,7 +42,8 @@ export function FlightCard({ flight, onSelect, onViewDetails }: FlightCardProps)
         </div>
 
         <div className="text-right">
-          <div className="text-2xl font-bold">{flight.arriveTime}</div>
+          <div className="text-2xl font-bold">{formatTime(flight.arriveTime)}</div>
+          <div className="text-sm text-gray-500">{formatDate(flight.arriveTime)}</div>
           <div className="text-gray-600">{flight.destination}</div>
         </div>
       </div>
