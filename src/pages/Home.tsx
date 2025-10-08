@@ -14,7 +14,7 @@ import { FlightDetailsModal } from '../components/FlightDetailsModal';
 import { BookingForm } from '../components/BookingForm';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
-import { getTrip } from '../services/tripApi';
+import { getTrip, listTripsWithFilters } from '../services/tripApi';
 import { getActivityRecommendations } from '../services/activityApi';
 import { bookingApi } from '../services/bookingApi';
 import { isBookingIntent, extractFlightCriteria } from '../services/agentRouter';
@@ -91,6 +91,7 @@ export default function Home() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [animationTrigger, setAnimationTrigger] = useState(0);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [hasExistingTrips, setHasExistingTrips] = useState<boolean | null>(null);
 
   // Booking state
   const [flightDetails, setFlightDetails] = useState<FlightDetails | null>(null);
@@ -200,6 +201,26 @@ export default function Home() {
       }
     };
   }, [hasHydrated, tripId, addMessage, setConversationState]);
+
+  // Check if user has existing trips (to show/hide back button)
+  useEffect(() => {
+    if (hasHydrated && (!tripId || tripId === 'new')) {
+      const checkExistingTrips = async () => {
+        try {
+          const result = await listTripsWithFilters({ limit: 1 });
+          setHasExistingTrips(result.trips.length > 0);
+        } catch (error) {
+          console.error('Failed to check existing trips:', error);
+          // Assume they have trips on error (safer to show back button)
+          setHasExistingTrips(true);
+        }
+      };
+      checkExistingTrips();
+    } else {
+      // Reset state when not on /trip/new
+      setHasExistingTrips(null);
+    }
+  }, [hasHydrated, tripId]);
 
   // Auto-save trip to database whenever it changes
   useEffect(() => {
@@ -836,15 +857,18 @@ export default function Home() {
       {!trip && (
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Back to Dashboard"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
+            {/* Only show back button if user has existing trips */}
+            {hasExistingTrips && (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Back to Dashboard"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+            )}
             <h1 className="text-2xl font-bold text-gray-900">🦦 OtterlyGo</h1>
             {isSyncing && (
               <span className="text-xs text-blue-600 flex items-center gap-1">
