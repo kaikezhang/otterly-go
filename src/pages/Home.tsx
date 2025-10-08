@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, startTransition } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Chat } from '../components/Chat';
@@ -719,8 +719,8 @@ export default function Home() {
       // Add booking to the new trip
       const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
 
-      // Use setTimeout to avoid router context issues during state update
-      setTimeout(() => {
+      // Use startTransition to mark these updates as non-urgent
+      startTransition(() => {
         // Save to store (no navigation needed - stay at /trip/new like normal flow)
         setTrip(updatedTrip);
 
@@ -735,7 +735,7 @@ export default function Home() {
           timestamp: Date.now(),
         };
         addMessage(confirmMsg);
-      }, 0);
+      });
       return;
     }
 

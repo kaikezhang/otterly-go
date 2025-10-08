@@ -12,8 +12,8 @@ export function BookingConfirmation({ booking, onAddToTrip, addedToTrip }: Booki
 
   const handleAddToTrip = () => {
     if (onAddToTrip) {
+      setIsAdded(true); // Set immediately to disable button
       onAddToTrip();
-      setIsAdded(true);
     }
   };
 
