@@ -12,6 +12,7 @@ import {
   type ActivityRecommendationRequest
 } from '../services/activityRecommendation.js';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 
 const router = express.Router();
 
@@ -215,6 +216,184 @@ router.post(
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to generate activity details.',
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/activities/details/save
+ * Save activity details to database for persistence
+ *
+ * Request body:
+ * {
+ *   tripId: string,
+ *   dayIndex: number,
+ *   itemId: string,
+ *   suggestionCard: SuggestionCard
+ * }
+ */
+router.post(
+  '/details/save',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { tripId, dayIndex, itemId, suggestionCard } = req.body;
+
+      console.log('[Activities API] Save details request:', {
+        tripId,
+        dayIndex,
+        itemId,
+        hasSuggestionCard: !!suggestionCard,
+        suggestionCardKeys: suggestionCard ? Object.keys(suggestionCard) : [],
+        userId: req.user?.id,
+      });
+
+      if (!tripId || dayIndex === undefined || !itemId || !suggestionCard) {
+        console.error('[Activities API] Missing required fields:', {
+          hasTripId: !!tripId,
+          hasDayIndex: dayIndex !== undefined,
+          hasItemId: !!itemId,
+          hasSuggestionCard: !!suggestionCard,
+        });
+        return res.status(400).json({
+          error: 'Invalid request',
+          message: 'tripId, dayIndex, itemId, and suggestionCard are required',
+        });
+      }
+
+      // Verify trip belongs to user
+      const trip = await prisma.trip.findUnique({
+        where: { id: tripId },
+        select: { userId: true },
+      });
+
+      if (!trip) {
+        console.error(`[Activities API] Trip not found: ${tripId}`);
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+
+      if (trip.userId !== req.user!.id) {
+        console.error(`[Activities API] Access denied for user ${req.user!.id} to trip ${tripId}`);
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      console.log('[Activities API] Upserting activity details...');
+
+      // Upsert activity details (create or update)
+      const activityDetails = await prisma.activityDetails.upsert({
+        where: {
+          tripId_dayIndex_itemId: {
+            tripId,
+            dayIndex,
+            itemId,
+          },
+        },
+        update: {
+          suggestionCardJson: suggestionCard,
+          updatedAt: new Date(),
+        },
+        create: {
+          tripId,
+          dayIndex,
+          itemId,
+          suggestionCardJson: suggestionCard,
+        },
+      });
+
+      console.log(`[Activities API] Successfully saved details for item ${itemId} in trip ${tripId}`);
+
+      res.json({
+        success: true,
+        id: activityDetails.id,
+      });
+
+    } catch (error) {
+      console.error('[Activities API] Error saving activity details:');
+      console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Full error:', error);
+
+      res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Failed to save activity details.',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/activities/details/:tripId/:dayIndex/:itemId
+ * Get saved activity details from database
+ */
+router.get(
+  '/details/:tripId/:dayIndex/:itemId',
+  async (req, res) => {
+    try {
+      const { tripId, dayIndex, itemId } = req.params;
+
+      const activityDetails = await prisma.activityDetails.findUnique({
+        where: {
+          tripId_dayIndex_itemId: {
+            tripId,
+            dayIndex: parseInt(dayIndex),
+            itemId,
+          },
+        },
+      });
+
+      if (!activityDetails) {
+        return res.status(404).json({ error: 'Activity details not found' });
+      }
+
+      res.json({
+        card: activityDetails.suggestionCardJson,
+      });
+
+    } catch (error) {
+      console.error('[Activities API] Error fetching activity details:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to fetch activity details.',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/activities/details/:tripId/check
+ * Check which items in a trip have saved details
+ * Returns a map of "dayIndex-itemId" -> boolean
+ */
+router.get(
+  '/details/:tripId/check',
+  async (req, res) => {
+    try {
+      const { tripId } = req.params;
+
+      const allDetails = await prisma.activityDetails.findMany({
+        where: { tripId },
+        select: {
+          dayIndex: true,
+          itemId: true,
+        },
+      });
+
+      // Create a map for easy lookup
+      const detailsMap: Record<string, boolean> = {};
+      allDetails.forEach((detail) => {
+        const key = `${detail.dayIndex}-${detail.itemId}`;
+        detailsMap[key] = true;
+      });
+
+      res.json({ detailsMap });
+
+    } catch (error) {
+      console.error('[Activities API] Error checking activity details:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to check activity details.',
       });
     }
   }

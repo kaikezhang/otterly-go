@@ -38,6 +38,7 @@ interface ItineraryViewProps {
   isSyncing?: boolean;
   currentTripId?: string | null;
   hideShareButton?: boolean;
+  activityDetailsMap?: Record<string, boolean>; // Map of "dayIndex-itemId" -> hasDetails
   changedItemIds?: Set<string>;
   animationTrigger?: number;
 }
@@ -73,6 +74,7 @@ interface DayItemsListProps {
   changedItemIds?: Set<string>;
   animationTrigger?: number;
   budgetCurrency?: string;
+  activityDetailsMap?: Record<string, boolean>;
 }
 
 function DayItemsList({
@@ -85,6 +87,7 @@ function DayItemsList({
   changedItemIds,
   animationTrigger,
   budgetCurrency,
+  activityDetailsMap,
 }: DayItemsListProps) {
   const itemIds = day.items.map((item) => item.id);
 
@@ -95,25 +98,31 @@ function DayItemsList({
       strategy={verticalListSortingStrategy}
       disabled={!isEditMode}
     >
-      {day.items.map((item, itemIndex) => (
-        <SortableItineraryItem
-          key={item.id}
-          item={item}
-          dayIndex={dayIndex}
-          isEditMode={isEditMode}
-          isFirst={itemIndex === 0}
-          isChanged={changedItemIds?.has(item.id) || false}
-          animationTrigger={animationTrigger}
-          onRemove={() => onRemoveItem(dayIndex, item.id)}
-          onShowDetails={() => onShowDetails(dayIndex, item.id)}
-          onUpdate={
-            onUpdateItem
-              ? (updates) => onUpdateItem(dayIndex, item.id, updates)
-              : undefined
-          }
-          budgetCurrency={budgetCurrency}
-        />
-      ))}
+      {day.items.map((item, itemIndex) => {
+        const detailsKey = `${dayIndex}-${item.id}`;
+        const hasDetails = activityDetailsMap?.[detailsKey] || false;
+
+        return (
+          <SortableItineraryItem
+            key={item.id}
+            item={item}
+            dayIndex={dayIndex}
+            isEditMode={isEditMode}
+            isFirst={itemIndex === 0}
+            isChanged={changedItemIds?.has(item.id) || false}
+            animationTrigger={animationTrigger}
+            onRemove={() => onRemoveItem(dayIndex, item.id)}
+            onShowDetails={() => onShowDetails(dayIndex, item.id)}
+            onUpdate={
+              onUpdateItem
+                ? (updates) => onUpdateItem(dayIndex, item.id, updates)
+                : undefined
+            }
+            budgetCurrency={budgetCurrency}
+            hasDetails={hasDetails}
+          />
+        );
+      })}
     </SortableContext>
   );
 }
@@ -132,6 +141,7 @@ export function ItineraryView({
   isSyncing = false,
   currentTripId = null,
   hideShareButton = false,
+  activityDetailsMap,
   changedItemIds,
   animationTrigger,
 }: ItineraryViewProps) {
@@ -388,6 +398,7 @@ export function ItineraryView({
                         changedItemIds={changedItemIds}
                         animationTrigger={animationTrigger}
                         budgetCurrency={trip.budget?.currency}
+                        activityDetailsMap={activityDetailsMap}
                       />
                     )}
 
@@ -438,6 +449,7 @@ interface SortableItineraryItemProps {
   onShowDetails: () => void;
   onUpdate?: (updates: Partial<ItineraryItem>) => void;
   budgetCurrency?: string;
+  hasDetails?: boolean;
 }
 
 function SortableItineraryItem({
@@ -451,6 +463,7 @@ function SortableItineraryItem({
   onShowDetails,
   onUpdate,
   budgetCurrency,
+  hasDetails,
 }: SortableItineraryItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -672,7 +685,7 @@ function SortableItineraryItem({
         {/* Action Buttons */}
         {(showActions || isEditMode) && !isDragging && (
           <div className="flex gap-2">
-            {!isEditMode && (
+            {hasDetails && (
               <button
                 onClick={onShowDetails}
                 className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 font-medium"

@@ -15,7 +15,7 @@ import { BookingForm } from '../components/BookingForm';
 import { getConversationEngine } from '../services/conversationEngine';
 import { getTripCoverPhoto } from '../services/photoApi';
 import { getTrip } from '../services/tripApi';
-import { getActivityRecommendations } from '../services/activityApi';
+import { getActivityRecommendations, saveActivityDetails, checkActivityDetails } from '../services/activityApi';
 import { bookingApi } from '../services/bookingApi';
 import { isBookingIntent, extractFlightCriteria } from '../services/agentRouter';
 import { addBookingToTrip } from '../utils/bookingToItinerary';
@@ -97,6 +97,9 @@ export default function Home() {
   const [showFlightDetailsModal, setShowFlightDetailsModal] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
 
+  // Activity details map
+  const [activityDetailsMap, setActivityDetailsMap] = useState<Record<string, boolean>>({});
+
   // Close user menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -156,6 +159,15 @@ export default function Home() {
           setIsLoading(true);
           const tripData = await getTrip(tripId);
           loadTripFromDatabase(tripData);
+
+          // Load activity details map
+          try {
+            const detailsMap = await checkActivityDetails(tripId);
+            setActivityDetailsMap(detailsMap);
+          } catch (detailsErr) {
+            console.error('Failed to load activity details map:', detailsErr);
+            // Don't fail the whole trip load if details map fails
+          }
         } catch (err) {
           console.error('Failed to load trip:', err);
           setError('Failed to load trip. Redirecting to dashboard...');
@@ -388,7 +400,7 @@ export default function Home() {
     }
   };
 
-  const handleAddSuggestionToDay = (suggestionId: string, dayIndex: number) => {
+  const handleAddSuggestionToDay = async (suggestionId: string, dayIndex: number) => {
     // Find the suggestion in messages
     const message = messages.find((m) => m.suggestionCard?.id === suggestionId);
     if (!message?.suggestionCard) return;
@@ -405,6 +417,34 @@ export default function Home() {
     };
 
     addItemToDay(dayIndex, item);
+
+    // Save activity details to database so Details button appears
+    // First ensure the trip is saved to the database (needed for foreign key constraint)
+    if (trip) {
+      try {
+        // Save trip first if it hasn't been saved yet
+        await saveTripToDatabase();
+
+        // Get the updated trip ID from the store (saveTripToDatabase updates it)
+        const currentState = useStore.getState();
+        const tripId = currentState.trip?.id;
+
+        if (!tripId) {
+          throw new Error('Trip ID not available after save');
+        }
+
+        // Now save the activity details
+        await saveActivityDetails(tripId, dayIndex, item.id, suggestionCard);
+        console.log(`Saved activity details for "${item.title}" to database`);
+
+        // Update the activity details map to show Details button immediately
+        const detailsKey = `${dayIndex}-${item.id}`;
+        setActivityDetailsMap((prev) => ({ ...prev, [detailsKey]: true }));
+      } catch (error) {
+        console.error('Failed to save activity details:', error);
+        // Don't fail the whole operation if details save fails
+      }
+    }
 
     // Mark suggestion as added in the store
     markSuggestionAdded(suggestionId, dayIndex);
@@ -527,10 +567,24 @@ export default function Home() {
 
     try {
       // Import the getActivityDetails function
-      const { getActivityDetails } = await import('../services/activityApi');
+      const { getActivityDetails, saveActivityDetails } = await import('../services/activityApi');
 
       // Fetch detailed information about the activity
       const suggestionCard = await getActivityDetails(trip, item);
+
+      // Mark as details view (hide Add/Skip buttons since it's already in itinerary)
+      suggestionCard.hideActions = true;
+
+      // Save to database for persistence (for own trips with currentTripId)
+      if (currentTripId) {
+        try {
+          await saveActivityDetails(currentTripId, dayIndex, itemId, suggestionCard);
+          console.log(`Saved activity details for ${itemId} to database`);
+        } catch (saveError) {
+          console.error('Failed to save activity details to database:', saveError);
+          // Don't fail the whole operation if save fails
+        }
+      }
 
       // Add the suggestion card to the chat
       const assistantMsg: ChatMessage = {
@@ -1150,6 +1204,7 @@ export default function Home() {
               changedItemIds={changedItemIds}
               animationTrigger={animationTrigger}
               onOpenBudgetSettings={() => setShowBudgetModal(true)}
+              activityDetailsMap={activityDetailsMap}
             />
           </div>
         )}

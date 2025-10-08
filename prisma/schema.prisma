@@ -85,13 +85,14 @@ model Trip {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  coverPhoto    PhotoLibrary? @relation("TripCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
-  tripPhotos    TripPhoto[]
-  emailLogs     EmailLog[]
-  flightSearches FlightSearch[]
-  flightBookings FlightBooking[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations   Conversation[]
+  activityDetails ActivityDetails[]
+  coverPhoto      PhotoLibrary?     @relation("TripCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
+  tripPhotos      TripPhoto[]
+  emailLogs       EmailLog[]
+  flightSearches  FlightSearch[]
+  flightBookings  FlightBooking[]
 
   @@index([userId])
   @@index([userId, status]) // Fast filtering by user and status
@@ -100,6 +101,25 @@ model Trip {
   @@index([coverPhotoId])
   @@index([publicShareToken])
   @@map("trips")
+}
+
+// ActivityDetails table - stores persistent activity details/suggestions for itinerary items
+model ActivityDetails {
+  id                  String   @id @default(cuid())
+  tripId              String   @map("trip_id")
+  dayIndex            Int      @map("day_index") // Which day (0-based index)
+  itemId              String   @map("item_id") // Itinerary item ID
+  suggestionCardJson  Json     @map("suggestion_card_json") // Full SuggestionCard data
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, dayIndex, itemId]) // One details entry per item
+  @@index([tripId])
+  @@index([itemId])
+  @@map("activity_details")
 }
 
 // Conversations table - stores chat history for trips
