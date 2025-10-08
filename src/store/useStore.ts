@@ -652,7 +652,14 @@ export const useStore = create<StoreState>()(
 
       loadTripFromDatabase: (tripResponse: TripResponse) => {
         set({
-          trip: tripResponse.tripData,
+          trip: {
+            ...tripResponse.tripData,
+            // Merge database-level fields to ensure they're up-to-date
+            title: tripResponse.title,
+            destination: tripResponse.destination,
+            startDate: tripResponse.startDate,
+            endDate: tripResponse.endDate,
+          },
           currentTripId: tripResponse.id,
           messages: tripResponse.messages,
         });
