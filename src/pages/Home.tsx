@@ -718,9 +718,12 @@ export default function Home() {
 
       // Add booking to the new trip
       const { updatedTrip, dayIndex } = addBookingToTrip(newTrip, booking);
-      setTrip(updatedTrip);
 
-      // Navigate to the new trip URL
+      // Save to store and database first
+      setTrip(updatedTrip);
+      await saveTripToDatabase(updatedTrip);
+
+      // Now navigate to the new trip URL
       navigate(`/trip/${updatedTrip.id}`);
 
       // Switch to itinerary tab
