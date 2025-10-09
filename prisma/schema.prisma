@@ -189,6 +189,26 @@ model PhotoLibrary {
   @@map("photo_library")
 }
 
+// GeocodeCache table - caches Mapbox geocoding results (Milestone 3.1)
+model GeocodeCache {
+  id         String   @id @default(cuid())
+  cacheKey   String   @unique @map("cache_key")
+  query      String
+  proximity  String?
+  country    String?
+  lat        Float
+  lng        Float
+  address    String
+  usageCount Int      @default(0) @map("usage_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  expiresAt  DateTime @map("expires_at")
+
+  @@index([query])
+  @@index([expiresAt])
+  @@index([usageCount])
+  @@map("geocode_cache")
+}
+
 // TripPhoto table - associates photos with trips and itinerary items (Milestone 3.3)
 model TripPhoto {
   id             String   @id @default(cuid())
