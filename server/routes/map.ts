@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 
 const router = Router();
 
 // Mapbox API configuration
 const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
 
-// In-memory cache for geocoding results (production should use Redis)
-const geocodeCache = new Map<string, { lat: number; lng: number; address: string }>();
-const CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
+// Cache TTL: 30 days (stored in database)
+const CACHE_TTL_DAYS = 30;
 
 // Validation schemas
 const geocodeRequestSchema = z.object({
@@ -34,7 +34,7 @@ const directionsRequestSchema = z.object({
 
 /**
  * GET /api/map/geocode
- * Geocode a location query to coordinates
+ * Geocode a location query to coordinates (with database caching)
  */
 router.get('/geocode', async (req, res) => {
   try {
@@ -47,13 +47,32 @@ router.get('/geocode', async (req, res) => {
       country: req.query.country,
     });
 
-    // Check cache first
-    const cacheKey = `${query}${proximity ? `-${proximity.lng},${proximity.lat}` : ''}${country ? `-${country}` : ''}`;
-    if (geocodeCache.has(cacheKey)) {
-      const cached = geocodeCache.get(cacheKey)!;
+    // Build cache lookup parameters
+    const proximityString = proximity ? `${proximity.lng},${proximity.lat}` : '';
+    const cacheKey = `${query}|${proximityString}|${country || ''}`;
+
+    // Check database cache first
+    const cached = await prisma.geocodeCache.findUnique({
+      where: {
+        cacheKey,
+      },
+    });
+
+    // Return cached result if not expired
+    if (cached && cached.expiresAt > new Date()) {
+      // Increment usage count
+      await prisma.geocodeCache.update({
+        where: { id: cached.id },
+        data: { usageCount: { increment: 1 } },
+      });
+
       return res.json({
         success: true,
-        data: cached,
+        data: {
+          lat: cached.lat,
+          lng: cached.lng,
+          address: cached.address,
+        },
         cached: true,
       });
     }
@@ -104,13 +123,33 @@ router.get('/geocode', async (req, res) => {
       address: feature.place_name,
     };
 
-    // Cache the result
-    geocodeCache.set(cacheKey, result);
+    // Store in database cache (upsert to handle expired entries)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + CACHE_TTL_DAYS);
 
-    // Clean up old cache entries after TTL
-    setTimeout(() => {
-      geocodeCache.delete(cacheKey);
-    }, CACHE_TTL);
+    await prisma.geocodeCache.upsert({
+      where: {
+        cacheKey,
+      },
+      create: {
+        cacheKey,
+        query,
+        proximity: proximityString || null,
+        country: country || null,
+        lat: result.lat,
+        lng: result.lng,
+        address: result.address,
+        usageCount: 1,
+        expiresAt,
+      },
+      update: {
+        lat: result.lat,
+        lng: result.lng,
+        address: result.address,
+        expiresAt, // Refresh expiration
+        usageCount: { increment: 1 },
+      },
+    });
 
     res.json({
       success: true,
